@@ -1,4 +1,5 @@
 import type { ProviderConfig } from "@dada/types";
+import { fetchWithRetry } from "./fetchWithRetry";
 
 export async function interpretClick(
   config: ProviderConfig,
@@ -25,14 +26,24 @@ export async function interpretClick(
     response_format: { type: "json_object" },
   };
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify(body),
-  });
+  const timeoutCtrl = new AbortController();
+  const timeoutId = setTimeout(() => timeoutCtrl.abort(), 60_000);
+
+  let res: Response;
+  try {
+    res = await fetchWithRetry(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: timeoutCtrl.signal,
+      retries: 0,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!res.ok) {
     const text = await res.text();

@@ -60,10 +60,20 @@ export type StartResponse = {
   imageBase64: string;
 };
 
-export type InteractRequest = {
+export type VisionRequest = {
   session: Session;
   prevImageBase64: string;
   click: { x: number; y: number };
+};
+
+export type VisionResponse = {
+  intent: ClickIntent;
+};
+
+export type InteractRequest = {
+  session: Session;
+  intent: ClickIntent;
+  click?: { x: number; y: number };
 };
 
 export type InteractResponse = {

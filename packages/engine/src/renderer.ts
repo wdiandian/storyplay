@@ -8,5 +8,5 @@ export async function render(
   styleGuide: string,
 ): Promise<string> {
   const prompt = buildImagePrompt(frame, styleGuide);
-  return generateImage(config, prompt, { size: "1024x1536", quality: "medium" });
+  return generateImage(config, prompt);
 }

@@ -29,7 +29,7 @@ export function buildDirectorUserMessage(session: Session): string {
   parts.push(`画风：${session.styleGuide}`);
 
   if (session.history.length === 0) {
-    parts.push("\n这是故事的开场。请生成开场画面。");
+    parts.push("\n这是故事的开场。请生成开场画面，严格以 JSON 格式返回。");
     return parts.join("\n");
   }
 
@@ -47,7 +47,7 @@ export function buildDirectorUserMessage(session: Session): string {
     parts.push(beat.join("\n"));
   });
 
-  parts.push("\n请生成下一帧。");
+  parts.push("\n请生成下一帧，严格以 JSON 格式返回。");
   return parts.join("\n");
 }
 
@@ -111,5 +111,5 @@ export function buildVisionUserPrompt(uiElements: UIElement[]): string {
   return `当前画面包含以下已知 UI 元素：
 ${list}
 
-红点位置即为用户点击位置。请判断用户的意图。`;
+红点位置即为用户点击位置。请判断用户的意图，并以 JSON 格式返回结果。`;
 }

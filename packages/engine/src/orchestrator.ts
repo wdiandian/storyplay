@@ -1,10 +1,13 @@
 import type {
+  ClickIntent,
   EngineConfig,
   InteractRequest,
   InteractResponse,
   Session,
   StartRequest,
   StartResponse,
+  VisionRequest,
+  VisionResponse,
 } from "@dada/types";
 import { annotateClick } from "./annotate";
 import { direct } from "./director";
@@ -37,21 +40,27 @@ export async function startSession(
   };
 }
 
+export async function visionTurn(
+  config: EngineConfig,
+  req: VisionRequest,
+): Promise<VisionResponse> {
+  const annotated = await annotateClick(req.prevImageBase64, req.click);
+  const lastFrame = req.session.history.at(-1)?.frame;
+  const uiElements = lastFrame?.uiElements ?? [];
+  const intent = await interpret(config.vision, annotated, uiElements);
+  return { intent };
+}
+
 export async function takeTurn(
   config: EngineConfig,
   req: InteractRequest,
 ): Promise<InteractResponse> {
-  const annotated = await annotateClick(req.prevImageBase64, req.click);
-
-  const lastFrame = req.session.history.at(-1)?.frame;
-  const uiElements = lastFrame?.uiElements ?? [];
-
-  const intent = await interpret(config.vision, annotated, uiElements);
-
   const updatedSession: Session = {
     ...req.session,
     history: req.session.history.map((entry, idx, arr) =>
-      idx === arr.length - 1 ? { ...entry, click: req.click, intent } : entry,
+      idx === arr.length - 1
+        ? { ...entry, click: req.click, intent: req.intent }
+        : entry,
     ),
   };
 
@@ -66,6 +75,6 @@ export async function takeTurn(
     session: updatedSession,
     frame: nextFrame,
     imageBase64: nextImage,
-    intent,
+    intent: req.intent,
   };
 }

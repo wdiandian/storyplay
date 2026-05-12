@@ -49,7 +49,7 @@ Three providers, all independently configurable. Any OpenAI-compatible chat / im
 | Image · UI renderer   | `IMAGE_BASE_URL` `IMAGE_API_KEY` `IMAGE_MODEL` | `gpt-image-2` via OpenAI |
 | Vision · click reader | `VISION_BASE_URL` `VISION_API_KEY` `VISION_MODEL` | `gemini-3-flash` via Google |
 
-See `.env.example` for the exact shape.
+See `apps/web/.env.example` for the exact shape.
 
 ---
 
@@ -59,7 +59,7 @@ Requires Node 20+ and pnpm 9+.
 
 ```bash
 pnpm install
-cp .env.example .env.local
+cp apps/web/.env.example apps/web/.env.local
 # fill in the nine env vars
 pnpm dev
 # open http://localhost:3000

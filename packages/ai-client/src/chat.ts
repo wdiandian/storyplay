@@ -1,4 +1,5 @@
 import type { ProviderConfig } from "@dada/types";
+import { fetchWithRetry } from "./fetchWithRetry";
 
 export type ChatMessage = {
   role: "system" | "user" | "assistant";
@@ -20,7 +21,7 @@ export async function chat(
     body.response_format = { type: "json_object" };
   }
 
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

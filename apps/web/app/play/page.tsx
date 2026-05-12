@@ -11,6 +11,7 @@ import type {
   Session,
   StartResponse,
   StoryFrame,
+  VisionResponse,
 } from "@dada/types";
 
 function PlayInner() {
@@ -28,7 +29,10 @@ function PlayInner() {
   } | null>(null);
   const [turnNum, setTurnNum] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
   const startedRef = useRef(false);
+  const prefetchAbortRef = useRef<AbortController | null>(null);
+  const prefetchRef = useRef<Record<string, Promise<InteractResponse>>>({});
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -88,14 +92,60 @@ function PlayInner() {
       .catch((e) => setError(String(e)));
   }, [params, router]);
 
+  // Prefetch next-frame candidates whenever current frame becomes ready.
+  // All three fire in parallel for fastest cache fill. NOT depending on
+  // `phase` — we don't want to abort in-flight prefetches just because
+  // the user clicked. They should continue so handleClick can await them.
+  useEffect(() => {
+    if (!session || !frame) return;
+
+    prefetchAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    prefetchAbortRef.current = ctrl;
+
+    const choices = frame.uiElements.filter((e) => e.kind === "choice");
+    const promises: Record<string, Promise<InteractResponse>> = {};
+
+    for (const choice of choices) {
+      const syntheticIntent: ClickIntent = {
+        targetId: choice.id,
+        targetLabel: choice.label,
+        reasoning: "prefetch",
+      };
+      const p = fetch("/api/interact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session, intent: syntheticIntent }),
+        signal: ctrl.signal,
+      }).then(async (r) => {
+        if (!r.ok) {
+          const j = (await r.json().catch(() => ({}))) as { error?: string };
+          throw new Error(j.error ?? r.statusText);
+        }
+        return r.json() as Promise<InteractResponse>;
+      });
+      p.catch(() => {});
+      promises[choice.id] = p;
+    }
+
+    prefetchRef.current = promises;
+
+    return () => {
+      ctrl.abort();
+    };
+  }, [frame?.id, session?.id]);
+
   async function handleClick(click: { x: number; y: number }) {
     if (phase !== "ready" || !session || !imageBase64) return;
     setPhase("interacting");
     setPendingClick(click);
     setIntent(null);
 
+    const cacheSnapshot = prefetchRef.current;
+
     try {
-      const res = await fetch("/api/interact", {
+      // Step 1: Vision (~4s) — figure out what the user actually clicked
+      const visionRes = await fetch("/api/vision", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -104,20 +154,61 @@ function PlayInner() {
           click,
         }),
       });
-      if (!res.ok) {
-        const j = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(j.error ?? res.statusText);
+      if (!visionRes.ok) {
+        const j = (await visionRes.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(j.error ?? visionRes.statusText);
       }
-      const data = (await res.json()) as InteractResponse;
+      const { intent: clickIntent } =
+        (await visionRes.json()) as VisionResponse;
 
-      const updatedHistory = [
-        ...data.session.history,
-        { frame: data.frame },
-      ];
-      setSession({ ...data.session, history: updatedHistory });
-      setFrame(data.frame);
-      setImageBase64(data.imageBase64);
-      setIntent(data.intent);
+      // Step 2: Cache lookup
+      const cached = clickIntent.targetId
+        ? cacheSnapshot[clickIntent.targetId]
+        : undefined;
+
+      let result: InteractResponse;
+      if (cached) {
+        // Cache hit — await the prefetched promise (mostly already resolved)
+        result = await cached;
+        // Overwrite the synthetic prefetch intent on history with the real one
+        const lastIdx = result.session.history.length - 1;
+        result = {
+          ...result,
+          intent: clickIntent,
+          session: {
+            ...result.session,
+            history: result.session.history.map((entry, idx) =>
+              idx === lastIdx
+                ? { ...entry, click, intent: clickIntent }
+                : entry,
+            ),
+          },
+        };
+      } else {
+        // Cache miss (free-form click) — abort wasted prefetches, run live
+        prefetchAbortRef.current?.abort();
+        const liveRes = await fetch("/api/interact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session, intent: clickIntent, click }),
+        });
+        if (!liveRes.ok) {
+          const j = (await liveRes.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          throw new Error(j.error ?? liveRes.statusText);
+        }
+        result = (await liveRes.json()) as InteractResponse;
+      }
+
+      // Apply the result: append new frame to history
+      const updatedHistory = [...result.session.history, { frame: result.frame }];
+      setSession({ ...result.session, history: updatedHistory });
+      setFrame(result.frame);
+      setImageBase64(result.imageBase64);
+      setIntent(clickIntent);
       setPendingClick(null);
       setTurnNum((t) => t + 1);
       setPhase("ready");
@@ -189,7 +280,7 @@ function PlayInner() {
                 AI · is · painting · the · next · moment
               </p>
               <p className="font-serif italic text-clay-400 text-xs">
-                this usually takes 12–20 seconds
+                cached choices resolve in seconds · free-form takes longer
               </p>
             </div>
           )}
