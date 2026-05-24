@@ -24,8 +24,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        serif: ['"Cormorant Garamond"', '"Source Han Serif SC"', "ui-serif", "Georgia", "serif"],
-        sans: ['"Inter"', '"PingFang SC"', "ui-sans-serif", "system-ui", "sans-serif"],
+        serif: ['var(--font-serif)', '"Source Han Serif SC"', "ui-serif", "Georgia", "serif"],
+        sans: ['var(--font-sans)', '"PingFang SC"', "ui-sans-serif", "system-ui", "sans-serif"],
       },
       letterSpacing: {
         widest: "0.32em",
