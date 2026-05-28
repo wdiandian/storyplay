@@ -1,31 +1,37 @@
 # 云梦
 
-> An AI-driven visual novel where every frame — scenes, dialogue, choices — is rendered by an AI, one frame at a time. You click. It paints. The story unfolds.
+> An AI-driven visual novel painted by an AI, one scene at a time. You talk and explore within a scene; when the story turns a corner, it paints the next. You click. It paints. The story unfolds.
 
 ---
 
 ## How it works
 
-Each turn is three model calls:
+The story unfolds as a sequence of **scenes**. Each scene is one AI-painted background plus a short tree of **beats** — moments of narration, dialogue, and the occasional choice. You tap through a scene's beats and the image stays put; only when a choice leads somewhere genuinely new — another place, a new point of view, a jump in time — does the AI paint the next scene.
 
 ```
-[user clicks somewhere on the image]
+entering a scene
         │
         ▼
-1. Vision model    interprets the click against the visible UI
+1. Text LLM     directs the whole scene at once — a background prompt
+                plus a tree of beats (narration / dialogue / choices)
         │
         ▼
-2. Text LLM        writes the next frame (narration, dialogue, choices)
+2. Image model  paints the background once, 16:9, no UI baked in
         │
         ▼
-3. Image model     renders the entire next UI screen — scene, dialogue,
-                   buttons, all of it — as one painted frame
+[ tap through beats — no model calls, instant ]
         │
-        ▼
-[new image is shown; repeat]
+        ├─ in-scene choice ──────▶ jump to another beat (instant)
+        │
+        └─ scene-change choice ──▶ the next scene
+                                   (usually pre-generated — see below)
 ```
 
-There is no traditional UI. There is only the image. The AI chooses the layout, the colors, the typography, the buttons. Pick "stick figure on grid paper" as your style and you'll get hand-drawn UI. Pick "cyberpunk noir" and you'll get neon HUDs. Whatever fits the world.
+While you're reading one scene, the engine **speculatively generates the scenes your choices could lead to** — and, for unavoidable next steps, the scene after that. By the time you pick a direction, its image is usually already painted, so the cut feels instant.
+
+Clicking the background itself (not a button) routes through a **vision** model: it reads where you tapped and decides whether you're exploring the current scene (it inserts a beat — no new image) or moving on (a new scene).
+
+There is no traditional game UI baked into the art. The AI paints the world in whatever style you pick — "stick figure on grid paper" or "cyberpunk noir" — and the dialogue panel and choice buttons are a light HTML layer drawn on top, tuned to sit over the scene.
 
 ---
 
@@ -82,4 +88,4 @@ yume/
 
 ## Cost & limits
 
-Each turn costs roughly **\$0.15–0.25** in API fees with the recommended model trio. A 30-turn session is **\~\$5–8**. There is no rate limiting or auth out of the box — if you make your deployment public, your bill will reflect that. Add limits before sharing widely.
+Each **scene** costs roughly **\$0.15–0.25** in API fees with the recommended model trio (one text + one image call); tapping through a scene's beats is free. To keep transitions instant, the engine also **pre-generates scenes you might pick but don't** — so real spend runs somewhat higher than the scenes you actually see. There is no rate limiting or auth out of the box — if you make your deployment public, your bill will reflect that. Add limits (and consider lowering the prefetch depth) before sharing widely.

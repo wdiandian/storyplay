@@ -1,8 +1,9 @@
 import type {
-  ClickIntent,
   EngineConfig,
-  InteractRequest,
-  InteractResponse,
+  InsertBeatRequest,
+  InsertBeatResponse,
+  SceneRequest,
+  SceneResponse,
   Session,
   StartRequest,
   StartResponse,
@@ -10,13 +11,17 @@ import type {
   VisionResponse,
 } from "@yume/types";
 import { annotateClick } from "./annotate";
-import { direct } from "./director";
+import { directInsertBeat, directScene } from "./director";
 import { render } from "./renderer";
 import { interpret } from "./vision";
 
 function newSessionId(): string {
   return `s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
+
+// ──────────────────────────────────────────────────────────────────────
+//  startSession — first scene + image
+// ──────────────────────────────────────────────────────────────────────
 
 export async function startSession(
   config: EngineConfig,
@@ -30,51 +35,56 @@ export async function startSession(
     history: [],
   };
 
-  const frame = await direct(config.text, session);
-  const imageBase64 = await render(config.image, frame, session.styleGuide);
+  const scene = await directScene(config.text, session);
+  const imageBase64 = await render(config.image, scene, session.styleGuide);
 
   return {
     sessionId: session.id,
-    frame,
+    scene,
     imageBase64,
   };
 }
 
-export async function visionTurn(
+// ──────────────────────────────────────────────────────────────────────
+//  requestScene — generate the NEXT scene + image.
+//  Frontend passes a session whose latest history entry has `exit` set.
+//  Also used for prefetch speculation (frontend synthesizes the exit).
+// ──────────────────────────────────────────────────────────────────────
+
+export async function requestScene(
+  config: EngineConfig,
+  req: SceneRequest,
+): Promise<SceneResponse> {
+  const scene = await directScene(config.text, req.session);
+  const imageBase64 = await render(config.image, scene, req.session.styleGuide);
+  return { scene, imageBase64 };
+}
+
+// ──────────────────────────────────────────────────────────────────────
+//  visionDecide — interprets a background click into intent + classify.
+// ──────────────────────────────────────────────────────────────────────
+
+export async function visionDecide(
   config: EngineConfig,
   req: VisionRequest,
 ): Promise<VisionResponse> {
   const annotated = await annotateClick(req.prevImageBase64, req.click);
-  const lastFrame = req.session.history.at(-1)?.frame;
-  const uiElements = lastFrame?.uiElements ?? [];
-  const intent = await interpret(config.vision, annotated, uiElements);
-  return { intent };
+  const current = req.session.history.at(-1)?.scene ?? null;
+  return interpret(config.vision, annotated, current);
 }
 
-export async function takeTurn(
+// ──────────────────────────────────────────────────────────────────────
+//  requestInsertBeat — generates a transient in-scene beat (no image regen)
+// ──────────────────────────────────────────────────────────────────────
+
+export async function requestInsertBeat(
   config: EngineConfig,
-  req: InteractRequest,
-): Promise<InteractResponse> {
-  const updatedSession: Session = {
-    ...req.session,
-    history: req.session.history.map((entry, idx, arr) =>
-      idx === arr.length - 1
-        ? { ...entry, click: req.click, intent: req.intent }
-        : entry,
-    ),
-  };
-
-  const nextFrame = await direct(config.text, updatedSession);
-  const nextImage = await render(
-    config.image,
-    nextFrame,
-    updatedSession.styleGuide,
+  req: InsertBeatRequest,
+): Promise<InsertBeatResponse> {
+  const partial = await directInsertBeat(
+    config.text,
+    req.session,
+    req.freeformAction,
   );
-
-  return {
-    session: updatedSession,
-    frame: nextFrame,
-    imageBase64: nextImage,
-    intent: req.intent,
-  };
+  return { partial };
 }

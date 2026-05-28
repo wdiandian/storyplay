@@ -1,34 +1,70 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { StoryFrame } from "@yume/types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { Beat, BeatChoice } from "@yume/types";
 
-export type Phase = "loading-first" | "ready" | "interacting";
+export type Phase =
+  | "loading-first"        // first scene not yet rendered
+  | "ready"                // current beat is interactive
+  | "vision-thinking"      // background click → waiting on vision verdict
+  | "inserting-beat"       // vision-driven beat being generated
+  | "transitioning";       // changing scenes (cache miss or speculative wait)
 
 const SHADOW =
   "0 1px 0 rgba(45,24,16,0.05), 0 36px 64px -28px rgba(45,24,16,0.25), 0 8px 18px -6px rgba(45,24,16,0.10)";
 
 // ── Typewriter hook ────────────────────────────────────────────────────
-function useTypewriter(text: string, speed = 28): string {
+// Returns the progressively-revealed text, a `done` flag, and a `skip()` that
+// instantly completes the current text. Reset is keyed by `resetKey` (the beat
+// id) rather than the text, so a new beat whose line happens to match the
+// previous one still replays from scratch. `done` is derived synchronously
+// (not from a post-paint effect) so a stale "done" frame never paints.
+function useTypewriter(
+  text: string,
+  resetKey: string,
+  speed = 28,
+): { shown: string; done: boolean; skip: () => void } {
   const [displayed, setDisplayed] = useState("");
-  const textRef = useRef(text);
+  const [prevKey, setPrevKey] = useState(resetKey);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Render-phase reset (React "adjust state on prop change" pattern): when the
+  // beat changes, drop the old progress before this render commits.
+  if (resetKey !== prevKey) {
+    setPrevKey(resetKey);
+    setDisplayed("");
+  }
 
   useEffect(() => {
-    // Reset immediately when the text changes
-    setDisplayed("");
-    textRef.current = text;
     if (!text) return;
-
     let i = 0;
-    const id = setInterval(() => {
+    timer.current = setInterval(() => {
       i += 1;
       setDisplayed(text.slice(0, i));
-      if (i >= text.length) clearInterval(id);
+      if (i >= text.length && timer.current) {
+        clearInterval(timer.current);
+        timer.current = null;
+      }
     }, speed);
-    return () => clearInterval(id);
-  }, [text, speed]);
+    return () => {
+      if (timer.current) clearInterval(timer.current);
+      timer.current = null;
+    };
+  }, [resetKey, text, speed]);
 
-  return displayed;
+  const skip = useCallback(() => {
+    if (timer.current) {
+      clearInterval(timer.current);
+      timer.current = null;
+    }
+    setDisplayed(text);
+  }, [text]);
+
+  // During the throwaway render where the beat just changed, `displayed` still
+  // holds the previous beat's text — coerce it to empty so nothing stale shows.
+  const shown = resetKey === prevKey ? displayed : "";
+  const done = text.length === 0 || shown.length >= text.length;
+  return { shown, done, skip };
 }
 
 // ── Choice button ──────────────────────────────────────────────────────
@@ -59,7 +95,6 @@ function ChoiceButton({
         boxShadow: "0 2px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(200,165,90,0.12)",
       }}
     >
-      {/* Hover shimmer overlay */}
       <span
         className="absolute inset-0 rounded-[5px] opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
         style={{
@@ -89,49 +124,59 @@ function ChoiceButton({
 export function PlayCanvas({
   imageBase64,
   phase,
-  frame,
+  beat,
   pendingClick,
-  onClick,
+  onBackgroundClick,
+  onAdvance,
   onSelectChoice,
   fullViewport = false,
 }: {
   imageBase64: string | null;
   phase: Phase;
-  frame: StoryFrame | null;
+  beat: Beat | null;
   pendingClick: { x: number; y: number } | null;
-  onClick: (click: { x: number; y: number }) => void;
-  onSelectChoice?: (choiceId: string, label: string) => void;
+  onBackgroundClick: (click: { x: number; y: number }) => void;
+  onAdvance: () => void;
+  onSelectChoice: (choice: BeatChoice) => void;
   fullViewport?: boolean;
 }) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
 
-  const choices = frame?.uiElements.filter((e) => e.kind === "choice") ?? [];
-  const dialogueText = frame
-    ? [frame.speaker ? `${frame.speaker}：${frame.line ?? ""}` : frame.line, frame.narration]
-        .filter(Boolean)
-        .join("\n")
-    : "";
-  const narrationOnly = !frame?.speaker && !frame?.line && !!frame?.narration;
-  const displayBody = frame?.speaker
-    ? frame.line ?? ""
-    : frame?.narration ?? "";
+  const isChoiceBeat = beat?.next.type === "choice";
+  const choices: BeatChoice[] = isChoiceBeat
+    ? (beat!.next as { type: "choice"; choices: BeatChoice[] }).choices
+    : [];
 
-  const typedBody = useTypewriter(displayBody, 30);
+  const displayBody = beat?.speaker ? beat.line ?? "" : beat?.narration ?? "";
+  const { shown: typedBody, done: typingDone, skip: skipTypewriter } =
+    useTypewriter(displayBody, beat?.id ?? "", 30);
 
-  function handleClick(e: React.MouseEvent<HTMLImageElement>) {
-    if (phase !== "ready" || !imgRef.current) return;
+  function handleImageClick(e: React.MouseEvent<HTMLImageElement>) {
+    if (phase !== "ready" || !imgRef.current || !beat) return;
     const rect = imgRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
-    onClick({
+    // If the typewriter is still printing, a click completes it instantly
+    // (standard VN affordance) — the page never sees this click.
+    if (!typingDone) {
+      skipTypewriter();
+      return;
+    }
+    // For continue-type beats, image click advances; for choice beats,
+    // image click goes through vision (treat as freeform action).
+    if (beat.next.type === "continue") {
+      onAdvance();
+      return;
+    }
+    onBackgroundClick({
       x: Math.max(0, Math.min(1, x)),
       y: Math.max(0, Math.min(1, y)),
     });
   }
 
   const interactive = phase === "ready" && !!imageBase64;
-  const dimmed = phase === "interacting";
+  const dimmed = phase === "transitioning";
 
   const sizeStyle = fullViewport
     ? { maxWidth: "100vw", maxHeight: "100dvh" }
@@ -140,6 +185,13 @@ export function PlayCanvas({
   const placeholderWidth = fullViewport
     ? "min(100vw, calc(100dvh * 16 / 9))"
     : "min(96vw, calc((100dvh - 200px) * 16 / 9))";
+
+  const footerHint =
+    phase === "ready"
+      ? isChoiceBeat
+        ? "选 · 择 · 一 · 项"
+        : "点 · 击 · 推 · 进"
+      : "···";
 
   return (
     <div
@@ -150,13 +202,13 @@ export function PlayCanvas({
           className="relative inline-block"
           style={{ boxShadow: fullViewport ? "none" : SHADOW }}
         >
-          {/* ── Background image ── */}
+          {/* Background image */}
           <img
             key={imageBase64.slice(-48)}
             ref={imgRef}
             src={`data:image/png;base64,${imageBase64}`}
-            alt="Generated frame"
-            onClick={handleClick}
+            alt="Generated scene"
+            onClick={handleImageClick}
             onLoad={(e) => {
               const img = e.currentTarget;
               setDims({ w: img.naturalWidth, h: img.naturalHeight });
@@ -168,37 +220,27 @@ export function PlayCanvas({
             style={sizeStyle}
           />
 
-          {/* ── Top/bottom gradient vignette ── */}
           {!fullViewport && (
-            <>
-              <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-clay-900/12 to-transparent pointer-events-none" />
-            </>
+            <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-clay-900/12 to-transparent pointer-events-none" />
           )}
 
-          {/* ══════════════════════════════════════════════════════════
-              PREFAB UI OVERLAY — rendered on top of image
-          ══════════════════════════════════════════════════════════ */}
-          {frame && (
+          {beat && (
             <div className="absolute inset-0 flex flex-col justify-end pointer-events-none select-none">
-              {/* ── Choices row ── */}
               {choices.length > 0 && (
-                <div
-                  className="pointer-events-auto px-[3%] pb-[1.5%] flex gap-[1.5%] items-stretch"
-                >
+                <div className="pointer-events-auto px-[3%] pb-[1.5%] flex gap-[1.5%] items-stretch">
                   {choices.map((choice, i) => (
                     <ChoiceButton
                       key={choice.id}
                       index={i}
                       label={choice.label}
                       disabled={phase !== "ready"}
-                      onClick={() => onSelectChoice?.(choice.id, choice.label)}
+                      onClick={() => onSelectChoice(choice)}
                     />
                   ))}
                 </div>
               )}
 
-              {/* ── Dialogue / narration box ── */}
-              {(frame.narration || frame.line) && (
+              {(beat.narration || beat.line) && (
                 <div
                   className="pointer-events-none mx-[2%] mb-[2%] px-[3%] py-[2.2%] relative"
                   style={{
@@ -211,7 +253,6 @@ export function PlayCanvas({
                       "0 4px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(200,165,90,0.10)",
                   }}
                 >
-                  {/* Inner golden corner decoration */}
                   <span
                     className="absolute top-[6px] left-[8px] text-[10px] opacity-40 pointer-events-none"
                     style={{ color: "rgba(195,155,75,1)" }}
@@ -227,56 +268,57 @@ export function PlayCanvas({
                     ✦
                   </span>
 
-                  {/* Speaker name tag */}
-                  {frame.speaker && (
+                  {beat.speaker && (
                     <p
                       className="font-serif text-[11px] md:text-[12px] smallcaps mb-[0.6em]"
                       style={{ color: "rgba(205,165,90,0.92)" }}
                     >
-                      {frame.speaker}
+                      {beat.speaker}
                     </p>
                   )}
 
-                  {/* Main text */}
                   <p
                     className="font-serif leading-[1.85] text-[13px] md:text-[15px]"
                     style={{ color: "rgba(245,235,210,0.95)" }}
                   >
                     {typedBody}
-                    {/* Narration only — also show secondary line */}
-                    {frame.speaker && frame.narration && (
+                    {beat.speaker && beat.narration && (
                       <span
-                        className="block mt-[0.5em] italic text-[12px] md:text-[13px]"
+                        className={`block mt-[0.5em] italic text-[12px] md:text-[13px] transition-opacity duration-300 ${
+                          typingDone ? "opacity-100" : "opacity-0"
+                        }`}
                         style={{ color: "rgba(200,185,155,0.78)" }}
+                        aria-hidden={!typingDone}
                       >
-                        {frame.narration}
+                        {beat.narration}
                       </span>
                     )}
                   </p>
 
-                  {/* Scroll hint ▼ */}
-                  <span
-                    className="absolute bottom-[6px] right-[10px] text-[10px] animate-slow-pulse"
-                    style={{ color: "rgba(195,155,75,0.7)" }}
-                    aria-hidden
-                  >
-                    ▼
-                  </span>
+                  {typingDone && beat.next.type === "continue" && (
+                    <span
+                      className="absolute bottom-[6px] right-[10px] text-[10px] animate-slow-pulse"
+                      style={{ color: "rgba(195,155,75,0.7)" }}
+                      aria-hidden
+                    >
+                      ▼
+                    </span>
+                  )}
                 </div>
               )}
             </div>
           )}
 
-          {/* Loading/interacting dim overlay */}
-          {phase === "interacting" && (
+          {(phase === "transitioning" || phase === "inserting-beat") && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <p className="text-[10px] smallcaps text-cream-50/70 animate-slow-pulse">
-                AI · 正 · 在 · 描 · 画 · 下 · 一 · 刻
+                {phase === "transitioning"
+                  ? "AI · 正 · 在 · 描 · 画 · 下 · 一 · 幕"
+                  : "AI · 正 · 在 · 想 · 你 · 看 · 到 · 了 · 什 · 么"}
               </p>
             </div>
           )}
 
-          {/* Click ripple indicator */}
           {pendingClick && (
             <>
               <div
@@ -317,7 +359,7 @@ export function PlayCanvas({
         >
           <div className="w-1.5 h-1.5 bg-clay-500 rounded-full animate-slow-pulse" />
           <p className="text-[9px] smallcaps text-clay-500 animate-slow-pulse">
-            正 · 在 · 绘 · 制 · 第 · 一 · 帧
+            正 · 在 · 绘 · 制 · 第 · 一 · 幕
           </p>
         </div>
       )}
@@ -330,9 +372,7 @@ export function PlayCanvas({
           <span className="text-[9px] smallcaps text-clay-400 num">
             {dims ? `${dims.w} × ${dims.h} · png` : "—"}
           </span>
-          <span className="text-[9px] smallcaps text-clay-400">
-            {phase === "ready" ? (choices.length > 0 ? "选 · 择 · 一 · 项" : "任 · 意 · 点 · 击") : "···"}
-          </span>
+          <span className="text-[9px] smallcaps text-clay-400">{footerHint}</span>
         </div>
       )}
     </div>

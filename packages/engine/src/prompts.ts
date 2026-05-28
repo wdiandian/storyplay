@@ -1,28 +1,76 @@
-import type { Character, Session, StoryFrame, UIElement } from "@yume/types";
+import type { Scene, Session } from "@yume/types";
 
+// ──────────────────────────────────────────────────────────────────────
+//  Director — emits one Scene (background + a graph of beats) at a time.
+// ──────────────────────────────────────────────────────────────────────
 
-export const DIRECTOR_SYSTEM = `你是一个交互视觉小说的编剧导演。每次根据世界观、画风和历史，输出当前画面要呈现的内容。
+export const DIRECTOR_SYSTEM = `你是一个交互视觉小说的「场景导演」。每次基于世界观、画风、玩家历史，输出**一个完整的场景**。
+
+一个场景包含：
+- 一张背景图（你给出英文 scenePrompt）
+- 一组对话节拍 beats，玩家会按顺序经历它们
+
+每个 beat 是玩家会看到的一段叙述 / 对话 / 选择。beat 之间通过 next 字段连接：
+- "continue": 玩家点击图片背景 / 按继续，自然推进到下一个 beat
+- "choice": 在此让玩家做选择，按所选 choice 的 effect 走向
+
+choice 的 effect 有两种：
+- "advance-beat": 玩家选了之后跳到**同场景内**的另一个 beat（不换背景图，速度极快）
+- "change-scene": 玩家选了之后切换到**新场景**（视角变了 / 走到新地方 / 时间跳了）
+
+设计原则：
+- 同场景内 beat 数自由发挥，按剧情节奏自然给出（通常 2–6 个，可以更多）
+- 多用 continue，少用 choice — 选择只应出现在「真正的岔路口」
+- advance-beat 适合处理对话分支（同一场景里换个话题、追问、撒娇）
+- change-scene 适合空间/时间跳跃（出门、转身看窗外、第二天清晨）
+- 一个场景至少要有一个 change-scene 出口（除非真到结局）
+- 每个 change-scene 必须带 nextSceneSeed —— 一句中文简述「下一场是哪里、谁在、要发生什么」，用来引导下一次导演调用
+- 同一场景的 beat id 互不重复
+- next.nextBeatId 引用的 beat 必须存在
+- choice 至少 2 个，至多 4 个，互不重复
+
+文本风格约束：
+- narration / line 用中文，scenePrompt 用英文
+- 单个 beat 的 narration 与 line 加起来 ≤80 字
+- 单个 choice label ≤15 字
+- scenePrompt 只描述画面里看到什么，不要描述 UI
 
 必须输出严格 JSON，结构如下：
 {
-  "narration": "本帧旁白（可空字符串）",
-  "speaker": "本帧说话角色名（可空）",
-  "line": "本帧角色台词（可空）",
-  "scenePrompt": "英文场景描述，给图像模型用，描述画面里看到什么",
-  "uiElements": [
-    { "id": "choice_1", "kind": "choice", "label": "选项一文字（≤15 字）" },
-    { "id": "choice_2", "kind": "choice", "label": "选项二文字（≤15 字）" },
-    { "id": "choice_3", "kind": "choice", "label": "选项三文字（≤15 字）" }
+  "scenePrompt": "english scene description, no UI",
+  "entryBeatId": "b1",
+  "beats": [
+    {
+      "id": "b1",
+      "narration": "可空",
+      "speaker": "可空",
+      "line": "可空",
+      "next": { "type": "continue", "nextBeatId": "b2" }
+    },
+    {
+      "id": "b2",
+      "speaker": "...",
+      "line": "...",
+      "next": {
+        "type": "choice",
+        "choices": [
+          {
+            "id": "c1",
+            "label": "继续追问",
+            "effect": { "kind": "advance-beat", "targetBeatId": "b3" }
+          },
+          {
+            "id": "c2",
+            "label": "起身离开教室",
+            "effect": { "kind": "change-scene", "nextSceneSeed": "雨后湿漉漉的走廊，她追了出来" }
+          }
+        ]
+      }
+    }
   ]
 }
 
-规则：
-- narration / line 中文，scenePrompt 英文
-- 默认 3 个 choice 元素，可以根据情境额外加 menu/item/custom（罕见）
-- 选项必须能切实推进剧情，且互不重复
-- scenePrompt 描述当前的画面，不要包括 UI 元素
-- 单帧旁白与台词加起来控制在 80 字以内
-- 不要输出 JSON 以外的任何文本`;
+不要输出 JSON 以外的任何文本。`;
 
 export function buildDirectorUserMessage(session: Session): string {
   const parts: string[] = [];
@@ -30,38 +78,120 @@ export function buildDirectorUserMessage(session: Session): string {
   parts.push(`画风：${session.styleGuide}`);
 
   if (session.history.length === 0) {
-    parts.push("\n这是故事的开场。请生成开场画面，严格以 JSON 格式返回。");
+    parts.push("\n这是故事的开场。请生成第一个场景，严格以 JSON 格式返回。");
     return parts.join("\n");
   }
 
-  parts.push("\n历史：");
+  parts.push("\n场景历史（按时间顺序）：");
   session.history.forEach((entry, idx) => {
-    const f = entry.frame;
-    const beat: string[] = [`【第 ${idx + 1} 帧】`];
-    if (f.narration) beat.push(`旁白：${f.narration}`);
-    if (f.line) beat.push(`${f.speaker ?? "?"}：${f.line}`);
-    if (entry.intent) {
-      beat.push(
-        `用户行为：${entry.intent.targetLabel ?? entry.intent.freeformAction ?? "未知"}`,
-      );
+    const lines: string[] = [`【场景 ${idx + 1}】`];
+    lines.push(`  scenePrompt: ${entry.scene.scenePrompt}`);
+
+    const visited = entry.visitedBeatIds.length
+      ? entry.visitedBeatIds
+      : [entry.scene.entryBeatId];
+    const beatById = new Map(entry.scene.beats.map((b) => [b.id, b]));
+    const visitedBeats = visited
+      .map((id) => beatById.get(id))
+      .filter((b): b is NonNullable<typeof b> => Boolean(b));
+
+    for (const b of visitedBeats) {
+      const fragments: string[] = [];
+      if (b.narration) fragments.push(`旁白：${b.narration}`);
+      if (b.line) fragments.push(`${b.speaker ?? "?"}：${b.line}`);
+      if (fragments.length) lines.push("  " + fragments.join(" / "));
     }
-    parts.push(beat.join("\n"));
+
+    if (entry.exit) {
+      if (entry.exit.kind === "choice") {
+        lines.push(
+          `  玩家最终选择：${entry.exit.label}（去往：${entry.exit.nextSceneSeed}）`,
+        );
+      } else {
+        lines.push(`  玩家自由动作：${entry.exit.action}`);
+      }
+    }
+    parts.push(lines.join("\n"));
   });
 
-  parts.push("\n请生成下一帧，严格以 JSON 格式返回。");
+  const last = session.history.at(-1);
+  const lastExit = last?.exit;
+  if (lastExit) {
+    if (lastExit.kind === "choice") {
+      parts.push(
+        `\n请基于「玩家在上一场选择了：${lastExit.label}」，生成下一个场景（参考种子：${lastExit.nextSceneSeed}）。`,
+      );
+    } else {
+      parts.push(
+        `\n请基于「玩家自由动作：${lastExit.action}」，生成下一个场景。`,
+      );
+    }
+  } else {
+    parts.push("\n请生成下一个场景。");
+  }
+
+  parts.push("严格以 JSON 格式返回。");
   return parts.join("\n");
 }
 
-export function buildImagePrompt(
-  frame: StoryFrame,
-  styleGuide: string,
+// ──────────────────────────────────────────────────────────────────────
+//  Insert-Beat — given a freeform vision action that is judged to stay
+//  *within* the current scene, generate one transient beat.
+// ──────────────────────────────────────────────────────────────────────
+
+export const INSERT_BEAT_SYSTEM = `你是视觉小说编剧。玩家在当前场景内做了一个**不会换场景的自由动作**（比如看一眼桌上的相框、想了想刚才那句话）。请基于此动作，写出一个**单独的、过渡性的 beat**：可以是旁白、角色台词、或两者结合。
+
+文本风格约束：
+- narration / line 用中文
+- narration 与 line 加起来 ≤80 字
+- 不要打破当前场景的物理状态（玩家仍在原地、对面仍是同一个角色）
+- 不要生成选项或下一步指引 —— 玩家点击会自然回到原 beat
+
+必须输出严格 JSON：
+{
+  "narration": "...",
+  "speaker": "...",
+  "line": "..."
+}
+
+字段都可为空字符串。不要输出 JSON 以外的任何文本。`;
+
+export function buildInsertBeatUserMessage(
+  session: Session,
+  freeformAction: string,
 ): string {
+  const parts: string[] = [];
+  parts.push(`世界观：${session.worldSetting}`);
+
+  const current = session.history.at(-1);
+  if (current) {
+    parts.push(`当前场景：${current.scene.scenePrompt}`);
+    const lastBeatId = current.visitedBeatIds.at(-1) ?? current.scene.entryBeatId;
+    const lastBeat = current.scene.beats.find((b) => b.id === lastBeatId);
+    if (lastBeat) {
+      const recent: string[] = [];
+      if (lastBeat.narration) recent.push(`旁白：${lastBeat.narration}`);
+      if (lastBeat.line) recent.push(`${lastBeat.speaker ?? "?"}：${lastBeat.line}`);
+      if (recent.length) parts.push(`刚才发生：${recent.join(" / ")}`);
+    }
+  }
+
+  parts.push(`\n玩家此刻的自由动作：${freeformAction}`);
+  parts.push("\n请生成一个过渡性 beat，严格以 JSON 格式返回。");
+  return parts.join("\n");
+}
+
+// ──────────────────────────────────────────────────────────────────────
+//  Image renderer
+// ──────────────────────────────────────────────────────────────────────
+
+export function buildImagePrompt(scene: Scene, styleGuide: string): string {
   return `Generate a cinematic landscape background illustration, 16:9 widescreen (1792x1024).
 
 ART STYLE: ${styleGuide}
 
 SCENE (fill the ENTIRE canvas — no UI elements, no text overlays):
-${frame.scenePrompt}
+${scene.scenePrompt}
 
 STRICT RULES — NEVER violate these:
 - DO NOT draw any dialogue boxes, speech bubbles, text panels, or any rectangular overlay.
@@ -74,25 +204,31 @@ STRICT RULES — NEVER violate these:
 - Characters or key scene elements should be positioned in the upper 65% of the frame.`;
 }
 
+// ──────────────────────────────────────────────────────────────────────
+//  Vision — interprets a background click and classifies the action.
+// ──────────────────────────────────────────────────────────────────────
 
-export const VISION_SYSTEM_PROMPT = `你是视觉理解助手。用户在视觉小说界面上点击了红色圆点位置，你要根据红点位置和图中可见的 UI 元素，判断用户的意图。
+export const VISION_SYSTEM_PROMPT = `你是视觉理解助手。玩家在视觉小说的背景图上点击了红色圆点位置（HTML 上的选项按钮不会走到你这里）。你的任务是：
+1. 看清红点指向画面里的什么（物件、角色、空间、远处的方向）
+2. 推断玩家想干什么
+3. 判断这个动作是「场内探索」（不该换图）还是「场景切换」（要换图）
+
+判断准则：
+- "insert-beat"（场内探索）：观察画面里某个细节、自言自语、和当前角色继续互动、看一眼某个物件
+- "change-scene"（场景切换）：走向画面深处的门 / 走廊、转头看向新方向（视角变了）、点了远处的另一个空间、暗示时间跳跃的物件（如时钟）
 
 必须输出严格 JSON：
 {
-  "targetId": "对应的 UI 元素 id（choice_1 / choice_2 / choice_3 / menu / ...），如果点击的是非 UI 区域则为 null",
-  "targetLabel": "对应 UI 元素的文字描述（如 '告诉她真相'），未知则为 null",
-  "reasoning": "一句话说明判断理由",
-  "freeformAction": "如果用户点的是场景中的物件/角色等非选项区域，描述他可能的意图（如 '想拿起桌上的钥匙'），否则空字符串"
+  "freeformAction": "玩家想做什么的一句中文描述，例如「想拿起桌上的钥匙」",
+  "classify": "insert-beat" 或 "change-scene",
+  "reasoning": "一句话说明判断理由"
 }
 
 不要输出 JSON 以外的任何文本。`;
 
-export function buildVisionUserPrompt(uiElements: UIElement[]): string {
-  const list = uiElements
-    .map((e) => `- id="${e.id}" kind="${e.kind}" label="${e.label}"`)
-    .join("\n");
-  return `当前画面包含以下已知 UI 元素：
-${list}
+export function buildVisionUserPrompt(scene: Scene | null): string {
+  if (!scene) return "请判断玩家意图，并以 JSON 格式返回。";
+  return `当前场景描述：${scene.scenePrompt}
 
-红点位置即为用户点击位置。请判断用户的意图，并以 JSON 格式返回结果。`;
+红点位置即为玩家点击位置。请判断玩家意图与分类，以 JSON 格式返回。`;
 }

@@ -1,41 +1,85 @@
-export type UIElementKind = "choice" | "menu" | "item" | "custom";
+// ──────────────────────────────────────────────────────────────────────
+//  Beat — one dialogue / narration moment within a Scene.
+//  Multiple beats share the same background image; tapping or choosing
+//  advances among them WITHOUT regenerating the image.
+// ──────────────────────────────────────────────────────────────────────
 
-export type UIElement = {
-  id: string;
-  kind: UIElementKind;
-  label: string;
-  hint?: string;
-};
-
-export type StoryFrame = {
+export type Beat = {
   id: string;
   narration?: string;
   speaker?: string;
   line?: string;
+  next: BeatNext;
+};
+
+export type BeatNext =
+  | { type: "continue"; nextBeatId: string }
+  | { type: "choice"; choices: BeatChoice[] };
+
+export type BeatChoice = {
+  id: string;
+  label: string;
+  effect: BeatChoiceEffect;
+};
+
+export type BeatChoiceEffect =
+  | { kind: "advance-beat"; targetBeatId: string }
+  | { kind: "change-scene"; nextSceneSeed: string };
+
+// ──────────────────────────────────────────────────────────────────────
+//  Scene — one background image + a graph of beats.
+//  The Director emits an entire Scene per call; the player navigates
+//  through its beats locally with zero network until exiting.
+// ──────────────────────────────────────────────────────────────────────
+
+export type Scene = {
+  id: string;
   scenePrompt: string;
-  uiElements: UIElement[];
+  beats: Beat[];
+  entryBeatId: string;
 };
 
-export type ClickIntent = {
-  targetId: string | null;
-  targetLabel: string | null;
-  reasoning: string;
-  freeformAction?: string;
+export type SceneExit =
+  | {
+      kind: "choice";
+      choiceId: string;
+      label: string;
+      nextSceneSeed: string;
+    }
+  | { kind: "freeform"; action: string };
+
+export type SceneHistoryEntry = {
+  scene: Scene;
+  visitedBeatIds: string[];
+  exit?: SceneExit;
 };
 
-export type HistoryEntry = {
-  frame: StoryFrame;
-  click?: { x: number; y: number };
-  intent?: ClickIntent;
-};
+// ──────────────────────────────────────────────────────────────────────
+//  Session
+// ──────────────────────────────────────────────────────────────────────
 
 export type Session = {
   id: string;
   createdAt: number;
   worldSetting: string;
   styleGuide: string;
-  history: HistoryEntry[];
+  history: SceneHistoryEntry[];
 };
+
+// ──────────────────────────────────────────────────────────────────────
+//  Vision
+// ──────────────────────────────────────────────────────────────────────
+
+export type ClickIntent = {
+  freeformAction: string;
+  reasoning: string;
+};
+
+export type VisionClassify = "insert-beat" | "change-scene";
+
+// ──────────────────────────────────────────────────────────────────────
+//  Provider config
+// ──────────────────────────────────────────────────────────────────────
 
 export type ProviderConfig = {
   baseUrl: string;
@@ -49,6 +93,10 @@ export type EngineConfig = {
   vision: ProviderConfig;
 };
 
+// ──────────────────────────────────────────────────────────────────────
+//  API contracts
+// ──────────────────────────────────────────────────────────────────────
+
 export type StartRequest = {
   worldSetting: string;
   styleGuide: string;
@@ -56,10 +104,25 @@ export type StartRequest = {
 
 export type StartResponse = {
   sessionId: string;
-  frame: StoryFrame;
+  scene: Scene;
   imageBase64: string;
 };
 
+// /api/scene — generates the next Scene, given session whose latest
+// history entry has `exit` set. Also used for prefetch speculation
+// (frontend synthesizes a speculative exit).
+export type SceneRequest = {
+  session: Session;
+};
+
+export type SceneResponse = {
+  scene: Scene;
+  imageBase64: string;
+};
+
+// /api/vision — interprets a background click on the current image and
+// classifies whether it should insert a beat (in-scene exploration) or
+// trigger a scene change.
 export type VisionRequest = {
   session: Session;
   prevImageBase64: string;
@@ -68,17 +131,20 @@ export type VisionRequest = {
 
 export type VisionResponse = {
   intent: ClickIntent;
+  classify: VisionClassify;
 };
 
-export type InteractRequest = {
+// /api/insert-beat — generates a single transient beat in response to
+// a freeform vision action. Does NOT regenerate the image.
+export type InsertBeatRequest = {
   session: Session;
-  intent: ClickIntent;
-  click?: { x: number; y: number };
+  freeformAction: string;
 };
 
-export type InteractResponse = {
-  session: Session;
-  frame: StoryFrame;
-  imageBase64: string;
-  intent: ClickIntent;
+export type InsertBeatResponse = {
+  partial: {
+    narration?: string;
+    speaker?: string;
+    line?: string;
+  };
 };

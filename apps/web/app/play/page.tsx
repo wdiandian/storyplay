@@ -2,17 +2,175 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { PlayCanvas, type Phase } from "@/components/PlayCanvas";
 import { PRESETS } from "@/lib/presets";
 import type {
-  ClickIntent,
-  InteractResponse,
+  Beat,
+  BeatChoice,
+  InsertBeatResponse,
+  Scene,
+  SceneExit,
+  SceneResponse,
   Session,
   StartResponse,
-  StoryFrame,
   VisionResponse,
 } from "@yume/types";
+
+// ──────────────────────────────────────────────────────────────────────
+//  Prefetch pool — speculative SceneResponses keyed by choice path.
+//
+//  Key format: "C1" → reached by choosing C1 from current scene.
+//              "C1/C2" → after C1, then C2 (recursive must-pass prefetch).
+//
+//  When the player picks a change-scene choice, we keep that key's
+//  descendants (re-rooted) and abort the rest.
+// ──────────────────────────────────────────────────────────────────────
+
+const PREFETCH_MAX_DEPTH = 3;
+
+type PrefetchEntry = {
+  promise: Promise<SceneResponse>;
+  abort: AbortController;
+};
+
+type ScenePathStep = {
+  fromScene: Scene;
+  fromVisitedBeats: string[];
+  exit: { choiceId: string; label: string; nextSceneSeed: string };
+};
+
+function pathKey(steps: ScenePathStep[]): string {
+  return steps.map((s) => s.exit.choiceId).join("/");
+}
+
+function buildSpeculativeSession(
+  base: Session,
+  steps: ScenePathStep[],
+): Session {
+  // Drop base's current (last) entry and re-add each step's `fromScene` with
+  // its exit set. Final result has `history.length = base.length - 1 + steps.length`.
+  const newHistory = [...base.history.slice(0, -1)];
+  for (const step of steps) {
+    newHistory.push({
+      scene: step.fromScene,
+      visitedBeatIds: step.fromVisitedBeats,
+      exit: {
+        kind: "choice",
+        choiceId: step.exit.choiceId,
+        label: step.exit.label,
+        nextSceneSeed: step.exit.nextSceneSeed,
+      },
+    });
+  }
+  return { ...base, history: newHistory };
+}
+
+function findAllChangeSceneChoices(scene: Scene): BeatChoice[] {
+  const result: BeatChoice[] = [];
+  const seen = new Set<string>();
+  for (const b of scene.beats) {
+    if (b.next.type === "choice") {
+      for (const c of b.next.choices) {
+        if (c.effect.kind === "change-scene" && !seen.has(c.id)) {
+          seen.add(c.id);
+          result.push(c);
+        }
+      }
+    }
+  }
+  return result;
+}
+
+function findSoleChangeSceneChoice(scene: Scene): BeatChoice | null {
+  const all = findAllChangeSceneChoices(scene);
+  return all.length === 1 ? all[0]! : null;
+}
+
+function prefetchScenePath(
+  pool: Map<string, PrefetchEntry>,
+  baseSession: Session,
+  steps: ScenePathStep[],
+  depth: number,
+): void {
+  if (depth >= PREFETCH_MAX_DEPTH) return;
+  const key = pathKey(steps);
+  if (pool.has(key)) return;
+
+  const specSession = buildSpeculativeSession(baseSession, steps);
+  const abort = new AbortController();
+  const promise = (async () => {
+    const res = await fetch("/api/scene", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session: specSession }),
+      signal: abort.signal,
+    });
+    if (!res.ok) {
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(j.error ?? res.statusText);
+    }
+    const data = (await res.json()) as SceneResponse;
+
+    // Recursive: if the resulting scene has exactly one change-scene exit,
+    // it is a must-pass node — prefetch its child too.
+    if (depth + 1 < PREFETCH_MAX_DEPTH) {
+      const sole = findSoleChangeSceneChoice(data.scene);
+      if (sole && sole.effect.kind === "change-scene") {
+        const nextStep: ScenePathStep = {
+          fromScene: data.scene,
+          fromVisitedBeats: [data.scene.entryBeatId],
+          exit: {
+            choiceId: sole.id,
+            label: sole.label,
+            nextSceneSeed: sole.effect.nextSceneSeed,
+          },
+        };
+        prefetchScenePath(pool, baseSession, [...steps, nextStep], depth + 1);
+      }
+    }
+
+    return data;
+  })();
+
+  promise.catch(() => {});
+  pool.set(key, { promise, abort });
+}
+
+function consumeChoice(
+  pool: Map<string, PrefetchEntry>,
+  choiceId: string,
+): PrefetchEntry | undefined {
+  const my = pool.get(choiceId);
+  const survivors = new Map<string, PrefetchEntry>();
+  for (const [key, entry] of pool) {
+    if (key === choiceId) continue;
+    if (key.startsWith(choiceId + "/")) {
+      survivors.set(key.slice(choiceId.length + 1), entry);
+    } else {
+      entry.abort.abort();
+    }
+  }
+  pool.clear();
+  for (const [k, e] of survivors) pool.set(k, e);
+  return my;
+}
+
+function clearPool(pool: Map<string, PrefetchEntry>): void {
+  for (const e of pool.values()) e.abort.abort();
+  pool.clear();
+}
+
+// ──────────────────────────────────────────────────────────────────────
+//  Component
+// ──────────────────────────────────────────────────────────────────────
 
 function PlayInner() {
   const router = useRouter();
@@ -20,21 +178,60 @@ function PlayInner() {
 
   const [phase, setPhase] = useState<Phase>("loading-first");
   const [session, setSession] = useState<Session | null>(null);
+  const [currentScene, setCurrentScene] = useState<Scene | null>(null);
+  const [currentBeatId, setCurrentBeatId] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [frame, setFrame] = useState<StoryFrame | null>(null);
-  const [intent, setIntent] = useState<ClickIntent | null>(null);
   const [pendingClick, setPendingClick] = useState<{
     x: number;
     y: number;
   } | null>(null);
-  const [turnNum, setTurnNum] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [presentation, setPresentation] = useState(false);
+  const [lastExitLabel, setLastExitLabel] = useState<string | null>(null);
 
   const startedRef = useRef(false);
-  const prefetchAbortRef = useRef<AbortController | null>(null);
-  const prefetchRef = useRef<Record<string, Promise<InteractResponse>>>({});
+  const poolRef = useRef<Map<string, PrefetchEntry>>(new Map());
 
+  // Mirrors for use inside async handlers (closure-stable)
+  const sessionRef = useRef<Session | null>(null);
+  const currentSceneRef = useRef<Scene | null>(null);
+  const currentBeatRef = useRef<Beat | null>(null);
+  const visitedBeatsRef = useRef<string[]>([]);
+
+  const currentBeat = useMemo<Beat | null>(() => {
+    if (!currentScene || !currentBeatId) return null;
+    return currentScene.beats.find((b) => b.id === currentBeatId) ?? null;
+  }, [currentScene, currentBeatId]);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+  useEffect(() => {
+    currentSceneRef.current = currentScene;
+  }, [currentScene]);
+  useEffect(() => {
+    currentBeatRef.current = currentBeat;
+  }, [currentBeat]);
+
+  // Whenever currentBeatId changes, append it to visited (skip consecutive dups)
+  useEffect(() => {
+    if (!currentBeatId) return;
+    if (visitedBeatsRef.current.at(-1) === currentBeatId) return;
+    visitedBeatsRef.current = [...visitedBeatsRef.current, currentBeatId];
+    setSession((s) => {
+      if (!s) return s;
+      return {
+        ...s,
+        history: s.history.map((h, i, arr) =>
+          i === arr.length - 1
+            ? { ...h, visitedBeatIds: [...visitedBeatsRef.current] }
+            : h,
+        ),
+      };
+    });
+  }, [currentBeatId]);
+
+  // ── Presentation mode toggle ─────────────────────────────────────────
   const togglePresentation = useCallback(async () => {
     const entering = !presentation;
     if (entering) {
@@ -43,14 +240,12 @@ function PlayInner() {
           await document.documentElement.requestFullscreen();
         }
       } catch {
-        // Browser may refuse fullscreen — still enter chrome-less mode
+        // ignore — fall through to chrome-less mode anyway
       }
       setPresentation(true);
     } else {
       try {
-        if (document.fullscreenElement) {
-          await document.exitFullscreen();
-        }
+        if (document.fullscreenElement) await document.exitFullscreen();
       } catch {
         // ignore
       }
@@ -69,10 +264,7 @@ function PlayInner() {
       }
     }
     function onFullscreenChange() {
-      // Sync if user exited browser fullscreen via Esc / system gesture
-      if (!document.fullscreenElement && presentation) {
-        setPresentation(false);
-      }
+      if (!document.fullscreenElement && presentation) setPresentation(false);
     }
     window.addEventListener("keydown", onKey);
     document.addEventListener("fullscreenchange", onFullscreenChange);
@@ -82,6 +274,7 @@ function PlayInner() {
     };
   }, [togglePresentation, presentation]);
 
+  // ── Bootstrap: start session ─────────────────────────────────────────
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
@@ -91,9 +284,7 @@ function PlayInner() {
 
     if (presetId) {
       const p = PRESETS.find((x) => x.id === presetId);
-      if (p) {
-        payload = { worldSetting: p.worldSetting, styleGuide: p.styleGuide };
-      }
+      if (p) payload = { worldSetting: p.worldSetting, styleGuide: p.styleGuide };
     } else if (params.get("custom") === "1") {
       const stored = sessionStorage.getItem("yume:custom");
       if (stored) {
@@ -122,151 +313,176 @@ function PlayInner() {
           const j = (await r.json().catch(() => ({}))) as { error?: string };
           throw new Error(j.error ?? r.statusText);
         }
-        return r.json() as Promise<StartResponse>;
+        return (await r.json()) as StartResponse;
       })
       .then((data) => {
-        setSession({
+        const initial: Session = {
           id: data.sessionId,
           createdAt: Date.now(),
           worldSetting: finalPayload.worldSetting,
           styleGuide: finalPayload.styleGuide,
-          history: [{ frame: data.frame }],
-          characters: [],
-        });
-        setFrame(data.frame);
+          history: [
+            {
+              scene: data.scene,
+              visitedBeatIds: [data.scene.entryBeatId],
+            },
+          ],
+        };
+        visitedBeatsRef.current = [data.scene.entryBeatId];
+        setSession(initial);
+        setCurrentScene(data.scene);
+        setCurrentBeatId(data.scene.entryBeatId);
         setImageBase64(data.imageBase64);
         setPhase("ready");
-        setTurnNum(1);
       })
       .catch((e) => setError(String(e)));
   }, [params, router]);
 
-  // Prefetch next-frame candidates whenever current frame becomes ready.
-  // All three fire in parallel for fastest cache fill. NOT depending on
-  // `phase` — we don't want to abort in-flight prefetches just because
-  // the user clicked. They should continue so handleClick can await them.
+  // ── Prefetch on scene entry: L1 + recursive L2/L3 for must-pass ──────
   useEffect(() => {
-    if (!session || !frame) return;
+    const s = session;
+    const scene = currentScene;
+    if (!s || !scene) return;
 
-    prefetchAbortRef.current?.abort();
-    const ctrl = new AbortController();
-    prefetchAbortRef.current = ctrl;
-
-    const choices = frame.uiElements.filter((e) => e.kind === "choice");
-    const promises: Record<string, Promise<InteractResponse>> = {};
-
-    for (const choice of choices) {
-      const syntheticIntent: ClickIntent = {
-        targetId: choice.id,
-        targetLabel: choice.label,
-        reasoning: "prefetch",
+    const exits = findAllChangeSceneChoices(scene);
+    for (const choice of exits) {
+      if (choice.effect.kind !== "change-scene") continue;
+      const step: ScenePathStep = {
+        fromScene: scene,
+        // Snapshot of visited beats at prefetch start. Slight drift is OK.
+        fromVisitedBeats: [...visitedBeatsRef.current],
+        exit: {
+          choiceId: choice.id,
+          label: choice.label,
+          nextSceneSeed: choice.effect.nextSceneSeed,
+        },
       };
-      const p = fetch("/api/interact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session, intent: syntheticIntent }),
-        signal: ctrl.signal,
-      }).then(async (r) => {
-        if (!r.ok) {
-          const j = (await r.json().catch(() => ({}))) as { error?: string };
-          throw new Error(j.error ?? r.statusText);
-        }
-        return r.json() as Promise<InteractResponse>;
-      });
-      p.catch(() => {});
-      promises[choice.id] = p;
+      prefetchScenePath(poolRef.current, s, [step], 0);
     }
+  }, [currentScene?.id, session?.id]);
 
-    prefetchRef.current = promises;
-
+  // Abort all in-flight speculative prefetches when the page unmounts, so we
+  // stop paying for background scene/image generation. Empty deps → fires only
+  // on unmount; it must NOT run on scene transitions, which rely on
+  // consumeChoice keeping the re-rooted survivor prefetches alive.
+  useEffect(() => {
+    const pool = poolRef.current;
     return () => {
-      ctrl.abort();
+      clearPool(pool);
     };
-  }, [frame?.id, session?.id]);
+  }, []);
 
-  // ── Shared result applier ────────────────────────────────────────────
-  async function applyInteractResult(
-    resultPromise: Promise<InteractResponse>,
-    clickIntent: ClickIntent,
-    click?: { x: number; y: number },
-  ) {
-    const result = await resultPromise;
-    // Overwrite synthetic prefetch intent with the real click intent
-    const lastIdx = result.session.history.length - 1;
-    const patched: InteractResponse = {
-      ...result,
-      intent: clickIntent,
-      session: {
-        ...result.session,
-        history: result.session.history.map((entry, idx) =>
-          idx === lastIdx ? { ...entry, click, intent: clickIntent } : entry,
-        ),
-      },
-    };
-    const updatedHistory = [
-      ...patched.session.history,
-      { frame: patched.frame },
-    ];
-    setSession({ ...patched.session, history: updatedHistory });
-    setFrame(patched.frame);
-    setImageBase64(patched.imageBase64);
-    setIntent(clickIntent);
-    setPendingClick(null);
-    setTurnNum((t) => t + 1);
-    setPhase("ready");
+  // ── Handlers ──────────────────────────────────────────────────────────
+
+  function onAdvance() {
+    if (phase !== "ready") return;
+    const beat = currentBeatRef.current;
+    if (!beat || beat.next.type !== "continue") return;
+    setCurrentBeatId(beat.next.nextBeatId);
   }
 
-  // ── HTML button click — bypasses Vision entirely ──────────────────────
-  async function handleChoiceSelect(choiceId: string, label: string) {
-    if (phase !== "ready" || !session) return;
-    setPhase("interacting");
-    setIntent(null);
-
-    const clickIntent: ClickIntent = {
-      targetId: choiceId,
-      targetLabel: label,
-      reasoning: "direct-button-click",
-    };
-
-    const cacheSnapshot = prefetchRef.current;
-    const cached = cacheSnapshot[choiceId];
-
+  async function performSceneTransition(
+    source: PrefetchEntry | Promise<SceneResponse>,
+    exit: SceneExit,
+    visitedForCurrent: string[],
+    exitLabel: string,
+  ) {
+    setPhase("transitioning");
+    setPendingClick(null);
     try {
-      if (cached) {
-        // Cache hit — zero extra wait
-        await applyInteractResult(cached, clickIntent);
-      } else {
-        // Cache miss — call interact directly (no Vision roundtrip)
-        prefetchAbortRef.current?.abort();
-        const res = await fetch("/api/interact", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ session, intent: clickIntent }),
-        });
-        if (!res.ok) {
-          const j = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(j.error ?? res.statusText);
-        }
-        await applyInteractResult(
-          res.json() as Promise<InteractResponse>,
-          clickIntent,
-        );
-      }
+      const result = await ("promise" in source ? source.promise : source);
+
+      const base = sessionRef.current;
+      if (!base) throw new Error("Session lost mid-transition");
+
+      const closedHistory = base.history.map((h, i, arr) =>
+        i === arr.length - 1
+          ? { ...h, visitedBeatIds: visitedForCurrent, exit }
+          : h,
+      );
+      const newSession: Session = {
+        ...base,
+        history: [
+          ...closedHistory,
+          {
+            scene: result.scene,
+            visitedBeatIds: [result.scene.entryBeatId],
+          },
+        ],
+      };
+      visitedBeatsRef.current = [result.scene.entryBeatId];
+      setSession(newSession);
+      setCurrentScene(result.scene);
+      setCurrentBeatId(result.scene.entryBeatId);
+      setImageBase64(result.imageBase64);
+      setLastExitLabel(exitLabel);
+      setPhase("ready");
     } catch (e) {
+      if ((e as { name?: string }).name === "AbortError") {
+        setPhase("ready");
+        return;
+      }
       setError(String(e));
-      setPendingClick(null);
       setPhase("ready");
     }
   }
 
-  // ── Background / free-form click — still uses Vision ─────────────────
-  async function handleClick(click: { x: number; y: number }) {
-    if (phase !== "ready" || !session || !imageBase64) return;
-    setPhase("interacting");
-    setPendingClick(click);
-    setIntent(null);
+  function onSelectChoice(choice: BeatChoice) {
+    if (phase !== "ready" || !session || !currentScene) return;
 
-    const cacheSnapshot = prefetchRef.current;
+    if (choice.effect.kind === "advance-beat") {
+      // Pure local jump. No network. No pool changes.
+      setCurrentBeatId(choice.effect.targetBeatId);
+      return;
+    }
+
+    const visited = [...visitedBeatsRef.current];
+    const exit: SceneExit = {
+      kind: "choice",
+      choiceId: choice.id,
+      label: choice.label,
+      nextSceneSeed: choice.effect.nextSceneSeed,
+    };
+
+    const cached = consumeChoice(poolRef.current, choice.id);
+    if (cached) {
+      void performSceneTransition(cached, exit, visited, choice.label);
+      return;
+    }
+
+    // Cold path — start a fresh fetch
+    const step: ScenePathStep = {
+      fromScene: currentScene,
+      fromVisitedBeats: visited,
+      exit: {
+        choiceId: choice.id,
+        label: choice.label,
+        nextSceneSeed: choice.effect.nextSceneSeed,
+      },
+    };
+    const specSession = buildSpeculativeSession(session, [step]);
+    clearPool(poolRef.current);
+
+    const promise = (async () => {
+      const res = await fetch("/api/scene", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session: specSession }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(j.error ?? res.statusText);
+      }
+      return (await res.json()) as SceneResponse;
+    })();
+
+    void performSceneTransition(promise, exit, visited, choice.label);
+  }
+
+  async function onBackgroundClick(click: { x: number; y: number }) {
+    if (phase !== "ready" || !session || !currentScene || !imageBase64) return;
+    setPhase("vision-thinking");
+    setPendingClick(click);
 
     try {
       const visionRes = await fetch("/api/vision", {
@@ -280,32 +496,99 @@ function PlayInner() {
         };
         throw new Error(j.error ?? visionRes.statusText);
       }
-      const { intent: clickIntent } =
-        (await visionRes.json()) as VisionResponse;
+      const decision = (await visionRes.json()) as VisionResponse;
 
-      const cached = clickIntent.targetId
-        ? cacheSnapshot[clickIntent.targetId]
-        : undefined;
-
-      if (cached) {
-        await applyInteractResult(cached, clickIntent, click);
-      } else {
-        prefetchAbortRef.current?.abort();
-        const liveRes = await fetch("/api/interact", {
+      if (decision.classify === "insert-beat") {
+        setPhase("inserting-beat");
+        const insertRes = await fetch("/api/insert-beat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ session, intent: clickIntent, click }),
+          body: JSON.stringify({
+            session,
+            freeformAction: decision.intent.freeformAction,
+          }),
         });
-        if (!liveRes.ok) {
-          const j = (await liveRes.json().catch(() => ({}))) as {
+        if (!insertRes.ok) {
+          const j = (await insertRes.json().catch(() => ({}))) as {
             error?: string;
           };
-          throw new Error(j.error ?? liveRes.statusText);
+          throw new Error(j.error ?? insertRes.statusText);
         }
-        await applyInteractResult(
-          liveRes.json() as Promise<InteractResponse>,
-          clickIntent,
-          click,
+        const { partial } = (await insertRes.json()) as InsertBeatResponse;
+
+        const fromBeatId =
+          currentBeatRef.current?.id ?? currentScene.entryBeatId;
+        const newBeatId = `b_ins_${Date.now()}_${Math.random()
+          .toString(36)
+          .slice(2, 6)}`;
+        const newBeat: Beat = {
+          id: newBeatId,
+          narration: partial.narration,
+          speaker: partial.speaker,
+          line: partial.line,
+          next: { type: "continue", nextBeatId: fromBeatId },
+        };
+
+        const patched: Scene = {
+          ...currentScene,
+          beats: [...currentScene.beats, newBeat],
+        };
+
+        setSession((s) =>
+          s
+            ? {
+                ...s,
+                history: s.history.map((h, i, arr) =>
+                  i === arr.length - 1 ? { ...h, scene: patched } : h,
+                ),
+              }
+            : s,
+        );
+        setCurrentScene(patched);
+        setCurrentBeatId(newBeatId);
+        setLastExitLabel(decision.intent.freeformAction);
+        setPhase("ready");
+        setPendingClick(null);
+      } else {
+        const exit: SceneExit = {
+          kind: "freeform",
+          action: decision.intent.freeformAction,
+        };
+        const visited = [...visitedBeatsRef.current];
+        const base = sessionRef.current;
+        if (!base) {
+          setPhase("ready");
+          setPendingClick(null);
+          return;
+        }
+        const specSession: Session = {
+          ...base,
+          history: base.history.map((h, i, arr) =>
+            i === arr.length - 1 ? { ...h, visitedBeatIds: visited, exit } : h,
+          ),
+        };
+        clearPool(poolRef.current);
+
+        const promise = (async () => {
+          const res = await fetch("/api/scene", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session: specSession }),
+          });
+          if (!res.ok) {
+            const j = (await res.json().catch(() => ({}))) as {
+              error?: string;
+            };
+            throw new Error(j.error ?? res.statusText);
+          }
+          return (await res.json()) as SceneResponse;
+        })();
+
+        await performSceneTransition(
+          promise,
+          exit,
+          visited,
+          decision.intent.freeformAction,
         );
       }
     } catch (e) {
@@ -314,6 +597,8 @@ function PlayInner() {
       setPhase("ready");
     }
   }
+
+  // ── Render ────────────────────────────────────────────────────────────
 
   if (error) {
     return (
@@ -343,15 +628,19 @@ function PlayInner() {
         <PlayCanvas
           imageBase64={imageBase64}
           phase={phase}
-          frame={frame}
+          beat={currentBeat}
           pendingClick={pendingClick}
-          onClick={handleClick}
-          onSelectChoice={handleChoiceSelect}
+          onBackgroundClick={onBackgroundClick}
+          onAdvance={onAdvance}
+          onSelectChoice={onSelectChoice}
           fullViewport
         />
       </div>
     );
   }
+
+  const sceneCount = session?.history.length ?? 0;
+  const beatCount = visitedBeatsRef.current.length;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -364,7 +653,9 @@ function PlayInner() {
           云梦
         </Link>
         <div className="flex items-center gap-3 text-[10px] smallcaps text-clay-500 num">
-          <span>第 · {String(turnNum).padStart(3, "0")} · 帧</span>
+          <span>第 · {String(sceneCount).padStart(3, "0")} · 幕</span>
+          <span className="text-clay-300">·</span>
+          <span>{String(beatCount).padStart(3, "0")} · 拍</span>
           <span className="text-clay-300">·</span>
           <span className="hidden sm:inline truncate max-w-[180px]">
             {session?.id.slice(2, 14) ?? "—"}
@@ -376,22 +667,23 @@ function PlayInner() {
         <PlayCanvas
           imageBase64={imageBase64}
           phase={phase}
-          frame={frame}
+          beat={currentBeat}
           pendingClick={pendingClick}
-          onClick={handleClick}
-          onSelectChoice={handleChoiceSelect}
+          onBackgroundClick={onBackgroundClick}
+          onAdvance={onAdvance}
+          onSelectChoice={onSelectChoice}
         />
 
         <div className="mt-4 max-w-md w-full text-center min-h-[28px] flex items-center justify-center">
           {phase === "loading-first" && (
             <p className="text-[10px] smallcaps text-clay-500 animate-slow-pulse">
-              正 · 在 · 唤 · 起 · 第 · 一 · 帧
+              正 · 在 · 唤 · 起 · 第 · 一 · 幕
             </p>
           )}
-          {phase === "ready" && intent?.targetLabel && (
+          {phase === "ready" && lastExitLabel && (
             <p className="text-[9px] smallcaps text-clay-400 animate-fade-in">
               <span className="mr-2">上 · 一 · 步 ·</span>
-              <span className="text-clay-600">{intent.targetLabel}</span>
+              <span className="text-clay-600">{lastExitLabel}</span>
             </p>
           )}
         </div>

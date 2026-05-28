@@ -1,3 +1,8 @@
-export { startSession, takeTurn, visionTurn } from "./orchestrator";
+export {
+  startSession,
+  requestScene,
+  visionDecide,
+  requestInsertBeat,
+} from "./orchestrator";
 export { annotateClick } from "./annotate";
 export * from "./prompts";
