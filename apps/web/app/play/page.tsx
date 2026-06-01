@@ -262,6 +262,10 @@ function PlayInner() {
   // changes so stale in-flight requests can't poison the new scene's map
   // (beat ids like "b1" are scene-local and would collide across scenes).
   const beatAudioAbortRef = useRef<Map<string, AbortController>>(new Map());
+  // User-toggled "语音配音" from the homepage. Defaults to true for back-compat
+  // when older sessionStorage payloads omit the field. Mutated once in
+  // bootstrap and read by fetchBeatAudio to early-return without any /api call.
+  const audioEnabledRef = useRef<boolean>(true);
 
   // Mirrors for use inside async handlers (closure-stable)
   const sessionRef = useRef<Session | null>(null);
@@ -317,6 +321,7 @@ function PlayInner() {
       sess: Session,
       beat: { id: string; speaker?: string; line?: string; lineDelivery?: string },
     ): Promise<void> => {
+      if (!audioEnabledRef.current) return; // user toggled 语音配音 → 关闭
       if (!beat.speaker || !beat.line) return;
       const speaker = sess.characters.find((c) => c.name === beat.speaker);
       if (!speaker?.voice) return; // not yet provisioned — server can't synth anyway
@@ -450,7 +455,14 @@ function PlayInner() {
       const stored = sessionStorage.getItem("yume:custom");
       if (stored) {
         try {
-          payload = JSON.parse(stored);
+          const parsed = JSON.parse(stored) as {
+            worldSetting: string;
+            styleGuide: string;
+            audioEnabled?: boolean;
+          };
+          payload = { worldSetting: parsed.worldSetting, styleGuide: parsed.styleGuide };
+          // default true for older payloads that omit the flag
+          audioEnabledRef.current = parsed.audioEnabled !== false;
         } catch {
           payload = null;
         }
