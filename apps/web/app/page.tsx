@@ -731,7 +731,7 @@ export default function HomePage() {
               className="mx-auto mb-3 w-32 max-w-full rounded-sm border border-clay-900/10 shadow-sm shadow-clay-900/5"
             />
             <p className="font-serif text-clay-700 text-base leading-relaxed">
-              <i className="fa-brands fa-qq text-[15px] text-clay-500" /> 扫码加入，或搜索群号{" "}
+              QQ群号：
               <span className="font-sans text-sm text-clay-900">575404333</span>
             </p>
           </div>
