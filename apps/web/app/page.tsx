@@ -183,54 +183,49 @@ function StoryCard({
   title,
   outline,
   image,
-  placeholderRatio = 4 / 5,
   onClick,
 }: {
   title: string;
   outline: string;
   image: string;
-  placeholderRatio?: number;
   onClick: () => void;
 }) {
-  // 卡片高度 = 图片真实宽高比。加载前先用 placeholderRatio 占好位（按该类卡片
-  // 的典型比例），加载后用 naturalWidth/Height 锁死真实比例——绝不塌成 0、也绝不
-  // 在 lazy 图加载或性向换图时跳变高度。运行时读取，故换任意图都自动适配。
-  const [ratio, setRatio] = useState<number>();
+  // 全卡片统一 4:5 portrait 比例。原来按图片真实 naturalWidth/Height 动态设 aspectRatio
+  // 会跟懒加载顺序耦合：视口下方还没加载的卡停在 placeholder 比例，上方已加载的卡变成
+  // 图片真实比例（可能是 1.6 横图或 0.75 竖图），视觉差异巨大；刷新后图从缓存读，
+  // onLoad 几乎同步触发，看起来又恢复正常 —— 用户感知到的「偶尔尺寸不一样」就是这个。
+  // 改为固定比例后所有卡片视觉一致，object-cover 让不同长宽比的图自动裁切适配。
   return (
     <button
       type="button"
       onClick={onClick}
-      style={{ aspectRatio: ratio ?? placeholderRatio }}
+      style={{ aspectRatio: "4 / 5" }}
       className="group relative block w-full mb-4 md:mb-5 break-inside-avoid overflow-hidden rounded-sm border border-clay-900/10 bg-cream-100 text-left transition-transform duration-300 ease-out hover:-translate-y-1"
     >
       <img
         src={image}
         alt={title}
         loading="lazy"
-        onLoad={(e) => {
-          const el = e.currentTarget;
-          if (el.naturalWidth && el.naturalHeight) {
-            setRatio(el.naturalWidth / el.naturalHeight);
-          }
-        }}
         className="absolute inset-0 h-full w-full object-cover"
       />
-      {/* hover 浮层：卡片高度已由图片比例锁定，磨砂带占比恒定，hover 前后零回流。 */}
-      <div className="absolute inset-x-0 bottom-0">
-        <div className="relative px-4 pt-10 pb-4">
-          {/* 毛玻璃底：backdrop-blur 0→md（不走 opacity，避免比文字慢半拍）；上沿 mask 羽化，避免生硬分界 */}
-          <div className="absolute inset-0 backdrop-blur-0 transition-[backdrop-filter] duration-300 ease-out group-hover:backdrop-blur-md [mask-image:linear-gradient(to_top,black_62%,transparent)] [-webkit-mask-image:linear-gradient(to_top,black_62%,transparent)]" />
-          {/* 暗色渐变：opacity 淡入（自带 to-transparent 上沿，无需额外 mask） */}
-          <div className="absolute inset-0 opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100 bg-gradient-to-t from-clay-900/92 via-clay-900/60 to-transparent" />
-          <div className="relative opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100">
-            <h4 className="font-serif text-cream-50 text-base md:text-lg leading-snug mb-1 [text-shadow:0_1px_8px_rgba(20,10,4,0.6)]">
-              {title}
-            </h4>
-            <p className="font-serif italic text-cream-50/95 text-xs md:text-[13px] leading-relaxed line-clamp-4 [text-shadow:0_1px_6px_rgba(20,10,4,0.55)]">
-              {outline}
-            </p>
-          </div>
-        </div>
+      {/* hover 浮层：照参考项目（yunmeng0530/yume）的写法——满卡片单元素，纯 rgba
+          黑色 linear-gradient + opacity 过渡。完全不用 backdrop-filter / mask-image，
+          从根上消除 Chromium 上「矩形磨砂 → 渐变磨砂」的跳变（这两个属性的合成顺序
+          是真正的元凶；只要不用它们，就不会有这个 bug）。
+          - bottom 0.9 → 45% 处 0.45 → top 0：自然羽化，底部聚焦文字、顶部完全透出图。 */}
+      <div
+        className="absolute inset-0 opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100 flex flex-col justify-end p-4 md:p-5"
+        style={{
+          background:
+            "linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.45) 45%, rgba(0,0,0,0) 100%)",
+        }}
+      >
+        <h4 className="font-serif text-cream-50 text-base md:text-lg leading-snug mb-1 [text-shadow:0_1px_8px_rgba(20,10,4,0.7)]">
+          {title}
+        </h4>
+        <p className="font-serif italic text-cream-50/95 text-xs md:text-[13px] leading-relaxed line-clamp-4 [text-shadow:0_1px_6px_rgba(20,10,4,0.6)]">
+          {outline}
+        </p>
       </div>
     </button>
   );

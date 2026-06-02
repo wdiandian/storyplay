@@ -890,10 +890,12 @@ function PlayInner() {
       <header className="px-5 md:px-12 pt-6 md:pt-8 flex items-center justify-between">
         <Link
           href="/"
-          className="text-[10px] smallcaps text-clay-600 hover:text-clay-900 transition-colors flex items-center gap-2"
+          className="text-clay-600 hover:text-clay-900 transition-colors flex items-center gap-2"
         >
           <i className="fa-solid fa-arrow-left text-[9px]" />
-          InfiPlot
+          <span className="font-serif text-[15px] leading-none tracking-tight">
+            Infi<em className="italic font-light text-ember-500">Plot</em>
+          </span>
         </Link>
         <div className="flex items-center gap-3 text-[10px] smallcaps text-clay-500 num">
           <span>第 · {String(sceneCount).padStart(3, "0")} · 幕</span>
