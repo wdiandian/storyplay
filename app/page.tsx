@@ -1057,14 +1057,15 @@ export default function HomePage() {
       .filter(Boolean)
       .join("\n");
 
-    // 「自动」→ fall back to 二次元 (project default). Plain prompts like
+    // 「自动」→ fall back to Galgame CG (project default). Plain prompts like
     // "由模型自动判断画风" are not understood by FLUX — it just paints them
     // literally, so we'd rather lock in a sensible default.
     // TODO(自动路由): 后续实现真正的「自动」——由模型依据世界观 / 玩家 prompt
-    // 选出最合适的画风，再映射到对应风格提示词，而非固定回退到二次元。届时
+    // 选出最合适的画风，再映射到对应风格提示词，而非固定回退到 Galgame。届时
     // 同步更新风格弹窗副标题（「由模型根据 prompt 判断风格」）使文案与行为一致。
-    const effectiveStyle = artStyle === "自动" ? "京阿尼细腻日常" : artStyle;
-    const styleGuide = STYLE_MAP[effectiveStyle] ?? STYLE_MAP["京阿尼细腻日常"]!;
+    const DEFAULT_STYLE = "Galgame CG 梦幻光影";
+    const effectiveStyle = artStyle === "自动" ? DEFAULT_STYLE : artStyle;
+    const styleGuide = STYLE_MAP[effectiveStyle] ?? STYLE_MAP[DEFAULT_STYLE]!;
     const audioEnabled = voice === "开启";
 
     sessionStorage.setItem(
