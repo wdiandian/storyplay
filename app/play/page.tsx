@@ -6,6 +6,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -24,6 +25,7 @@ import type {
   Character,
   CharacterVoice,
   InsertBeatResponse,
+  Orientation,
   Scene,
   SceneExit,
   SceneResponse,
@@ -57,6 +59,24 @@ function getByoHeaders(): Record<string, string> {
 // non-BYO, unmuted player. Set high enough that one transient miss won't trip
 // it, low enough to catch a scene that's clearly being rate-limited.
 const SILENCE_NUDGE_THRESHOLD = 3;
+
+// Mobile-portrait users get a 9:16 scene image painted for them; everyone else
+// (desktop, tablet, mobile-landscape) keeps the 16:9 landscape image. Only a
+// touch device (coarse pointer) held upright counts as "portrait" — a mouse
+// device is always landscape. Detected once and locked for the whole session.
+function detectOrientation(): Orientation {
+  if (typeof window === "undefined") return "landscape";
+  const portrait = window.matchMedia("(orientation: portrait)").matches;
+  const coarse = window.matchMedia("(pointer: coarse)").matches;
+  return portrait && coarse ? "portrait" : "landscape";
+}
+
+// Runs before the browser paints (so it can correct first-frame state without a
+// visible flash), but useLayoutEffect warns when called during SSR. PlayInner
+// only ever renders on the client (/play prerenders the Suspense fallback), yet
+// fall back to useEffect on the server anyway to keep the warning out.
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 // Cap how long we wait for the browser to download + decode a scene image
 // before giving up and rendering anyway. Runware's CDN is usually <2s for a
@@ -457,6 +477,9 @@ function PlayInner() {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [presentation, setPresentation] = useState(false);
+  // Session-locked image orientation (see detectOrientation). "portrait" makes
+  // the whole play surface render full-bleed vertical on phones.
+  const [orientation, setOrientation] = useState<Orientation>("landscape");
   const [lastExitLabel, setLastExitLabel] = useState<string | null>(null);
   // Consecutive server-side TTS misses (null audio / failed /api/beat-audio).
   // Climbs when the shared server key is rate-limited by MiMo — the exact pain
@@ -782,6 +805,16 @@ function PlayInner() {
     };
   }, [togglePresentation, presentation]);
 
+  // Lock the visible orientation BEFORE the first paint, so portrait phones
+  // never flash the landscape loading chrome. The state inits to "landscape"
+  // for SSR-safety; this corrects it pre-paint (no-op re-render on landscape
+  // devices). Prebaked cards (decision C) stay landscape-baked regardless of
+  // device. The bootstrap effect below re-derives the same value for the
+  // /api/start payload.
+  useIsomorphicLayoutEffect(() => {
+    setOrientation(params.get("card") ? "landscape" : detectOrientation());
+  }, [params]);
+
   // ── Bootstrap: start session ─────────────────────────────────────────
   useEffect(() => {
     if (startedRef.current) return;
@@ -801,6 +834,7 @@ function PlayInner() {
       worldSetting: string;
       styleGuide: string;
       styleReferenceImage?: string;
+      orientation?: Orientation;
     } | null = null;
     if (!cardName) {
       if (presetId) {
@@ -828,6 +862,16 @@ function PlayInner() {
         }
       }
     }
+
+    // Lock orientation for the whole session. Prebaked cards (decision C) are
+    // landscape-baked, so they stay landscape regardless of device; only the
+    // live /api/start path requests a portrait paint when the phone is upright.
+    // The visible state is already set pre-paint by the layout effect above;
+    // here we only need the value for the /api/start payload.
+    const sessionOrientation: Orientation = cardName
+      ? "landscape"
+      : detectOrientation();
+    if (livePayload) livePayload.orientation = sessionOrientation;
 
     if (!cardName && !livePayload) {
       router.replace("/");
@@ -903,6 +947,7 @@ function PlayInner() {
           characters: data.characters,
           storyState: data.storyState,
           styleReferenceImage: data.styleReferenceImage,
+          orientation: data.scene.orientation ?? sessionOrientation,
         };
         visitedBeatsRef.current = [data.scene.entryBeatId];
         setSession(initial);
@@ -1290,7 +1335,13 @@ function PlayInner() {
     );
   }
 
-  if (presentation) {
+  // Mobile portrait renders full-bleed by default — it sidesteps the iOS
+  // Safari Fullscreen API (unsupported on iPhone) with a CSS full-viewport
+  // layout instead. Desktop "presentation" mode shares the same immersive
+  // canvas, toggled via the F key.
+  const immersive = presentation || orientation === "portrait";
+
+  if (immersive) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
         <PlayCanvas
@@ -1304,8 +1355,33 @@ function PlayInner() {
           onBackgroundClick={onBackgroundClick}
           onAdvance={onAdvance}
           onSelectChoice={onSelectChoice}
+          orientation={orientation}
           fullViewport
         />
+        {orientation === "portrait" && (
+          <div
+            className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 pointer-events-none"
+            style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
+          >
+            <Link
+              href="/"
+              className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white/80 backdrop-blur-sm transition-colors hover:text-white"
+              aria-label="返回"
+            >
+              <i className="fa-solid fa-arrow-left text-[13px]" />
+            </Link>
+            <button
+              type="button"
+              onClick={toggleMuted}
+              className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white/80 backdrop-blur-sm transition-colors hover:text-white"
+              aria-label={muted ? "取消静音" : "静音"}
+            >
+              <i
+                className={`fa-solid ${muted ? "fa-volume-xmark" : "fa-volume-high"} text-[13px]`}
+              />
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -1354,6 +1430,7 @@ function PlayInner() {
           onBackgroundClick={onBackgroundClick}
           onAdvance={onAdvance}
           onSelectChoice={onSelectChoice}
+          orientation={orientation}
           aboveCanvas={
             <button
               type="button"
