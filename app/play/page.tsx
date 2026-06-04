@@ -6,6 +6,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -69,6 +70,13 @@ function detectOrientation(): Orientation {
   const coarse = window.matchMedia("(pointer: coarse)").matches;
   return portrait && coarse ? "portrait" : "landscape";
 }
+
+// Runs before the browser paints (so it can correct first-frame state without a
+// visible flash), but useLayoutEffect warns when called during SSR. PlayInner
+// only ever renders on the client (/play prerenders the Suspense fallback), yet
+// fall back to useEffect on the server anyway to keep the warning out.
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 // Cap how long we wait for the browser to download + decode a scene image
 // before giving up and rendering anyway. Runware's CDN is usually <2s for a
@@ -797,6 +805,16 @@ function PlayInner() {
     };
   }, [togglePresentation, presentation]);
 
+  // Lock the visible orientation BEFORE the first paint, so portrait phones
+  // never flash the landscape loading chrome. The state inits to "landscape"
+  // for SSR-safety; this corrects it pre-paint (no-op re-render on landscape
+  // devices). Prebaked cards (decision C) stay landscape-baked regardless of
+  // device. The bootstrap effect below re-derives the same value for the
+  // /api/start payload.
+  useIsomorphicLayoutEffect(() => {
+    setOrientation(params.get("card") ? "landscape" : detectOrientation());
+  }, [params]);
+
   // ── Bootstrap: start session ─────────────────────────────────────────
   useEffect(() => {
     if (startedRef.current) return;
@@ -848,10 +866,11 @@ function PlayInner() {
     // Lock orientation for the whole session. Prebaked cards (decision C) are
     // landscape-baked, so they stay landscape regardless of device; only the
     // live /api/start path requests a portrait paint when the phone is upright.
+    // The visible state is already set pre-paint by the layout effect above;
+    // here we only need the value for the /api/start payload.
     const sessionOrientation: Orientation = cardName
       ? "landscape"
       : detectOrientation();
-    setOrientation(sessionOrientation);
     if (livePayload) livePayload.orientation = sessionOrientation;
 
     if (!cardName && !livePayload) {
