@@ -73,18 +73,22 @@ const IMAGE_PRELOAD_TIMEOUT_MS = 20000;
 function preloadImage(url: string): Promise<void> {
   return new Promise<void>((resolve) => {
     const img = new Image();
-    const done = () => resolve();
-    const timer = setTimeout(done, IMAGE_PRELOAD_TIMEOUT_MS);
-    img.onload = () => {
+    let timer: ReturnType<typeof setTimeout>;
+    // Single exit: clear the timeout and resolve. resolve() is idempotent, so
+    // whichever path fires first (load+decode, error, timeout) wins.
+    const done = () => {
       clearTimeout(timer);
+      resolve();
+    };
+    // Armed across BOTH network load and decode, so a hung decode still
+    // resolves quietly — better a broken <img> than a stuck play loop.
+    timer = setTimeout(done, IMAGE_PRELOAD_TIMEOUT_MS);
+    img.onload = () => {
       // .decode() forces the bitmap to be fully decoded before we proceed —
       // without it, a slow decode could still cause a flash on first paint.
       img.decode().then(done, done);
     };
-    img.onerror = () => {
-      clearTimeout(timer);
-      done();
-    };
+    img.onerror = done;
     img.src = url;
   });
 }
