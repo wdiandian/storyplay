@@ -136,13 +136,13 @@ InfiPlot 会与四类模型供应商通信。**文本（Text）和视觉（Visio
 | Vision · 点击解读  | `VISION_BASE_URL` `VISION_API_KEY` `VISION_MODEL`  | ✅ | Google 的 `gemini-3.5-flash` |
 | TTS · 角色配音 | `TTS_BASE_URL` `TTS_API_KEY` `TTS_SPEECH_MODEL` | 可选 —— 留空则静音运行 | 小米 MiMo 的 `mimo-v2.5-tts` |
 
-> **可选 · 指定接口协议**：每类模型都可加一个 `*_PROVIDER` 变量（`TEXT_PROVIDER` / `VISION_PROVIDER` / `IMAGE_PROVIDER`）显式选择接口协议。**不设则保持向后兼容**——文本/视觉默认走 OpenAI 兼容接口，图像按 `*_BASE_URL` 自动判断（`runware.ai` → Runware，否则 OpenAI 兼容）。
+> **可选 · 指定接口协议**：每类模型都可加一个 `*_PROVIDER` 变量（`TEXT_PROVIDER` / `VISION_PROVIDER` / `IMAGE_PROVIDER`）显式选择接口协议。**不设则保持向后兼容**——文本/视觉默认走 OpenAI 兼容接口，图像按 `*_BASE_URL` 自动判断（`runware.ai` → Runware，否则 OpenAI 兼容；个别在 `runware.ai` 上以 OpenAI 协议提供的模型——如 `image-2-vip`——会按 OpenAI 兼容处理，需要时用 `IMAGE_PROVIDER` 显式覆盖即可）。
 >
 > | 取值 | 适用 | 说明 |
 > |---|---|---|
 > | `openai_compatible`（默认） | Text · Vision · Image | OpenAI Chat Completions / `/images/generations` |
 > | `anthropic` | Text · Vision | 原生 Anthropic Messages 接口 |
-> | `google` | Text · Vision · Image | 原生 Gemini；图像用 Nano Banana 系（如 `gemini-2.5-flash-image`，**勿用已停服的 Imagen**） |
+> | `google` | Text · Vision · Image | 原生 Gemini；图像用 Nano Banana 系（如 `gemini-2.5-flash-image`，**勿用 Imagen（已废弃，2026-06-24 停服）**） |
 > | `openai` | Image | OpenAI `gpt-image`，支持参考图编辑 |
 > | `runware` | Image | Runware task-array 协议 |
 >

@@ -71,12 +71,24 @@ export type GenerateImageResult = {
   imageUuid: string;
 };
 
+// Match the Runware host by parsed hostname (exact match or subdomain), not a
+// bare substring — otherwise `notrunware.ai` or `api.runware.ai.evil.com` would
+// misroute to the Runware protocol. Falls back to false on an unparseable URL.
+function isRunwareHost(baseUrl: string): boolean {
+  try {
+    const host = new URL(baseUrl).hostname.toLowerCase();
+    return host === "runware.ai" || host.endsWith(".runware.ai");
+  } catch {
+    return false;
+  }
+}
+
 // Image roles support more protocols than text/vision. When IMAGE_PROVIDER is
 // unset we keep the historical URL-based inference so existing deployments
 // (Runware, or an OpenAI-compatible gateway) behave exactly as before.
 function inferImageProtocol(config: ProviderConfig): ProviderProtocol {
   const isOpenAiCompat =
-    !config.baseUrl.includes("runware.ai") || config.model === "image-2-vip";
+    !isRunwareHost(config.baseUrl) || config.model === "image-2-vip";
   return isOpenAiCompat ? "openai_compatible" : "runware";
 }
 
