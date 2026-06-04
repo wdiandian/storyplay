@@ -35,11 +35,11 @@ const AUDIO_WAIT_TIMEOUT_MS = 2500;
 function useTypewriter(
   text: string,
   resetKey: string,
-  opts: { targetDurationMs?: number; waitForAudio: boolean } = {
+  opts: { targetDurationMs?: number; waitForAudio: boolean; defaultCharMs?: number } = {
     waitForAudio: false,
   },
 ): { shown: string; done: boolean; skip: () => void } {
-  const { targetDurationMs, waitForAudio } = opts;
+  const { targetDurationMs, waitForAudio, defaultCharMs } = opts;
   const [displayed, setDisplayed] = useState("");
   const [prevKey, setPrevKey] = useState(resetKey);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -71,7 +71,7 @@ function useTypewriter(
     const speed =
       targetDurationMs && text.length > 0
         ? Math.max(MIN_CHAR_MS, targetDurationMs / text.length)
-        : DEFAULT_CHAR_MS;
+        : (defaultCharMs ?? DEFAULT_CHAR_MS);
 
     let i = 0;
     timer.current = setInterval(() => {
@@ -86,7 +86,7 @@ function useTypewriter(
       if (timer.current) clearInterval(timer.current);
       timer.current = null;
     };
-  }, [resetKey, text, targetDurationMs, waitForAudio]);
+  }, [resetKey, text, targetDurationMs, waitForAudio, defaultCharMs]);
 
   const skip = useCallback(() => {
     if (timer.current) {
@@ -211,6 +211,7 @@ export function PlayCanvas({
 
   const { shown: typedTeaser, done: teaserDone } = useTypewriter(teaserText ?? "", "teaser_reset", {
     waitForAudio: false,
+    defaultCharMs: 65,
   });
 
   const [pulseActive, setPulseActive] = useState(false);
@@ -526,7 +527,7 @@ export function PlayCanvas({
             <div className="flex flex-col items-center justify-center gap-4">
               <div className="w-1.5 h-1.5 bg-clay-500 rounded-full animate-slow-pulse" />
               <p className="text-[9px] smallcaps text-clay-500 animate-slow-pulse">
-                正 · 在 · 绘 · 制 · 第 · 一 · 幕
+                请 · 等 · 待
               </p>
             </div>
           )}
