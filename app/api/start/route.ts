@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import { loadEngineConfig } from "@/lib/config";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
 
 // Matches /api/vision and /api/parse-style-image — the user's resized 512px
 // webp is ~30-80 KB; this caps pathological direct-API payloads (which would
