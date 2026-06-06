@@ -16,6 +16,7 @@ import { coerceOrientation } from "@infiplot/types";
 import { runArchitect } from "./agents/architect";
 import { selectStyle } from "./agents/styleSelector";
 import { directInsertBeat, directScene } from "./director";
+import { STYLE_MAP } from "@/lib/options";
 import { synthesizeBeat } from "./voice";
 import { interpret } from "./vision";
 
@@ -59,17 +60,23 @@ export async function startSession(
     `[start] worldSetting (${session.worldSetting.length} chars):\n${session.worldSetting}`,
   );
   const isAutoStyle = session.styleGuide === "auto";
+  if (isAutoStyle) {
+    session.styleGuide = "由 AI 根据剧情自动匹配最佳画风";
+  }
   const tArchitect = Date.now();
   const [architectResult, autoStyleGuide] = await Promise.all([
     runArchitect(config.text, session),
     isAutoStyle
-      ? selectStyle(config.text, session.worldSetting)
+      ? selectStyle(config.text, session.worldSetting).catch((err) => {
+          console.warn(`[styleSelector] failed, falling back to 吉卜力:`, err);
+          return null;
+        })
       : Promise.resolve(null),
   ]);
   session.storyState = architectResult;
-  if (isAutoStyle && autoStyleGuide) {
-    session.styleGuide = autoStyleGuide;
-    console.log(`[start] auto-selected style: ${autoStyleGuide.slice(0, 60)}…`);
+  if (isAutoStyle) {
+    session.styleGuide = autoStyleGuide ?? STYLE_MAP["吉卜力"]!;
+    console.log(`[start] auto-selected style: ${session.styleGuide.slice(0, 60)}…`);
   }
   tlog("[start] Architect" + (isAutoStyle ? " + StyleSelector" : ""), tArchitect);
   console.log(
