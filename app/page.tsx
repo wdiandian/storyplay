@@ -1605,7 +1605,7 @@ export default function HomePage() {
           <div>
             <p className="text-[10px] smallcaps text-clay-500 mb-3">团 队</p>
             <p className="font-serif italic text-clay-700 text-base leading-relaxed">
-              我们来自清华大学等高校，希望探索多模态模型在「直接生成图片、视频」这类 <span className="not-italic">one-shot</span> 能力之外，更多的可能性。本项目目前仍处于早期阶段，我们还在招募成员，如果你也感兴趣，欢迎联系我们，期待你的加入。
+              我们来自清华大学、兰州大学、西安交通大学等高校，希望探索多模态模型在「直接生成图片、视频」这类 <span className="not-italic">one-shot</span> 能力之外，更多的可能性。本项目目前仍处于早期阶段，我们还在招募成员，如果你也感兴趣，欢迎联系我们，期待你的加入。
             </p>
           </div>
 

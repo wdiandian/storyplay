@@ -178,6 +178,7 @@ export function PlayCanvas({
   orientation = "landscape",
   aboveCanvas,
   aboveCanvasLeft,
+  belowCanvas,
   dialogueHistory = [],
 }: {
   imageUrl: string | null;
@@ -196,6 +197,8 @@ export function PlayCanvas({
   aboveCanvas?: ReactNode;
   // 渲染在图片正上方、左对齐的 slot（画面外、紧贴左上角），与 aboveCanvas 水平镜像。
   aboveCanvasLeft?: ReactNode;
+  // 渲染在图片正下方、右对齐的 slot（画面外、紧贴右下角），与 aboveCanvas 垂直镜像。
+  belowCanvas?: ReactNode;
   dialogueHistory?: DialogueHistoryItem[];
 }) {
   const imgRef = useRef<HTMLImageElement>(null);
@@ -401,6 +404,11 @@ export function PlayCanvas({
               {aboveCanvasLeft}
             </div>
           )}
+          {!fullViewport && belowCanvas && (
+            <div className="absolute top-full right-0 mt-2 flex items-center gap-2">
+              {belowCanvas}
+            </div>
+          )}
 
           {beat && (
             <div
@@ -587,6 +595,11 @@ export function PlayCanvas({
           {!fullViewport && aboveCanvasLeft && (
             <div className="absolute bottom-full left-0 mb-2 flex items-center gap-2">
               {aboveCanvasLeft}
+            </div>
+          )}
+          {!fullViewport && belowCanvas && (
+            <div className="absolute top-full right-0 mt-2 flex items-center gap-2">
+              {belowCanvas}
             </div>
           )}
         </div>

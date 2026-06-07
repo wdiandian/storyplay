@@ -16,6 +16,7 @@ import {
   type Phase,
 } from "@/components/PlayCanvas";
 import type { DialogueHistoryItem } from "@/components/DialogueHistoryModal";
+import type { GalleryDoc, GalleryScene } from "@/app/gallery/page";
 import { TtsKeyModal } from "@/components/TtsKeyModal";
 import { annotateClick } from "@/lib/annotateClient";
 import { loadClientTtsConfig } from "@/lib/clientTtsConfig";
@@ -367,6 +368,14 @@ function findSoleChangeSceneChoice(scene: Scene): BeatChoice | null {
 
 function prefetchScenePath(
   pool: Map<string, PrefetchEntry>,
+  // Resolved-prefetch sink for the gallery export. Every successful resolve
+  // is recorded here keyed by `${parentSceneId}:${choiceId}` so the gallery
+  // can let the player click any choice whose alternate the AI already paid
+  // to generate — even ones that were later abandoned mid-play because the
+  // player took a different branch. Survives `consumeChoice`'s abort sweep:
+  // a prefetch that's already resolved when its parent choice is abandoned
+  // still leaves the result here.
+  resolvedSink: Map<string, Scene>,
   baseSession: Session,
   steps: ScenePathStep[],
   depth: number,
@@ -392,6 +401,16 @@ function prefetchScenePath(
       throw new Error(j.error ?? res.statusText);
     }
     const data = (await res.json()) as SceneResponse;
+
+    // Record this resolved alternate for the gallery export. Key is
+    // (parent scene id at the choice point) : (choice id). Includes the
+    // CDN imageUrl on the Scene so the gallery has everything it needs to
+    // render without any further info from the engine.
+    const lastStep = steps[steps.length - 1]!;
+    resolvedSink.set(`${lastStep.fromScene.id}:${lastStep.exit.choiceId}`, {
+      ...data.scene,
+      imageUrl: data.imageUrl,
+    });
 
     // Kick off the blob fetch for this URL so when the player eventually
     // picks this choice, transitioning is a no-op cache lookup instead of a
@@ -431,6 +450,7 @@ function prefetchScenePath(
         };
         prefetchScenePath(
           pool,
+          resolvedSink,
           carriedBase,
           [...steps, nextStep],
           depth + 1,
@@ -564,6 +584,12 @@ function PlayInner() {
 
   const startedRef = useRef(false);
   const poolRef = useRef<Map<string, PrefetchEntry>>(new Map());
+  // Accumulator for resolved prefetches across the whole session — every
+  // `prefetchScenePath` resolution writes here, keyed by parent-scene + choice.
+  // Survives `consumeChoice`'s pool sweep (an already-resolved promise is not
+  // un-resolved by aborting its controller), so abandoned alternates remain
+  // available for the gallery export. Cleared only on unmount.
+  const resolvedPrefetchesRef = useRef<Map<string, Scene>>(new Map());
   // Lazy per-beat audio fetches keyed by beat.id. Aborted when the scene
   // changes so stale in-flight requests can't poison the new scene's map
   // (beat ids like "b1" are scene-local and would collide across scenes).
@@ -850,6 +876,164 @@ function PlayInner() {
     [prefetchSceneAudio],
   );
 
+  // ── Export to interactive gallery (PPT-style replay) ─────────────────
+  // Drop all but the (keepCount) most-recent gallery exports from localStorage,
+  // ordered by their stored createdAt. Called right before writing a new
+  // export so the cap is enforced strictly (≤ keepCount + 1 transiently → ≤ N
+  // once write completes). Corrupt entries (un-parseable / no createdAt) sort
+  // last and get evicted first.
+  const trimGalleryExports = useCallback((keepCount: number) => {
+    try {
+      const prefix = "infiplot:gallery:";
+      const entries: { key: string; createdAt: number }[] = [];
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const k = window.localStorage.key(i);
+        if (!k || !k.startsWith(prefix)) continue;
+        let createdAt = 0;
+        try {
+          const raw = window.localStorage.getItem(k);
+          if (raw) {
+            const parsed = JSON.parse(raw) as { createdAt?: number };
+            createdAt = parsed.createdAt ?? 0;
+          }
+        } catch {
+          createdAt = 0;
+        }
+        entries.push({ key: k, createdAt });
+      }
+      entries.sort((a, b) => b.createdAt - a.createdAt);
+      for (const e of entries.slice(keepCount)) {
+        window.localStorage.removeItem(e.key);
+      }
+    } catch {
+      // best-effort — quota or disabled storage shouldn't block the export
+    }
+  }, []);
+
+  // Strips the live Session to a small GalleryDoc — only scene images +
+  // dialogue text + recorded choices, no voice base64 / portraits / style
+  // reference (those are tens-to-hundreds of KB each). Writes it to
+  // localStorage under a one-shot id and opens /gallery#<id> in a new tab
+  // so the play session keeps running.
+  const handleExportGallery = useCallback(() => {
+    const s = sessionRef.current;
+    if (!s) return;
+    const scenes: GalleryScene[] = s.history
+      .map((h) => ({
+        id: h.scene.id,
+        imageUrl: h.scene.imageUrl ?? "",
+        sceneKey: h.scene.sceneKey,
+        orientation: h.scene.orientation,
+        beats: h.scene.beats,
+        entryBeatId: h.scene.entryBeatId,
+        visitedBeatIds: h.visitedBeatIds,
+        exit: h.exit,
+      }))
+      .filter((sc) => sc.imageUrl);
+    if (scenes.length === 0) return;
+
+    // Alternates: ${parentSceneId}:${choiceId} → reachable scene. Two sources,
+    // merged with main-path winning ties (it always agrees with prefetch when
+    // prefetch was actually used, so the override is a no-op in the common case;
+    // it differs only when the player took a cold path and the prefetch had
+    // resolved to something the engine later regenerated):
+    //   1. Every resolved prefetch (including alternates the player never took)
+    //   2. Main path: every history step's choice exit → the next visited scene
+    const alternates: Record<string, GalleryScene> = {};
+    for (const [key, scene] of resolvedPrefetchesRef.current) {
+      if (!scene.imageUrl) continue;
+      alternates[key] = {
+        id: scene.id,
+        imageUrl: scene.imageUrl,
+        sceneKey: scene.sceneKey,
+        orientation: scene.orientation,
+        beats: scene.beats,
+        entryBeatId: scene.entryBeatId,
+      };
+    }
+    for (let i = 0; i < s.history.length - 1; i++) {
+      const h = s.history[i]!;
+      const nextH = s.history[i + 1]!;
+      if (
+        h.exit?.kind === "choice" &&
+        h.scene.id &&
+        nextH.scene.imageUrl
+      ) {
+        alternates[`${h.scene.id}:${h.exit.choiceId}`] = {
+          id: nextH.scene.id,
+          imageUrl: nextH.scene.imageUrl,
+          sceneKey: nextH.scene.sceneKey,
+          orientation: nextH.scene.orientation,
+          beats: nextH.scene.beats,
+          entryBeatId: nextH.scene.entryBeatId,
+        };
+      }
+    }
+
+    // Character portraits — names + CDN URLs only. The big voice base64s are
+    // intentionally dropped (the gallery only needs the portraits for download).
+    const characters = s.characters
+      .filter((c) => c.basePortraitUrl)
+      .map((c) => ({
+        name: c.name,
+        basePortraitUrl: c.basePortraitUrl as string,
+      }));
+
+    const id = `${Date.now().toString(36)}_${Math.random()
+      .toString(36)
+      .slice(2, 8)}`;
+    const doc: GalleryDoc = {
+      v: 2,
+      id,
+      createdAt: Date.now(),
+      orientation: s.orientation ?? "landscape",
+      scenes,
+      alternates,
+      characters,
+    };
+    // Cap retained gallery exports at the most recent 2. Drop everything
+    // older BEFORE writing the new doc so we never transiently exceed the cap
+    // (and so a near-quota localStorage has headroom for the new entry).
+    trimGalleryExports(1);
+    const docStr = JSON.stringify(doc);
+    try {
+      window.localStorage.setItem(`infiplot:gallery:${id}`, docStr);
+    } catch {
+      // localStorage full or disabled — silently bail; the player keeps playing.
+      return;
+    }
+    track("gallery_export", { scene_count: scenes.length });
+    window.open(`/gallery#id=${id}`, "_blank", "noopener");
+
+    // Fire-and-forget: also pack an encrypted `.infiplot` share file for the
+    // player to send to a friend. The local-tab view above is instant either
+    // way; this happens in the background. Server returns 503 if
+    // GALLERY_SECRET isn't configured, in which case we silently skip — the
+    // local view still works, just no share file.
+    void (async () => {
+      try {
+        const r = await fetch("/api/gallery-pack", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ docStr }),
+        });
+        if (!r.ok) return;
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `infiplot-${id}.infiplot`;
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      } catch {
+        // network / decrypt error — local view above already worked
+      }
+    })();
+  }, [trimGalleryExports]);
+
   // ── Presentation mode toggle ─────────────────────────────────────────
   const togglePresentation = useCallback(async () => {
     const entering = !presentation;
@@ -1073,7 +1257,14 @@ function PlayInner() {
           nextSceneSeed: choice.effect.nextSceneSeed,
         },
       };
-      prefetchScenePath(poolRef.current, s, [step], 0, !!byoTtsRef.current);
+      prefetchScenePath(
+        poolRef.current,
+        resolvedPrefetchesRef.current,
+        s,
+        [step],
+        0,
+        !!byoTtsRef.current,
+      );
     }
   }, [currentScene?.id, session?.id]);
 
@@ -1520,6 +1711,20 @@ function PlayInner() {
               <i className="fa-solid fa-expand text-[10px]" />
               F · 键 · 全 · 屏
             </button>
+          }
+          belowCanvas={
+            session && session.history.length > 0 ? (
+              <button
+                type="button"
+                onClick={handleExportGallery}
+                className="text-[10px] smallcaps text-clay-500 hover:text-ember-500 transition-colors flex items-center gap-2"
+                aria-label="导出可交互图集"
+                title="导出本局为可交互图集链接（只会保留最近两次的可交互图集链接）"
+              >
+                <i className="fa-solid fa-link text-[10px]" />
+                导 · 出 · 图 · 集
+              </button>
+            ) : null
           }
           aboveCanvasLeft={
             <>
