@@ -155,7 +155,11 @@ export function parseStoryShareDoc(value: unknown): StoryShareDoc {
   if (typeof value.exportedAt !== "number" || !Number.isFinite(value.exportedAt)) {
     throw new Error("剧情分享文件缺少导出时间");
   }
-  if (!isRecord(value.current) || typeof value.current.sceneIndex !== "number") {
+  if (
+    !isRecord(value.current) ||
+    !Number.isInteger(value.current.sceneIndex) ||
+    (value.current.sceneIndex as number) < 0
+  ) {
     throw new Error("剧情分享文件缺少当前位置");
   }
   if (

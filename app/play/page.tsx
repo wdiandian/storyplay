@@ -1173,6 +1173,9 @@ function PlayInner() {
           const blobUrl = await getOrCreateBlobUrl(first.scene.imageUrl);
           lastImageOriginalUrlRef.current = first.scene.imageUrl;
 
+          const initialStoryState = first.storyStateAfter ?? imported.storyState;
+          if (!initialStoryState) throw new Error("剧情分享文件缺少初始剧情记忆，无法载入。");
+
           const initial: Session = {
             ...imported,
             history: [
@@ -1182,7 +1185,7 @@ function PlayInner() {
                 exit: undefined,
               },
             ],
-            storyState: first.storyStateAfter ?? imported.storyState,
+            storyState: initialStoryState,
             orientation: sessionOrientation,
           };
           replaySourceRef.current = imported;
@@ -1375,7 +1378,7 @@ function PlayInner() {
         !!byoTtsRef.current,
       );
     }
-  }, [currentScene?.id, currentBeat?.id, session?.id]);
+  }, [currentScene?.id, session?.id]);
 
   // Abort all in-flight speculative prefetches when the page unmounts, so we
   // stop paying for background scene/image generation. Empty deps → fires only
@@ -1635,8 +1638,7 @@ function PlayInner() {
         if (recordedNext && recordedNext !== choice.effect.targetBeatId) {
           detachRecordedReplay();
         }
-      }
-      if (
+      } else if (
         replaySourceRef.current &&
         !isRecordedReplayLockedAt(currentBeatRef.current)
       ) {

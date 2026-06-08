@@ -1406,13 +1406,15 @@ export default function HomePage() {
       setStoryImportError("这个剧情文件是空的。");
       return;
     }
-    if (file.size > 12_000_000) {
+    const isJson = file.name.toLowerCase().endsWith(".json") || file.type === "application/json";
+    const maxImportBytes = isJson ? 12_000_000 : 13_000_000;
+    if (file.size > maxImportBytes) {
       setStoryImportError("剧情文件太大，无法载入。");
       return;
     }
     try {
       let text: string;
-      if (file.name.toLowerCase().endsWith(".json") || file.type === "application/json") {
+      if (isJson) {
         text = await file.text();
       } else {
         const r = await fetch("/api/story-unpack", {
@@ -1551,8 +1553,6 @@ export default function HomePage() {
                 开始
                 <i className="fa-solid fa-arrow-right text-xs" />
               </button>
-            </div>
-            <div className="mt-4 flex flex-col items-center gap-2">
               <input
                 ref={storyImportRef}
                 type="file"
@@ -1563,17 +1563,19 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => storyImportRef.current?.click()}
-                className="inline-flex items-center gap-2 text-[10px] smallcaps text-clay-500 transition-colors hover:text-ember-500"
+                className="group absolute right-[-2.25rem] bottom-2 md:bottom-3 inline-flex items-center justify-center rounded-sm border border-clay-900/20 px-2 py-2 md:py-2.5 text-clay-400 transition-colors hover:border-ember-500 hover:text-ember-500"
               >
-                <i className="fa-solid fa-file-import text-[10px]" />
-                载 · 入 · 剧 · 情
+                <i className="fa-solid fa-file-import text-sm" />
+                <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-clay-900 px-2 py-1 font-sans text-[11px] text-cream-50 opacity-0 transition-opacity group-hover:opacity-100">
+                  载入剧情
+                </span>
               </button>
-              {storyImportError && (
-                <p className="max-w-[520px] text-center text-xs leading-relaxed text-ember-500">
-                  {storyImportError}
-                </p>
-              )}
             </div>
+            {storyImportError && (
+              <p className="mt-2 text-right text-xs leading-relaxed text-ember-500">
+                {storyImportError}
+              </p>
+            )}
             {prompt && (
               <p className="mt-2 text-right text-xs text-clay-400">
                 Enter 发送 · Shift+Enter 换行

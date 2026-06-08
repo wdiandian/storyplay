@@ -13,6 +13,14 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
+  const contentLength = req.headers.get("content-length");
+  if (contentLength && Number(contentLength) > MAX_DOC_BYTES + 1024) {
+    return Response.json(
+      { error: "剧情数据太大,无法打包分享" },
+      { status: 413 },
+    );
+  }
+
   let docStr: string;
   try {
     const body = (await req.json()) as { docStr?: unknown };
