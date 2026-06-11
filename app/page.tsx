@@ -12,7 +12,6 @@ import {
 } from "@/lib/options";
 import { readStoredTtsConfig } from "@/lib/clientTtsConfig";
 import { SettingsModal, readStoredPlayerName, readStoredVisionClick } from "@/components/SettingsModal";
-import { ModelSettingsModal } from "@/components/ModelSettingsModal";
 import { analyzeImageDataUrl } from "@infiplot/ai-client";
 import { readStoredModelConfig, resolveEngineConfig } from "@/lib/clientModelConfig";
 import { STYLE_EXTRACTION_PROMPT } from "@/lib/styleExtraction";
@@ -1264,9 +1263,9 @@ export default function HomePage() {
   // 顶部使用提示：默认展示，用户可点 × 永久关闭（localStorage:infiplot:hintClosed）。
   const [hintClosed, setHintClosed] = useState(false);
 
-  // 统一设置弹窗（名字 + 识图 + TTS Key）：可选增强，数据只存浏览器。
+  // 统一设置弹窗（通用 + 模型）：可选增强，数据只存浏览器。
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [modelSettingsOpen, setModelSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<"general" | "models">("general");
   const [ttsConfigured, setTtsConfigured] = useState(false);
   const [playerName, setPlayerName] = useState("");
   const [visionClickEnabled, setVisionClickEnabled] = useState(true);
@@ -1486,16 +1485,10 @@ export default function HomePage() {
         <div className="flex items-center gap-5">
           <button
             type="button"
-            onClick={() => setModelSettingsOpen(true)}
-            aria-label="模型设置"
-            title="模型设置"
-            className="text-base text-clay-500 hover:text-ember-500 transition-colors"
-          >
-            <i className="fa-solid fa-sliders" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => {
+              setSettingsTab("general");
+              setSettingsOpen(true);
+            }}
             aria-label="设置"
             title="设置"
             className="text-base text-clay-500 hover:text-ember-500 transition-colors"
@@ -1632,7 +1625,7 @@ export default function HomePage() {
               <p className="font-serif text-[13px] md:text-sm leading-relaxed text-clay-500">
                 输入你的想象、配置风格，点击「开始」即可游玩；也可以从下方的精选故事集，挑一篇快速体验{" "}
                 <em className="not-italic text-ember-500">InfiPlot</em>。
-                点击「<span className="text-ember-500">设置</span>」可以配置你的名字和配音
+                点击「<span className="inline-flex items-center gap-1 text-ember-500"><i className="fa-solid fa-gear text-[10px]" />设置</span>」可以配置你的名字和配音
                 API Key，让角色以你的名字称呼你，配音体验也更稳定。
               </p>
               <button
@@ -1793,25 +1786,18 @@ export default function HomePage() {
       )}
       {settingsOpen && (
         <SettingsModal
+          initialTab={settingsTab}
           initialVisionClickEnabled={visionClickEnabled}
           onClose={() => setSettingsOpen(false)}
           onSaved={(settings) => {
             setPlayerName(settings.playerName);
             setVisionClickEnabled(settings.visionClickEnabled);
-          }}
-        />
-      )}
-      {modelSettingsOpen && (
-        <ModelSettingsModal
-          onClose={() => setModelSettingsOpen(false)}
-          onSaved={(settings) => {
             setTtsConfigured(settings.ttsConfigured);
             if (settings.ttsConfigured && voiceRow >= 0) {
               const onIdx = OPTS[voiceRow]!.items.indexOf("开启");
               if (onIdx >= 0)
                 setSel((s) => s.map((v, j) => (j === voiceRow ? onIdx : v)));
             }
-            setModelSettingsOpen(false);
           }}
         />
       )}

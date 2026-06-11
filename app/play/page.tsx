@@ -803,7 +803,7 @@ function PlayInner() {
   }, [muted, prefetchSceneAudio]);
 
   const handleSettingsSaved = useCallback(
-    (settings: { playerName: string; visionClickEnabled: boolean }) => {
+    (settings: { playerName: string; visionClickEnabled: boolean; ttsConfigured: boolean }) => {
       setVisionClickEnabled(settings.visionClickEnabled);
       const nextPlayerName = settings.playerName || undefined;
       setSession((prev) => prev ? { ...prev, playerName: nextPlayerName } : prev);
