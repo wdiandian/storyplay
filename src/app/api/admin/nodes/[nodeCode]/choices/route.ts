@@ -15,7 +15,7 @@ export async function POST(
   };
 
   try {
-    const choice = addChoice(nodeCode, {
+    const choice = await addChoice(nodeCode, {
       code: body.code ?? "",
       label: body.label ?? "",
       hint: body.hint ?? "",
@@ -24,7 +24,7 @@ export async function POST(
 
     return Response.json(
       {
-        game: getGame(),
+        game: await getGame(),
         choice,
       },
       { status: 201 },

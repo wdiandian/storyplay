@@ -1,10 +1,10 @@
 import { getGame } from "@/lib/game-store";
 import {
-  createPlaythroughRecord,
-  loadPlaythrough,
-  replaceChoiceLogs,
-  updatePlaythroughRecord,
-} from "@/lib/sqlite";
+  createPlaythroughRecordForStorage,
+  loadPlaythroughFromStorage,
+  replaceChoiceLogsForStorage,
+  updatePlaythroughRecordForStorage,
+} from "@/lib/storage";
 import {
   getNodeByCode,
   type ChoiceLog,
@@ -23,8 +23,8 @@ function buildChoiceLog(node: StoryNode, choice: StoryChoice): ChoiceLog {
   };
 }
 
-function getPlaythroughOrThrow(playthroughId: string) {
-  const session = loadPlaythrough(playthroughId);
+async function getPlaythroughOrThrow(playthroughId: string) {
+  const session = await loadPlaythroughFromStorage(playthroughId);
 
   if (!session) {
     throw new Error("Playthrough not found");
@@ -33,8 +33,8 @@ function getPlaythroughOrThrow(playthroughId: string) {
   return session;
 }
 
-function markCompletionIfNeeded(session: PlaythroughState, nodeCode: string) {
-  const node = getNodeByCode(getGame(), nodeCode);
+async function markCompletionIfNeeded(session: PlaythroughState, nodeCode: string) {
+  const node = getNodeByCode(await getGame(), nodeCode);
 
   if (node.isEnding) {
     session.status = "completed";
@@ -42,8 +42,8 @@ function markCompletionIfNeeded(session: PlaythroughState, nodeCode: string) {
   }
 }
 
-export function createPlaythrough() {
-  const game = getGame();
+export async function createPlaythrough() {
+  const game = await getGame();
 
   if (!game.startNodeCode) {
     throw new Error("Project has no start node");
@@ -59,8 +59,8 @@ export function createPlaythrough() {
     startedAt: new Date().toISOString(),
   };
 
-  markCompletionIfNeeded(session, session.currentNodeCode);
-  createPlaythroughRecord(session);
+  await markCompletionIfNeeded(session, session.currentNodeCode);
+  await createPlaythroughRecordForStorage(session);
 
   return {
     session,
@@ -68,9 +68,9 @@ export function createPlaythrough() {
   };
 }
 
-export function getCurrentNode(playthroughId: string) {
-  const game = getGame();
-  const session = getPlaythroughOrThrow(playthroughId);
+export async function getCurrentNode(playthroughId: string) {
+  const game = await getGame();
+  const session = await getPlaythroughOrThrow(playthroughId);
   const node = getNodeByCode(game, session.currentNodeCode);
 
   return {
@@ -79,9 +79,9 @@ export function getCurrentNode(playthroughId: string) {
   };
 }
 
-export function chooseBranch(playthroughId: string, choiceCode: string) {
-  const game = getGame();
-  const session = getPlaythroughOrThrow(playthroughId);
+export async function chooseBranch(playthroughId: string, choiceCode: string) {
+  const game = await getGame();
+  const session = await getPlaythroughOrThrow(playthroughId);
   const currentNode = getNodeByCode(game, session.currentNodeCode);
   const choices = currentNode.choices ?? [];
   const selectedChoice = choices.find((choice) => choice.code === choiceCode);
@@ -92,9 +92,9 @@ export function chooseBranch(playthroughId: string, choiceCode: string) {
 
   session.history.push(buildChoiceLog(currentNode, selectedChoice));
   session.currentNodeCode = selectedChoice.targetNodeCode;
-  markCompletionIfNeeded(session, session.currentNodeCode);
-  updatePlaythroughRecord(session);
-  replaceChoiceLogs(session.id, session.history);
+  await markCompletionIfNeeded(session, session.currentNodeCode);
+  await updatePlaythroughRecordForStorage(session);
+  await replaceChoiceLogsForStorage(session.id, session.history);
 
   return {
     session,
@@ -102,9 +102,9 @@ export function chooseBranch(playthroughId: string, choiceCode: string) {
   };
 }
 
-export function advancePlaythrough(playthroughId: string) {
-  const game = getGame();
-  const session = getPlaythroughOrThrow(playthroughId);
+export async function advancePlaythrough(playthroughId: string) {
+  const game = await getGame();
+  const session = await getPlaythroughOrThrow(playthroughId);
   const currentNode = getNodeByCode(game, session.currentNodeCode);
 
   if (!currentNode.autoNextNodeCode) {
@@ -112,8 +112,8 @@ export function advancePlaythrough(playthroughId: string) {
   }
 
   session.currentNodeCode = currentNode.autoNextNodeCode;
-  markCompletionIfNeeded(session, session.currentNodeCode);
-  updatePlaythroughRecord(session);
+  await markCompletionIfNeeded(session, session.currentNodeCode);
+  await updatePlaythroughRecordForStorage(session);
 
   return {
     session,
@@ -121,9 +121,9 @@ export function advancePlaythrough(playthroughId: string) {
   };
 }
 
-export function restartPlaythrough(playthroughId: string) {
-  const game = getGame();
-  const session = getPlaythroughOrThrow(playthroughId);
+export async function restartPlaythrough(playthroughId: string) {
+  const game = await getGame();
+  const session = await getPlaythroughOrThrow(playthroughId);
 
   if (!game.startNodeCode) {
     throw new Error("Project has no start node");
@@ -134,8 +134,8 @@ export function restartPlaythrough(playthroughId: string) {
   session.history = [];
   session.startedAt = new Date().toISOString();
   session.finishedAt = undefined;
-  updatePlaythroughRecord(session);
-  replaceChoiceLogs(session.id, session.history);
+  await updatePlaythroughRecordForStorage(session);
+  await replaceChoiceLogsForStorage(session.id, session.history);
 
   return {
     session,

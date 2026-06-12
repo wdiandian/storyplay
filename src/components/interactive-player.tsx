@@ -143,6 +143,7 @@ export function InteractivePlayer() {
   const [transitionText, setTransitionText] = useState("序章");
   const [endingReveal, setEndingReveal] = useState(false);
   const [autoAdvanceProgress, setAutoAdvanceProgress] = useState<number | null>(null);
+  const [videoFreezeFrame, setVideoFreezeFrame] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const promoVideoRef = useRef<HTMLVideoElement | null>(null);
   const previousNodeCodeRef = useRef<string | null>(null);
@@ -158,7 +159,44 @@ export function InteractivePlayer() {
       setError(null);
       setEndingReveal(false);
       setAutoAdvanceProgress(null);
+      setVideoFreezeFrame(null);
     });
+  }
+
+  function captureVideoFreezeFrame(video: HTMLVideoElement) {
+    if (!video.videoWidth || !video.videoHeight) {
+      setVideoFreezeFrame(null);
+      return;
+    }
+
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        setVideoFreezeFrame(null);
+        return;
+      }
+
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      setVideoFreezeFrame(canvas.toDataURL("image/jpeg", 0.92));
+    } catch {
+      setVideoFreezeFrame(null);
+    }
+  }
+
+  function handleVideoEnded() {
+    const video = videoRef.current;
+
+    if (video) {
+      captureVideoFreezeFrame(video);
+      video.pause();
+    }
+
+    setHasEnded(true);
   }
 
   useEffect(() => {
@@ -567,19 +605,29 @@ export function InteractivePlayer() {
 
                 <div className="relative aspect-[16/9] bg-black">
                   {currentNode && !videoFailed ? (
-                    <video
-                      key={currentNode.code}
-                      ref={videoRef}
-                      className="h-full w-full object-cover"
-                      src={currentNode.videoUrl}
-                      controls
-                      muted
-                      playsInline
-                      preload="metadata"
-                      autoPlay
-                      onEnded={() => setHasEnded(true)}
-                      onError={() => setVideoFailed(true)}
-                    />
+                    <>
+                      <video
+                        key={currentNode.code}
+                        ref={videoRef}
+                        className={`h-full w-full object-cover ${hasEnded && videoFreezeFrame ? "invisible" : ""}`}
+                        src={currentNode.videoUrl}
+                        controls
+                        muted
+                        playsInline
+                        preload="metadata"
+                        autoPlay
+                        onEnded={handleVideoEnded}
+                        onError={() => setVideoFailed(true)}
+                      />
+                      {hasEnded && videoFreezeFrame ? (
+                        <img
+                          src={videoFreezeFrame}
+                          alt=""
+                          aria-hidden="true"
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
+                      ) : null}
+                    </>
                   ) : (
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(180,83,9,0.24),_transparent_36%),linear-gradient(180deg,_rgba(17,17,17,0.25)_0%,_rgba(5,5,6,0.85)_100%)]" />
                   )}
@@ -709,6 +757,7 @@ export function InteractivePlayer() {
                           if (video) {
                             video.pause();
                             video.currentTime = Math.max(video.duration - 0.2, 0);
+                            captureVideoFreezeFrame(video);
                           }
 
                           setHasEnded(true);

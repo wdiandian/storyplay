@@ -14,9 +14,9 @@ export async function POST(
   }
 
   try {
-    const { session, node } = chooseBranch(playthroughId, body.choiceCode);
+    const { session, node } = await chooseBranch(playthroughId, body.choiceCode);
 
-    return Response.json(serializePlaythrough(getGame(), session, node));
+    return Response.json(serializePlaythrough(await getGame(), session, node));
   } catch (error) {
     return Response.json(
       {

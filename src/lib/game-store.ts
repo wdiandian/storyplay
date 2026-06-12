@@ -7,13 +7,13 @@ import {
   type StoryNode,
 } from "@/lib/story-engine";
 import {
-  insertChoiceRecord,
-  insertNodeRecord,
-  loadGameFromDb,
-  persistGameMeta,
-  resetDatabaseToSeed,
-  updateNodeRecord,
-} from "@/lib/sqlite";
+  insertChoice,
+  insertNode,
+  loadGame,
+  persistGame,
+  resetStorageToSeed,
+  updateNode,
+} from "@/lib/storage";
 
 type GameSettingsInput = {
   title?: string;
@@ -91,12 +91,12 @@ function sanitizeNode(input: NodeInput): StoryNode {
   };
 }
 
-export function getGame() {
-  return loadGameFromDb();
+export async function getGame() {
+  return loadGame();
 }
 
-export function updateGameSettings(input: GameSettingsInput) {
-  const game = getGame();
+export async function updateGameSettings(input: GameSettingsInput) {
+  const game = await getGame();
 
   if (typeof input.startNodeCode === "string") {
     const normalizedStartNodeCode = input.startNodeCode.trim();
@@ -136,7 +136,7 @@ export function updateGameSettings(input: GameSettingsInput) {
     game.promoText = input.promoText.trim();
   }
 
-  persistGameMeta({
+  await persistGame({
     title: game.title,
     tagline: game.tagline,
     intro: game.intro,
@@ -150,8 +150,8 @@ export function updateGameSettings(input: GameSettingsInput) {
   return game;
 }
 
-export function createNode(input: NodeInput) {
-  const game = getGame();
+export async function createNode(input: NodeInput) {
+  const game = await getGame();
   const node = sanitizeNode(input);
 
   if (!node.code) {
@@ -174,11 +174,11 @@ export function createNode(input: NodeInput) {
     assertNodeExists(game, node.autoNextNodeCode);
   }
 
-  insertNodeRecord(node);
+  await insertNode(node);
 
   if (!game.startNodeCode) {
     game.startNodeCode = node.code;
-    persistGameMeta({
+    await persistGame({
       startNodeCode: node.code,
     });
   }
@@ -186,8 +186,8 @@ export function createNode(input: NodeInput) {
   return node;
 }
 
-export function updateNode(nodeCode: string, input: NodeUpdateInput) {
-  const game = getGame();
+export async function updateNodeDetails(nodeCode: string, input: NodeUpdateInput) {
+  const game = await getGame();
   const node = getNodeByCode(game, nodeCode);
   const nextNodeType = input.nodeType ?? node.nodeType;
   const nextAutoNextCode = normalizeOptionalNodeCode(
@@ -240,12 +240,12 @@ export function updateNode(nodeCode: string, input: NodeUpdateInput) {
     });
   }
 
-  updateNodeRecord(node);
+  await updateNode(node);
   return node;
 }
 
-export function addChoice(nodeCode: string, input: ChoiceInput) {
-  const game = getGame();
+export async function addChoice(nodeCode: string, input: ChoiceInput) {
+  const game = await getGame();
   const node = getNodeByCode(game, nodeCode);
   const choice = sanitizeChoice(input);
 
@@ -266,11 +266,11 @@ export function addChoice(nodeCode: string, input: ChoiceInput) {
   }
 
   node.choices = [...existingChoices, choice];
-  insertChoiceRecord(nodeCode, choice);
+  await insertChoice(nodeCode, choice);
   return choice;
 }
 
-export function resetGameToBlankProject() {
-  resetDatabaseToSeed(blankStorySeed);
+export async function resetGameToBlankProject() {
+  await resetStorageToSeed(blankStorySeed);
   return getGame();
 }

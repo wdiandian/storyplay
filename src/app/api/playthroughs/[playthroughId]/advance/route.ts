@@ -14,11 +14,11 @@ export async function POST(
   try {
     const result =
       body?.action === "restart"
-        ? restartPlaythrough(playthroughId)
-        : advancePlaythrough(playthroughId);
+        ? await restartPlaythrough(playthroughId)
+        : await advancePlaythrough(playthroughId);
 
     return Response.json(
-      serializePlaythrough(getGame(), result.session, result.node),
+      serializePlaythrough(await getGame(), result.session, result.node),
     );
   } catch (error) {
     return Response.json(

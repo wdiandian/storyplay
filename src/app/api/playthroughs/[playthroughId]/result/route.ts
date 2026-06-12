@@ -10,8 +10,8 @@ export async function GET(
   const { playthroughId } = await context.params;
 
   try {
-    const game = getGame();
-    const { session, node } = getCurrentNode(playthroughId);
+    const game = await getGame();
+    const { session, node } = await getCurrentNode(playthroughId);
 
     if (!node.isEnding) {
       return Response.json(

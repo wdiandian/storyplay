@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   };
 
   try {
-    const node = createNode({
+    const node = await createNode({
       code: body.code ?? "",
       title: body.title ?? "",
       description: body.description ?? "",
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     return Response.json(
       {
-        game: getGame(),
+        game: await getGame(),
         node,
       },
       { status: 201 },

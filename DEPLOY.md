@@ -7,6 +7,7 @@ This project is deployed with:
 - PM2
 - Nginx
 - Cloudflare DNS and HTTPS
+- Optional shared PostgreSQL via `DATABASE_URL`
 
 ## 1. Server bootstrap
 
@@ -45,6 +46,32 @@ npm run build
 pm2 start ecosystem.config.cjs
 pm2 save
 pm2 startup
+```
+
+## 2.1 Shared remote database
+
+If you want local and server to use the same admin data, configure the same PostgreSQL
+connection string in both environments:
+
+```bash
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DBNAME
+PGSSL=true
+```
+
+Create a local `.env.local` and a server `.env.production` or PM2 environment with the
+same `DATABASE_URL`.
+
+When `DATABASE_URL` is present:
+
+- the app reads and writes PostgreSQL
+- local SQLite becomes fallback only
+- local and server admin operate on the same project data
+
+If you already have data in SQLite, import it once:
+
+```bash
+cd /var/www/storyplay/app
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DBNAME npm run db:import:sqlite
 ```
 
 `pm2 startup` prints one extra command. Run that command once.
@@ -144,7 +171,7 @@ sudo tail -f /var/log/nginx/access.log
 
 ## 9. Data backup
 
-SQLite file:
+SQLite file fallback:
 
 ```bash
 /var/www/storyplay/app/data/app.db
@@ -155,3 +182,5 @@ Backup:
 ```bash
 cp /var/www/storyplay/app/data/app.db /var/www/storyplay/app/data/app.db.bak
 ```
+
+PostgreSQL backup should be done from the database provider side or with `pg_dump`.

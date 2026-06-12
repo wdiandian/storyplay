@@ -1,4 +1,4 @@
-import { getGame, updateNode } from "@/lib/game-store";
+import { getGame, updateNodeDetails } from "@/lib/game-store";
 import type { EndingTone, StoryChoice } from "@/lib/story-engine";
 
 export const dynamic = "force-dynamic";
@@ -20,10 +20,10 @@ export async function PATCH(
   };
 
   try {
-    const node = updateNode(nodeCode, body);
+    const node = await updateNodeDetails(nodeCode, body);
 
     return Response.json({
-      game: getGame(),
+      game: await getGame(),
       node,
     });
   } catch (error) {

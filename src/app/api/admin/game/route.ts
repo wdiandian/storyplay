@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   return Response.json({
-    game: getGame(),
+    game: await getGame(),
   });
 }
 
@@ -21,7 +21,7 @@ export async function PATCH(request: Request) {
   };
 
   try {
-    const game = updateGameSettings(body);
+    const game = await updateGameSettings(body);
 
     return Response.json({
       game,
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const game = resetGameToBlankProject();
+    const game = await resetGameToBlankProject();
 
     return Response.json({
       game,

@@ -4,9 +4,9 @@ import { serializePlaythrough } from "@/lib/api-response";
 
 export async function POST() {
   try {
-    const { session, node } = createPlaythrough();
+    const { session, node } = await createPlaythrough();
 
-    return Response.json(serializePlaythrough(getGame(), session, node), {
+    return Response.json(serializePlaythrough(await getGame(), session, node), {
       status: 201,
     });
   } catch (error) {

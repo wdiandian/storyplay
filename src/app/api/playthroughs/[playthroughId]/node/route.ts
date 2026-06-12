@@ -11,9 +11,9 @@ export async function GET(
   const { playthroughId } = await context.params;
 
   try {
-    const { session, node } = getCurrentNode(playthroughId);
+    const { session, node } = await getCurrentNode(playthroughId);
 
-    return Response.json(serializePlaythrough(getGame(), session, node));
+    return Response.json(serializePlaythrough(await getGame(), session, node));
   } catch (error) {
     return Response.json(
       {
