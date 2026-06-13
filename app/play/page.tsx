@@ -548,13 +548,20 @@ function PlayInner() {
     { done: number; total: number; label: string } | null
   >(null);
 
-  const handleAuthError = useCallback((e: unknown): boolean => {
-    if (e instanceof AuthRequiredError) {
-      setAuthModalOpen(true);
-      return true;
-    }
-    return false;
-  }, []);
+  // `retry` re-runs the action that hit the 401, replayed by AuthModal.onSuccess
+  // after the user signs in. Omitted by callers whose path can't actually 401
+  // (initial load already gated on the homepage, recorded replay is local).
+  const handleAuthError = useCallback(
+    (e: unknown, retry?: () => void): boolean => {
+      if (e instanceof AuthRequiredError) {
+        authResolveRef.current = retry ?? null;
+        setAuthModalOpen(true);
+        return true;
+      }
+      return false;
+    },
+    [],
+  );
 
   const startedRef = useRef(false);
   const poolRef = useRef<Map<string, PrefetchEntry>>(new Map());
@@ -1436,6 +1443,7 @@ function PlayInner() {
     exit: SceneExit,
     visitedForCurrent: string[],
     exitLabel: string,
+    retry?: () => void,
   ) {
     setPhase("transitioning");
     setPendingClick(null);
@@ -1493,7 +1501,7 @@ function PlayInner() {
         setPhase("ready");
         return;
       }
-      if (!handleAuthError(e)) setError(String(e));
+      if (!handleAuthError(e, retry)) setError(String(e));
       setPhase("ready");
     }
   }
@@ -1681,7 +1689,9 @@ function PlayInner() {
 
     const cached = consumeChoice(poolRef.current, choice.id);
     if (cached) {
-      void performSceneTransition(cached, exit, visited, choice.label);
+      void performSceneTransition(cached, exit, visited, choice.label, () =>
+        onSelectChoice(choice),
+      );
       return;
     }
 
@@ -1706,7 +1716,9 @@ function PlayInner() {
       return data;
     })();
 
-    void performSceneTransition(promise, exit, visited, choice.label);
+    void performSceneTransition(promise, exit, visited, choice.label, () =>
+      onSelectChoice(choice),
+    );
   }
 
   async function onFreeformInput(text: string) {
@@ -1804,9 +1816,15 @@ function PlayInner() {
       })();
 
       setPendingClick(null);
-      void performSceneTransition(promise, exit, visited, decision.freeformAction);
+      void performSceneTransition(
+        promise,
+        exit,
+        visited,
+        decision.freeformAction,
+        () => onFreeformInput(text),
+      );
     } catch (e) {
-      if (!handleAuthError(e)) setError(String(e));
+      if (!handleAuthError(e, () => onFreeformInput(text))) setError(String(e));
       setPhase("ready");
     }
   }
@@ -1908,10 +1926,11 @@ function PlayInner() {
           exit,
           visited,
           decision.intent.freeformAction,
+          () => onBackgroundClick(click),
         );
       }
     } catch (e) {
-      if (!handleAuthError(e)) setError(String(e));
+      if (!handleAuthError(e, () => onBackgroundClick(click))) setError(String(e));
       setPendingClick(null);
       setPhase("ready");
     }
@@ -2158,13 +2177,14 @@ function PlayInner() {
         <AuthModal
           onClose={() => {
             setAuthModalOpen(false);
-            authResolveRef.current?.();
+            // User dismissed login — drop the retry, don't re-run the action.
             authResolveRef.current = null;
           }}
           onSuccess={() => {
             setAuthModalOpen(false);
-            authResolveRef.current?.();
+            const retry = authResolveRef.current;
             authResolveRef.current = null;
+            retry?.();
           }}
         />
       )}

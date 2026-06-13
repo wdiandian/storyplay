@@ -10,8 +10,14 @@ export async function createClient() {
       cookies: {
         getAll: () => cookieStore.getAll(),
         setAll: (cookiesToSet) => {
-          for (const { name, value, options } of cookiesToSet) {
-            cookieStore.set(name, value, options);
+          try {
+            for (const { name, value, options } of cookiesToSet) {
+              cookieStore.set(name, value, options);
+            }
+          } catch {
+            // `setAll` can be invoked from a Server Component, where the cookie
+            // store is read-only and throws. Safe to ignore — the proxy
+            // middleware refreshes the session on the next request.
           }
         },
       },
