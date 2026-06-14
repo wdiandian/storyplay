@@ -104,7 +104,7 @@ export default function TermsPage() {
             数据与隐私
           </h2>
           <p>
-            公测期间生成的游戏内容不会被保存在我们的服务器上。会话数据仅存在于您的浏览器中。有关我们如何处理您的个人信息，请参阅我们的{" "}
+            公测期间生成的游戏内容不会被持久保存在我们的服务器上。为提供 AI 生成服务，相关内容会在请求处理过程中临时传输和处理，处理完成后不会被保留。有关我们如何处理您的个人信息，请参阅我们的{" "}
             <Link
               href="/privacy"
               className="text-ember-500 hover:text-ember-400 transition-colors underline decoration-clay-900/20 underline-offset-2"
