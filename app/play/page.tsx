@@ -879,14 +879,17 @@ function PlayInner() {
       //   - BYO (xiaomi): baked voice OR voiceDescription to provision locally.
       //   - Server stepfun: stepfunVoiceId or voiceDescription — no Xiaomi
       //     `voice` needed (saves the ~220KB reference-audio FOT).
-      //   - Server xiaomi / unknown: rely on speaker.voice (the server will
-      //     normalize if provider mismatch — but we still need *something*).
+      //   - Server xiaomi / unknown (probe pending): accept ANY synthesizable
+      //     source. The null case covers the race where getTtsProvider hasn't
+      //     resolved before the first beat fetch fires — without this widening
+      //     a stepfun-only speaker (no Xiaomi voice) would be silently dropped.
+      //     The server resolves + normalizes regardless of which fields arrive.
       if (byo) {
         if (!speaker.voice && !speaker.voiceDescription) return;
       } else if (serverProvider === "stepfun") {
         if (!speaker.stepfunVoiceId && !speaker.voiceDescription) return;
       } else {
-        if (!speaker.voice) return;
+        if (!speaker.voice && !speaker.stepfunVoiceId && !speaker.voiceDescription) return;
       }
 
       if (beatAudioAbortRef.current.has(beat.id)) return;

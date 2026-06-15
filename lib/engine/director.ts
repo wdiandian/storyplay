@@ -308,6 +308,9 @@ export async function directScene(
   // On the StepFun path, thread the LLM-selected stepfunVoiceId from the card
   // into provision — it lets stepfunProvision honor the catalog pick instead
   // of falling back to the keyword scorer (same network cost: still zero).
+  // ALSO persist it onto the Character so the client can echo it back on a
+  // StepFun server (where it skips the ~220KB voice payload) and the server
+  // resolveVoice honors the LLM pick at synth time instead of re-scoring.
   const voicePromises = cards.map((card) =>
     provisionCharacterVoice(config, card.voiceDescription, card.name, {
       stepfunVoiceId: card.stepfunVoiceId,
@@ -316,6 +319,7 @@ export async function directScene(
         name: card.name,
         voiceDescription: card.voiceDescription,
         voice,
+        stepfunVoiceId: card.stepfunVoiceId,
       }),
     ),
   );
