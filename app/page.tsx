@@ -1313,6 +1313,7 @@ export default function HomePage() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"start" | null>(null);
 
+
   const styleRow = OPTS.findIndex((o) => o.modal);
   const voiceRow = OPTS.findIndex((o) => o.label === "语音配音");
   const paceRow = OPTS.findIndex((o) => o.label === "内容节奏");
@@ -1652,7 +1653,7 @@ export default function HomePage() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="GitHub"
-            className="hidden sm:inline-flex text-lg text-clay-500 hover:text-ember-500 transition-colors"
+            className="inline-flex text-lg text-clay-500 hover:text-ember-500 transition-colors"
           >
             <i className="fa-brands fa-github" />
           </a>
@@ -1661,7 +1662,7 @@ export default function HomePage() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="X / Twitter"
-            className="hidden sm:inline-flex text-base text-clay-500 hover:text-ember-500 transition-colors"
+            className="inline-flex text-base text-clay-500 hover:text-ember-500 transition-colors"
           >
             <i className="fa-brands fa-x-twitter" />
           </a>
@@ -1775,6 +1776,8 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+
+
 
           {/* 使用提示：可被用户永久关闭（localStorage:infiplot:hintClosed） */}
           {!hintClosed && (
