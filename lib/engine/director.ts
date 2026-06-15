@@ -305,8 +305,13 @@ export async function directScene(
   }
 
   // Kick off voice provisioning for every NEW char (never on the paint path).
+  // On the StepFun path, thread the LLM-selected stepfunVoiceId from the card
+  // into provision — it lets stepfunProvision honor the catalog pick instead
+  // of falling back to the keyword scorer (same network cost: still zero).
   const voicePromises = cards.map((card) =>
-    provisionCharacterVoice(config, card.voiceDescription, card.name).then(
+    provisionCharacterVoice(config, card.voiceDescription, card.name, {
+      stepfunVoiceId: card.stepfunVoiceId,
+    }).then(
       (voice): Character => ({
         name: card.name,
         voiceDescription: card.voiceDescription,
