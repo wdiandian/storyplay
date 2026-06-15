@@ -15,18 +15,18 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "enrich:firstacts": "node scripts/enrich-firstacts-stepfun.mjs",
     "build:cf": "opennextjs-cloudflare build",
     "preview:cf": "opennextjs-cloudflare preview",
     "deploy:cf": "opennextjs-cloudflare deploy"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.81",
-    "@ai-sdk/google": "^3.0.80",
-    "@ai-sdk/openai": "^3.0.67",
-    "ai": "^6.0.196",
+    "@supabase/ssr": "^0.12",
+    "@supabase/supabase-js": "^2.108",
     "jsonrepair": "^3.14.0",
     "jszip": "^3.10.1",
     "next": "^16.0.0",
+    "openai": "^6.42.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

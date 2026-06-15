@@ -12,7 +12,14 @@ import {
 } from "@/lib/options";
 import { readStoredTtsConfig } from "@/lib/clientTtsConfig";
 import { SettingsModal, readStoredPlayerName, readStoredVisionClick } from "@/components/SettingsModal";
+import { analyzeImageDataUrl } from "@infiplot/ai-client";
+import { readStoredModelConfig, resolveEngineConfig } from "@/lib/clientModelConfig";
+import { STYLE_EXTRACTION_PROMPT } from "@/lib/styleExtraction";
 import { STORY_SHARE_STORAGE_KEY, parseStoryShareDoc } from "@/lib/storyShare";
+import { AUTH_ENABLED } from "@/lib/supabase/config";
+import { isAuthed, writeResumeSnapshot } from "@/lib/authResume";
+import { AuthModal } from "@/components/AuthModal";
+import { UserChip } from "@/components/UserChip";
 
 /* ============================================================================
    InfiPlot · 首页（编辑式视觉风格 · 居中构图，呼应低保真原型）
@@ -821,7 +828,7 @@ function CategorySelect({
         />
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-2 z-30 min-w-[150px] py-1.5 bg-cream-50 border border-clay-900/15 rounded-sm shadow-xl shadow-clay-900/10">
+        <div className="absolute left-0 top-full mt-2 z-30 min-w-[150px] max-w-[calc(100vw-2rem)] py-1.5 bg-cream-50 border border-clay-900/15 rounded-sm shadow-xl shadow-clay-900/10">
           {items.map((it, i) => (
             <button
               key={i}
@@ -844,6 +851,42 @@ function CategorySelect({
 
 /* ---------- style picker modal ---------- */
 
+const PENDING_START_KEY = "infiplot:pending-start";
+const PENDING_PARSE_KEY = "infiplot:pending-parse";
+
+// Shared by the StyleModal uploader and the post-login resume path: turns a
+// resized data URL into an English style prompt, via the browser engine when a
+// BYO model config is present, otherwise the server route.
+async function extractStylePromptFromImage(resized: string): Promise<string> {
+  const modelCfg = readStoredModelConfig();
+  if (modelCfg) {
+    const config = resolveEngineConfig(modelCfg, null);
+    const raw = await analyzeImageDataUrl(
+      config.vision,
+      resized,
+      STYLE_EXTRACTION_PROMPT,
+    );
+    let parsed: { stylePrompt?: string };
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = { stylePrompt: raw };
+    }
+    return (parsed.stylePrompt ?? "").trim();
+  }
+  const r = await fetch("/api/parse-style-image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imageDataUrl: resized }),
+  });
+  if (!r.ok) {
+    const data = (await r.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error || `HTTP ${r.status}`);
+  }
+  const data = (await r.json()) as { stylePrompt?: string };
+  return (data.stylePrompt ?? "").trim();
+}
+
 function StyleModal({
   items,
   value,
@@ -853,6 +896,7 @@ function StyleModal({
   setCustomStyleGuide,
   customStyleRefImage,
   setCustomStyleRefImage,
+  onRequireAuth,
 }: {
   items: string[];
   value: number;
@@ -862,6 +906,7 @@ function StyleModal({
   setCustomStyleGuide: (s: string) => void;
   customStyleRefImage: string;
   setCustomStyleRefImage: (s: string) => void;
+  onRequireAuth: () => void;
 }) {
   const [q, setQ] = useState("");
   const [shown, setShown] = useState(false);
@@ -870,7 +915,7 @@ function StyleModal({
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const thumbV = "v5";
+  const thumbV = "v6";
   const STYLE_THUMB: Record<string, string> = {
     "自动": `/home/styles/auto.webp?${thumbV}`,
     "自定义风格": `/home/styles/custom.webp?${thumbV}`,
@@ -976,17 +1021,20 @@ function StyleModal({
     setParsing(true);
     try {
       const resized = await resizeImageToDataUrl(file);
-      const res = await fetch("/api/parse-style-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageDataUrl: resized }),
-      });
-      if (!res.ok) {
-        const j = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(j.error ?? `${res.status}`);
+      // The parse is a paid vision call, so require login first. The resize is
+      // already done — stash it so login can auto-resume the parse on return.
+      if (!(await isAuthed())) {
+        try {
+          sessionStorage.setItem(PENDING_PARSE_KEY, resized);
+        } catch {
+          /* too big to stash — user re-uploads after login */
+        }
+        onRequireAuth();
+        return;
       }
-      const data = (await res.json()) as { stylePrompt: string };
-      setDraft(data.stylePrompt);
+      const stylePrompt = await extractStylePromptFromImage(resized);
+      if (!stylePrompt) throw new Error("视觉模型返回了空的风格描述");
+      setDraft(stylePrompt);
       setCustomStyleRefImage(resized);
       track("style_image_upload", { ok: true });
     } catch (err) {
@@ -1023,7 +1071,7 @@ function StyleModal({
           (shown ? "opacity-100 scale-100" : "opacity-0 scale-95")
         }
       >
-        <div className="flex items-center gap-5 px-6 md:px-8 py-5 border-b border-clay-900/10">
+        <div className="flex items-center gap-3 md:gap-5 px-5 md:px-8 py-4 md:py-5 border-b border-clay-900/10">
           {view === "custom" ? (
             <div className="flex flex-1 items-center gap-3">
               <button
@@ -1040,11 +1088,11 @@ function StyleModal({
             <>
               <div className="flex flex-1 flex-col">
                 <span className="font-serif text-xl md:text-2xl text-clay-900">选择绘画风格</span>
-                <span className="text-[11px] text-clay-500 mt-1 tracking-wide">
+                <span className="hidden md:block text-[11px] text-clay-500 mt-1 tracking-wide">
                   默认「自动」· 由 AI 根据故事自动匹配画风；选择「自定义风格」可输入描述或上传参考图
                 </span>
               </div>
-              <div className="relative w-[280px] max-w-[46vw]">
+              <div className="relative w-[150px] max-w-[40vw] md:w-[280px] md:max-w-[46vw]">
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
@@ -1093,7 +1141,7 @@ function StyleModal({
                 {parseError}
               </span>
             )}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {customStyleRefImage ? (
                 <div className="flex items-center gap-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1149,7 +1197,7 @@ function StyleModal({
                   const v = e.target.value;
                   if (v && STYLE_MAP[v]) setDraft(STYLE_MAP[v]);
                 }}
-                className="h-8 w-44 rounded-sm border border-clay-900/15 bg-cream-50 px-2 font-sans text-[12px] text-clay-700 outline-none transition-colors focus:border-ember-500"
+                className="h-8 w-36 md:w-44 rounded-sm border border-clay-900/15 bg-cream-50 px-2 font-sans text-[12px] text-clay-700 outline-none transition-colors focus:border-ember-500"
               >
                 <option value="">从预设风格导入…</option>
                 {Object.keys(STYLE_MAP).map((s) => (
@@ -1256,11 +1304,15 @@ export default function HomePage() {
   // 顶部使用提示：默认展示，用户可点 × 永久关闭（localStorage:infiplot:hintClosed）。
   const [hintClosed, setHintClosed] = useState(false);
 
-  // 统一设置弹窗（名字 + 识图 + TTS Key）：可选增强，数据只存浏览器。
+  // 统一设置弹窗（通用 + 模型）：可选增强，数据只存浏览器。
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<"general" | "models">("general");
   const [ttsConfigured, setTtsConfigured] = useState(false);
   const [playerName, setPlayerName] = useState("");
   const [visionClickEnabled, setVisionClickEnabled] = useState(true);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"start" | null>(null);
+
 
   const styleRow = OPTS.findIndex((o) => o.modal);
   const voiceRow = OPTS.findIndex((o) => o.label === "语音配音");
@@ -1330,7 +1382,114 @@ export default function HomePage() {
     }
   };
 
-  const start = () => {
+  // ── Auth-gated resume (OAuth round-trips lose all React state) ──────────
+  // An OAuth login unmounts the homepage and discards everything the user
+  // typed. We snapshot the form before redirecting and replay it on return.
+  // The email-OTP path keeps state in place and resumes synchronously via
+  // AuthModal.onSuccess instead.
+  const [autoStartPending, setAutoStartPending] = useState(false);
+
+  const persistPendingStart = () => {
+    const snap = { prompt, sel, customStyleGuide, customStyleRefImage, playerName };
+    // Quota fallback: the data-URL style ref (~100KB) is the usual culprit —
+    // drop it first; text-only form still resumes the start.
+    writeResumeSnapshot(PENDING_START_KEY, snap, [
+      { ...snap, customStyleRefImage: "" },
+    ]);
+  };
+
+  const resumePendingParse = async () => {
+    const resized = sessionStorage.getItem(PENDING_PARSE_KEY);
+    if (!resized) return;
+    sessionStorage.removeItem(PENDING_PARSE_KEY);
+    try {
+      const stylePrompt = await extractStylePromptFromImage(resized);
+      if (!stylePrompt) return;
+      setCustomStyleGuide(stylePrompt);
+      setCustomStyleRefImage(resized);
+      const customIdx = ART_STYLES.indexOf("自定义风格");
+      if (styleRow >= 0 && customIdx >= 0) {
+        setSel((s) => s.map((v, j) => (j === styleRow ? customIdx : v)));
+      }
+      track("style_image_upload", { ok: true });
+    } catch {
+      /* resume parse failed — stay silent, user can re-upload */
+    }
+  };
+
+  const resumePendingStart = () => {
+    const raw = sessionStorage.getItem(PENDING_START_KEY);
+    if (!raw) return;
+    sessionStorage.removeItem(PENDING_START_KEY);
+    try {
+      const snap = JSON.parse(raw) as {
+        prompt?: string;
+        sel?: number[];
+        customStyleGuide?: string;
+        customStyleRefImage?: string;
+        playerName?: string;
+      };
+      setPrompt(snap.prompt ?? "");
+      if (Array.isArray(snap.sel)) setSel(snap.sel);
+      setCustomStyleGuide(snap.customStyleGuide ?? "");
+      setCustomStyleRefImage(snap.customStyleRefImage ?? "");
+      if (snap.playerName) setPlayerName(snap.playerName);
+      // Defer start() to the next render so it reads the restored state.
+      setAutoStartPending(true);
+    } catch {
+      /* corrupt snapshot — ignore */
+    }
+  };
+
+  // On mount after an OAuth redirect: if a pending action was left and the user
+  // is now signed in, restore and continue; otherwise clear stale snapshots.
+  useEffect(() => {
+    if (!AUTH_ENABLED) return;
+    const hasStart = sessionStorage.getItem(PENDING_START_KEY) !== null;
+    const hasParse = sessionStorage.getItem(PENDING_PARSE_KEY) !== null;
+    if (!hasStart && !hasParse) return;
+    let cancelled = false;
+    void (async () => {
+      // Gate BOTH snapshots on auth: a stale leftover from an abandoned login
+      // must not resurrect a half-flow. The parse key stores a raw data URL
+      // with its own restore path (resumePendingParse), so both are gated
+      // manually here rather than via consumeResumeSnapshot.
+      if (!(await isAuthed())) {
+        sessionStorage.removeItem(PENDING_START_KEY);
+        sessionStorage.removeItem(PENDING_PARSE_KEY);
+        return;
+      }
+      if (cancelled) return;
+      await resumePendingParse();
+      resumePendingStart();
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Run the resumed start() only after restored form state has committed.
+  useEffect(() => {
+    if (!autoStartPending) return;
+    setAutoStartPending(false);
+    void start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStartPending]);
+
+  const start = async () => {
+    if (AUTH_ENABLED) {
+      if (!(await isAuthed())) {
+        // Don't snapshot here — persistPendingStart fires via
+        // AuthModal.onBeforeOAuth at redirect time, so the form is captured
+        // for BOTH OAuth and (harmlessly) OTP paths at the single source of
+        // truth. OTP's onSuccess resumes in-place without needing the snapshot.
+        setPendingAction("start");
+        setAuthModalOpen(true);
+        return;
+      }
+    }
+
     // 空输入时落回 Typewriter 当前闪动的示例——用户看到啥就玩啥，
     // 不会再出现「点开始 → 剧情和占位文字毫无关系」的体验断层。
     const userPrompt =
@@ -1467,17 +1626,22 @@ export default function HomePage() {
     router.push(`/play?card=${imgPrefix}${idx}`);
   };
 
+  // overflow-x-hidden 在 wrapper 层兜底：body 的 overflow-x-hidden 在移动端会因
+  // 规范的 overflow 传播而失效，wrapper 是最靠近溢出源（右下操作集群）的块级剪裁点。
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col overflow-x-hidden">
       {/* ================== HEADER ================== */}
       <header className="mx-auto w-full max-w-[1640px] px-6 md:px-16 pt-7 md:pt-10 flex items-center justify-between">
         <span className="font-serif text-2xl md:text-[34px] leading-none tracking-tight text-clay-900">
           Infi<em className="italic font-light text-ember-500">Plot</em>
         </span>
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4 md:gap-5">
           <button
             type="button"
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => {
+              setSettingsTab("general");
+              setSettingsOpen(true);
+            }}
             aria-label="设置"
             title="设置"
             className="text-base text-clay-500 hover:text-ember-500 transition-colors"
@@ -1489,7 +1653,7 @@ export default function HomePage() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="GitHub"
-            className="text-lg text-clay-500 hover:text-ember-500 transition-colors"
+            className="inline-flex text-lg text-clay-500 hover:text-ember-500 transition-colors"
           >
             <i className="fa-brands fa-github" />
           </a>
@@ -1498,15 +1662,16 @@ export default function HomePage() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="X / Twitter"
-            className="text-base text-clay-500 hover:text-ember-500 transition-colors"
+            className="inline-flex text-base text-clay-500 hover:text-ember-500 transition-colors"
           >
             <i className="fa-brands fa-x-twitter" />
           </a>
+          <UserChip onLoginClick={() => setAuthModalOpen(true)} />
         </div>
       </header>
 
       {/* ================== HERO 控制区（居中，呼应原型布局） ================== */}
-      <section className="px-6 md:px-16 pt-16 md:pt-24 pb-10 md:pb-14">
+      <section className="px-6 md:px-16 pt-12 md:pt-24 pb-10 md:pb-14">
         <div className="mx-auto max-w-[1100px] text-center">
           <h1 className="font-serif font-light text-[32px] md:text-[56px] leading-[1.12] tracking-tight text-clay-900">
             今天想体验什么故事？
@@ -1534,10 +1699,10 @@ export default function HomePage() {
                 rows={1}
                 placeholder=" "
                 spellCheck={false}
-                className="block w-full resize-none overflow-hidden border-b border-clay-900/25 bg-transparent py-3 md:py-4 pr-28 font-serif text-lg md:text-2xl lining-nums text-clay-900 outline-none transition-colors focus:border-ember-500"
+                className="block w-full resize-none overflow-hidden border-b border-clay-900/25 bg-transparent py-3 md:py-4 pr-36 font-serif text-lg md:text-2xl lining-nums text-clay-900 outline-none transition-colors focus:border-ember-500"
               />
               {!prompt && (
-                <div className="pointer-events-none absolute left-0 right-0 top-0 overflow-hidden whitespace-nowrap py-3 md:py-4 pr-28 font-serif text-lg md:text-2xl text-clay-400">
+                <div className="pointer-events-none absolute left-0 right-0 top-0 overflow-hidden whitespace-nowrap py-3 md:py-4 pr-36 font-serif text-lg md:text-2xl text-clay-400">
                   <Typewriter
                     phrase={phrases[phraseIdx] ?? ""}
                     onCycle={() =>
@@ -1546,13 +1711,6 @@ export default function HomePage() {
                   />
                 </div>
               )}
-              <button
-                type="submit"
-                className="absolute right-0 bottom-2 md:bottom-3 inline-flex items-center gap-2 rounded-sm bg-clay-900 px-5 py-2 md:py-2.5 font-sans text-sm md:text-[15px] text-cream-50 transition-colors hover:bg-ember-500"
-              >
-                开始
-                <i className="fa-solid fa-arrow-right text-xs" />
-              </button>
               <input
                 ref={storyImportRef}
                 type="file"
@@ -1560,16 +1718,27 @@ export default function HomePage() {
                 className="hidden"
                 onChange={(e) => void handleStoryImport(e.target.files?.[0])}
               />
-              <button
-                type="button"
-                onClick={() => storyImportRef.current?.click()}
-                className="group absolute right-[-2.25rem] bottom-2 md:bottom-3 inline-flex items-center justify-center rounded-sm border border-clay-900/20 px-2 py-2 md:py-2.5 text-clay-400 transition-colors hover:border-ember-500 hover:text-ember-500"
-              >
-                <i className="fa-solid fa-file-import text-sm" />
-                <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-clay-900 px-2 py-1 font-sans text-[11px] text-cream-50 opacity-0 transition-opacity group-hover:opacity-100">
-                  载入剧情
-                </span>
-              </button>
+              {/* 右下操作集群：载入剧情 + 开始，统一锚定 right-0，杜绝 right-[-...]
+                  负偏移导致的移动端横向溢出。 */}
+              <div className="absolute right-0 bottom-2 md:bottom-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => storyImportRef.current?.click()}
+                  className="group relative inline-flex items-center justify-center rounded-sm border border-clay-900/15 bg-cream-50/70 backdrop-blur-sm px-2 py-2 md:py-2.5 text-clay-400 transition-colors hover:border-ember-500 hover:bg-cream-50/90 hover:text-ember-500"
+                >
+                  <i className="fa-solid fa-file-import text-sm" />
+                  <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-clay-900 px-2 py-1 font-sans text-[11px] text-cream-50 opacity-0 transition-opacity group-hover:opacity-100">
+                    载入剧情
+                  </span>
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-2 rounded-sm bg-clay-900 px-5 py-2 md:py-2.5 font-sans text-sm md:text-[15px] text-cream-50 transition-colors hover:bg-ember-500"
+                >
+                  开始
+                  <i className="fa-solid fa-arrow-right text-xs" />
+                </button>
+              </div>
             </div>
             {storyImportError && (
               <p className="mt-2 text-right text-xs leading-relaxed text-ember-500">
@@ -1608,14 +1777,16 @@ export default function HomePage() {
             ))}
           </div>
 
+
+
           {/* 使用提示：可被用户永久关闭（localStorage:infiplot:hintClosed） */}
           {!hintClosed && (
-            <div className="relative mx-auto mt-10 md:mt-12 max-w-[640px] rounded-sm border border-clay-900/10 bg-cream-100/50 px-8 py-3.5">
+            <div className="relative mx-auto mt-10 md:mt-12 max-w-[640px] rounded-sm border border-clay-900/10 bg-cream-100/50 px-5 md:px-8 py-3.5">
               <p className="font-serif text-[13px] md:text-sm leading-relaxed text-clay-500">
-                输入你的想象、配置风格，点击「开始」即可游玩；也可以从下方的精选故事集，挑一篇快速体验{" "}
+                输入想法、配置风格，点击「开始」即可游玩{AUTH_ENABLED && "（测试期间，登录即可免费畅玩）"}；也可以从下方精选故事集挑一篇快速体验{" "}
                 <em className="not-italic text-ember-500">InfiPlot</em>。
-                点击「<span className="text-ember-500">设置</span>」可以配置你的名字和配音
-                API Key，让角色以你的名字称呼你，配音体验也更稳定。
+                点击「<span className="inline-flex items-center gap-1 text-ember-500"><i className="fa-solid fa-gear text-[10px]" />设置</span>」还能填入你的名字，以及你自己的文本、绘图、识图模型和配音
+                Key——全部只存在本地浏览器，体验更稳定。
               </p>
               <button
                 type="button"
@@ -1671,7 +1842,7 @@ export default function HomePage() {
           <div>
             <p className="text-[10px] smallcaps text-clay-500 mb-3">团 队</p>
             <p className="font-serif italic text-clay-700 text-base leading-relaxed">
-              我们来自清华大学、兰州大学、西安交通大学等高校，希望探索多模态模型在「直接生成图片、视频」这类 <span className="not-italic">one-shot</span> 能力之外，更多的可能性。本项目目前仍处于早期阶段，我们还在招募成员，如果你也感兴趣，欢迎联系我们，期待你的加入。
+              我们来自清华大学、兰州大学等高校，希望探索多模态模型在「直接生成图片、视频」这类 <span className="not-italic">oneshot</span> 能力之外，更多的可能性。本项目目前仍处于早期阶段，我们还在招募成员，如果你也感兴趣，欢迎联系我们，期待你的加入。
             </p>
           </div>
 
@@ -1713,7 +1884,7 @@ export default function HomePage() {
             <p className="text-[10px] smallcaps text-clay-500 mb-3">内 测 用 户 群</p>
             <img
               src="/qq-group.webp"
-              alt="InfiPlot 内测交流群 QQ 群二维码（群号 575404333）"
+              alt="InfiPlot 公测交流群 QQ 群二维码（群号 575404333）"
               width={760}
               height={760}
               loading="lazy"
@@ -1728,9 +1899,9 @@ export default function HomePage() {
 
         <div className="hairline-full w-full mt-14 md:mt-20 mb-12 md:mb-16" />
         <p className="mx-auto max-w-3xl text-center font-sans text-xs md:text-[13px] leading-[1.85] text-clay-500">
-          内测期间本产品可免费使用，但稳定性可能会随并发用户数量而有波动。寻找算力赞助商ing，欢迎联系^-^
+          公测期间本产品可免费使用，但稳定性可能会随并发用户数量而有波动。
           <br />
-          目前，内测期间生成的内容不会被保存，如有需要，请通过录屏或截图等方式保存游玩体验，并记录下生成故事时的提示词与风格选项等。
+          公测期间生成的内容不会在服务器上保存。如需留存，请在游玩结束后使用导出图集或分享剧情功能保存您的游玩体验。
           <br />
           AI 生成的内容不代表本团队立场。
           {analyticsOn && (
@@ -1753,8 +1924,13 @@ export default function HomePage() {
 
       <footer className="mx-auto w-full max-w-[1640px] px-6 md:px-16 pb-10 mt-auto">
         <div className="hairline-full w-full mb-5" />
-        <div className="flex flex-col items-center text-[10px] smallcaps text-clay-500">
+        <div className="flex flex-col items-center gap-2 text-[10px] smallcaps text-clay-500">
           <span>© 2026 InfiPlot. All rights reserved.</span>
+          <span className="flex items-center gap-3 normal-case tracking-normal text-[11px]">
+            <a href="/privacy" className="hover:text-ember-500 transition-colors">隐私政策</a>
+            <span className="text-clay-300">·</span>
+            <a href="/terms" className="hover:text-ember-500 transition-colors">服务条款</a>
+          </span>
         </div>
       </footer>
 
@@ -1771,21 +1947,63 @@ export default function HomePage() {
           setCustomStyleGuide={setCustomStyleGuide}
           customStyleRefImage={customStyleRefImage}
           setCustomStyleRefImage={setCustomStyleRefImage}
+          onRequireAuth={() => setAuthModalOpen(true)}
         />
       )}
       {settingsOpen && (
         <SettingsModal
+          initialTab={settingsTab}
           initialVisionClickEnabled={visionClickEnabled}
           onClose={() => setSettingsOpen(false)}
           onSaved={(settings) => {
-            setTtsConfigured(settings.ttsConfigured);
             setPlayerName(settings.playerName);
             setVisionClickEnabled(settings.visionClickEnabled);
+            setTtsConfigured(settings.ttsConfigured);
             if (settings.ttsConfigured && voiceRow >= 0) {
               const onIdx = OPTS[voiceRow]!.items.indexOf("开启");
               if (onIdx >= 0)
                 setSel((s) => s.map((v, j) => (j === voiceRow ? onIdx : v)));
             }
+          }}
+        />
+      )}
+      {authModalOpen && (
+        <AuthModal
+          onClose={() => {
+            setAuthModalOpen(false);
+            setPendingAction(null);
+            try {
+              sessionStorage.removeItem(PENDING_START_KEY);
+              sessionStorage.removeItem(PENDING_PARSE_KEY);
+            } catch {
+              /* ignore */
+            }
+          }}
+          onSuccess={() => {
+            setAuthModalOpen(false);
+            // Email-OTP stays on the page, so resume inline: parse first (it
+            // reads its own snapshot), then the pending start. OTP never
+            // triggers onBeforeOAuth, so no PENDING_START snapshot was written.
+            void resumePendingParse();
+            if (pendingAction === "start") {
+              setPendingAction(null);
+              try {
+                sessionStorage.removeItem(PENDING_START_KEY);
+              } catch {
+                /* ignore */
+              }
+              start();
+            }
+          }}
+          //
+          // Only snapshot when the user is mid-start: the OAuth redirect also
+          // fires for bare logins (UserChip / StyleModal onRequireAuth), where
+          // the user just wants to sign in — not kick off a game. Guarding on
+          // pendingAction keeps bare logins from auto-starting a session on
+          // return. (start() sets pendingAction="start" right before opening
+          // this modal.)
+          onBeforeOAuth={() => {
+            if (pendingAction === "start") persistPendingStart();
           }}
         />
       )}

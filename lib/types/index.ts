@@ -160,12 +160,24 @@ export type WriterPlan = {
 //  Characters & voices (TTS)
 // ──────────────────────────────────────────────────────────────────────
 
-export type CharacterVoice = {
-  provider: "xiaomi";
-  /** Xiaomi MiMo design output stored as reference audio for later clones. */
-  referenceAudioBase64: string;
-  mimeType: string;
-};
+export type CharacterVoice =
+  | {
+      provider: "xiaomi";
+      /** Xiaomi MiMo design output stored as reference audio for later clones. */
+      referenceAudioBase64: string;
+      mimeType: string;
+    }
+  | {
+      provider: "stepfun";
+      /** StepFun preset voice ID (e.g. "cixingnansheng"). Selected by keyword
+       *  matching against the LLM-written voiceDescription — no network call
+       *  on provision (StepFun has no voicedesign endpoint), so this carries
+       *  only the picked preset, not a clip. */
+      voiceId: string;
+      /** TTS model used at synth time (step-tts-mini / step-tts-2 / stepaudio-2.5-tts). */
+      model: string;
+      mimeType: string;
+    };
 
 export type Character = {
   name: string;
@@ -196,6 +208,13 @@ export type Character = {
   basePortraitUrl?: string;
   /** Xiaomi MiMo voice reference audio. */
   voice?: CharacterVoice;
+  /** StepFun preset voice id (e.g. "cixingnansheng"). Only present on
+   *  characters designed while the server ran StepFun, OR on prebaked
+   *  homepage cards enriched with a StepFun voice id. Lets the client send a
+   *  lightweight beat-audio request (no ~220KB Xiaomi reference audio) when the
+   *  server runs StepFun, and lets the server normalize an off-provider voice
+   *  without a fresh provision. Validated against the catalog at synth time. */
+  stepfunVoiceId?: string;
 };
 
 /** A single beat's synthesized audio, attached to the response. */
@@ -315,19 +334,15 @@ export type VisionClassify = "insert-beat" | "change-scene";
  *   openai_compatible  text / vision / image  — OpenAI Chat Completions +
  *                      `/images/generations` (self-implemented fetch; the
  *                      default for text/vision when unset)
- *   anthropic          text / vision          — native Anthropic Messages (AI SDK)
- *   google             text / vision / image  — native Gemini (AI SDK); image
- *                      uses the Nano Banana family
- *   openai             image only             — OpenAI gpt-image via AI SDK,
- *                      unlocks reference-image editing (for text/vision use
- *                      openai_compatible, which already speaks OpenAI's format)
+ *   openai             image only             — OpenAI gpt-image via the
+ *                      official OpenAI SDK, unlocks reference-image editing
+ *                      (for text/vision use openai_compatible, which already
+ *                      speaks OpenAI's format)
  *   runware            image only             — Runware task-array protocol
  *                      (self-implemented; the default for runware.ai URLs)
  */
 export type ProviderProtocol =
   | "openai_compatible"
-  | "anthropic"
-  | "google"
   | "openai"
   | "runware";
 
@@ -351,6 +366,22 @@ export type TtsConfig = {
   speechModel: string;
 };
 
+/** Which TTS provider the server is configured for (inferred from TtsConfig's
+ *  base URL by lib/tts-client's isStepfun). Exposed to the client via the
+ *  /api/tts-provider route so the play page can send only the voice fields
+ *  the server actually needs — e.g. skip the ~220KB Xiaomi reference audio
+ *  when the server runs StepFun (saving Fast Origin Transfer bandwidth).
+ *  `null` means no server-side TTS (silent). BYO client TTS takes precedence
+ *  over this signal. */
+export type TtsProvider = "stepfun" | "xiaomi" | null;
+
+// /api/tts-provider — lightweight GET returning the server's TTS provider so
+// the client can shape beat-audio request bodies accordingly (see fetchBeatAudio
+// in app/play/page.tsx). Response is a few dozen bytes; runs once per session.
+export type TtsProviderResponse = {
+  provider: TtsProvider;
+};
+
 export type EngineConfig = {
   text: ProviderConfig;
   image: ProviderConfig;
@@ -359,6 +390,19 @@ export type EngineConfig = {
   tts?: TtsConfig;
   /** When true the renderer returns a placeholder PNG instead of calling the image API. */
   mockImage?: boolean;
+  /**
+   * Per-attempt hard timeout (ms) for image-generation requests. Unset → no
+   * client-side timeout (only the provider's own gateway limits apply, e.g.
+   * Runware kills tasks at ~55s with a 504).
+   */
+  imageTimeoutMs?: number;
+  /**
+   * Painter scene-paint hedge threshold (ms). When the Tier-A (referenced)
+   * paint hasn't completed after this long, a second identical request races
+   * the first and the earlier result wins. Unset/0 → hedging disabled.
+   * Derived from healthy-day Runware p95 (~14s); recommended 15000.
+   */
+  imageHedgeMs?: number;
 };
 
 // ──────────────────────────────────────────────────────────────────────
@@ -440,7 +484,23 @@ export type BeatAudioRequest = {
     line: string;
     lineDelivery?: string;
   };
-  voice: CharacterVoice;
+  /** The speaker's already-provisioned voice. Optional now — when the server
+   *  runs a DIFFERENT provider than `voice.provider` (e.g. the client holds a
+   *  Xiaomi voice from a prebaked card but the server runs StepFun), the
+   *  client may omit `voice` and send `voiceDescription` + `stepfunVoiceId`
+   *  instead to save the ~220KB reference-audio transfer. The server then
+   *  re-provisions against its own provider before synthesizing. */
+  voice?: CharacterVoice;
+  /** Voice-design card (中文). Used by the server to re-provision when
+   *  `voice` is absent or its provider doesn't match the server's TTS. */
+  voiceDescription?: string;
+  /** Speaker name — used as the StepFun provision salt for archetype spreading
+   *  when the server falls back to pickStepfunVoiceId. */
+  characterName?: string;
+  /** Pre-selected StepFun preset id (from a live CharacterDesigner pick or a
+   *  prebaked card). Honored directly when the server runs StepFun, skipping
+   *  both the keyword scorer and a network provision. */
+  stepfunVoiceId?: string;
 };
 
 export type BeatAudioResponse = {

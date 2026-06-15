@@ -2,10 +2,14 @@ import { requestBeatAudio } from "@infiplot/engine";
 import type { BeatAudioRequest } from "@infiplot/types";
 import { NextResponse } from "next/server";
 import { loadEngineConfig } from "@/lib/config";
+import { requireUser } from "@/lib/supabase/guard";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
+
   let body: BeatAudioRequest;
   try {
     body = (await req.json()) as BeatAudioRequest;
@@ -13,9 +17,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  if (!body.beat?.id || !body.beat?.line || !body.voice?.referenceAudioBase64) {
+  // Voice is now optional — when the server runs StepFun, the client omits
+  // the ~220KB Xiaomi reference audio and sends stepfunVoiceId /
+  // voiceDescription instead (saves Fast Origin Transfer bandwidth). The
+  // engine's resolveVoice re-provisions on a provider mismatch. We only
+  // require the beat text + SOMETHING to synthesize from.
+  const VALID_TTS_PROVIDERS = ["xiaomi", "stepfun"];
+  const hasInvalidVoiceProvider =
+    !!body.voice?.provider && !VALID_TTS_PROVIDERS.includes(body.voice.provider);
+  const hasVoice =
+    !!body.voice?.provider && VALID_TTS_PROVIDERS.includes(body.voice.provider);
+  const hasFallback =
+    !!body.stepfunVoiceId || !!body.voiceDescription;
+  if (
+    !body.beat?.id ||
+    !body.beat?.line ||
+    hasInvalidVoiceProvider ||
+    (!hasVoice && !hasFallback)
+  ) {
     return NextResponse.json(
-      { error: "beat.id, beat.line and voice.referenceAudioBase64 are required" },
+      { error: "beat.id and beat.line are required, plus either voice.provider (xiaomi|stepfun) or stepfunVoiceId/voiceDescription" },
       { status: 400 },
     );
   }

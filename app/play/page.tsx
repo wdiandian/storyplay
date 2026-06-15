@@ -20,6 +20,7 @@ import type { GalleryDoc, GalleryScene } from "@/app/gallery/page";
 import { SettingsModal, readStoredPlayerName, readStoredVisionClick } from "@/components/SettingsModal";
 import { annotateClick } from "@/lib/annotateClient";
 import { loadClientTtsConfig } from "@/lib/clientTtsConfig";
+import { collectBeatAudioForExport } from "@/lib/exportAudio";
 import { PRESETS } from "@/lib/presets";
 import {
   STORY_SHARE_STORAGE_KEY,
@@ -28,13 +29,20 @@ import {
   storyShareFilename,
 } from "@/lib/storyShare";
 import { provisionVoice, synthesize } from "@infiplot/tts-client";
+import {
+  startSession,
+  requestScene,
+  visionDecide,
+  classifyFreeform,
+  requestInsertBeat,
+  getTtsProvider,
+  AuthRequiredError,
+} from "@/lib/engineClient";
 import type {
   Beat,
   BeatChoice,
   Character,
   CharacterVoice,
-  FreeformClassifyResponse,
-  InsertBeatResponse,
   Orientation,
   Scene,
   SceneExit,
@@ -42,39 +50,43 @@ import type {
   Session,
   StartResponse,
   TtsConfig,
-  VisionResponse,
+  TtsProvider,
 } from "@infiplot/types";
 import { track } from "@/lib/analytics";
+import { AUTH_ENABLED } from "@/lib/supabase/config";
+import { writeResumeSnapshot, consumeResumeSnapshot } from "@/lib/authResume";
+import { AuthModal } from "@/components/AuthModal";
+import { UserChip } from "@/components/UserChip";
 
 const MUTED_STORAGE_KEY = "infiplot:muted";
+// One-shot snapshot of in-progress game state, written just before an OAuth
+// full-page redirect (Google/GitHub) so the play page can resume the exact
+// scene/beat after the round-trip. The redirect unmounts the app and destroys
+// the in-memory Session (the server is stateless), so without this the play
+// page re-bootstraps from `?card=…` and restarts the story. OTP login keeps
+// state in-memory (no redirect) and never writes this. Consumed once on mount.
+const PLAY_RESUME_KEY = "infiplot:play-resume";
 
-// ── FOT reduction helpers ──────────────────────────────────────────────
-// Strip bulky voice.referenceAudioBase64 from the session before sending it to
-// the server. The engine only needs character names + visualDescriptions for
-// scene generation; voice data is only used by /api/beat-audio (which receives
-// the voice directly, not via session). The client retains voices locally and
-// re-merges them from the response via mergeCharactersPreserveVoice.
-function stripVoicesForTransport(session: Session): Session {
-  return {
-    ...session,
-    characters: session.characters.map((c) => ({ ...c, voice: undefined })),
-  };
-}
+// Serializable form of the action intercepted by a 401. `persistPlayResume`
+// stashes whichever one is pending into sessionStorage; the deferred-replay
+// effect re-dispatches it after `restorePlayResume` commits the restored state.
+type PendingResumeAction =
+  | { kind: "choice"; choice: BeatChoice }
+  | { kind: "freeform"; text: string }
+  | { kind: "background-click"; x: number; y: number };
 
-// Merge server-returned characters with locally-held voices. The server strips
-// voice from already-known characters (P0), so only NEW characters carry voice.
-// For existing characters, re-attach the voice the client already holds.
-function mergeCharactersPreserveVoice(
-  local: Character[],
-  remote: Character[],
-): Character[] {
-  const localByName = new Map(local.map((c) => [c.name, c]));
-  return remote.map((c) => {
-    const prev = localByName.get(c.name);
-    if (!prev) return c;
-    return { ...c, voice: c.voice ?? prev.voice };
-  });
-}
+// Shape written to sessionStorage[PLAY_RESUME_KEY]. `imageOriginalUrl` is the
+// remote CDN URL (never the blob: URL — those are revoked on unmount and won't
+// survive the full-page reload); restorePlayResume re-resolves it to a fresh
+// blob via getOrCreateBlobUrl.
+type PlayResumeSnapshot = {
+  session: Session;
+  beatId: string;
+  visitedBeats: string[];
+  orientation: Orientation;
+  imageOriginalUrl: string;
+  pendingAction?: PendingResumeAction;
+};
 
 // Consecutive silent (no-audio) beats before we surface the BYO-key nudge to a
 // non-BYO, unmuted player. Set high enough that one transient miss won't trip
@@ -108,6 +120,12 @@ const useIsomorphicLayoutEffect =
 // finished arriving — "等了很久 → 一根线 → 突然出图" of the original report.
 // 20s + the <img> aspect-video fallback together remove that failure mode.
 const IMAGE_PRELOAD_TIMEOUT_MS = 20000;
+
+// After blob/preload resolves the <img> still needs to decode the bitmap.
+// This gate keeps the "transitioning" overlay visible until decode fires,
+// so the user never sees progressive paint or a blank flash. 3s is generous
+// (decode is typically <100ms for a locally-held blob).
+const IMAGE_READY_TIMEOUT_MS = 3000;
 
 // ──────────────────────────────────────────────────────────────────────
 //  Two ways an <img> gets its pixels, picked per-URL by shouldProxy():
@@ -394,20 +412,10 @@ function prefetchScenePath(
 
   const specSession = buildSpeculativeSession(baseSession, steps);
   const abort = new AbortController();
+  const prefetchT0 = Date.now();
   const promise = (async () => {
-    const res = await fetch("/api/scene", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ session: stripVoicesForTransport(specSession), clientTts }),
-      signal: abort.signal,
-    });
-    if (!res.ok) {
-      const j = (await res.json().catch(() => ({}))) as { error?: string };
-      throw new Error(j.error ?? res.statusText);
-    }
-    const data = (await res.json()) as SceneResponse;
+    const data = await requestScene({ session: specSession, clientTts });
+    if (abort.signal.aborted) throw new DOMException("aborted", "AbortError");
 
     // Record this resolved alternate for the gallery export. Key is
     // (parent scene id at the choice point) : (choice id). Includes the
@@ -424,12 +432,6 @@ function prefetchScenePath(
     // fresh CDN download. Don't await — let it run in the background; the
     // transition path awaits the same cached promise via getOrCreateBlobUrl.
     void getOrCreateBlobUrl(data.imageUrl);
-
-    // Re-attach locally-held voices the server stripped from known characters.
-    data.characters = mergeCharactersPreserveVoice(
-      baseSession.characters,
-      data.characters,
-    );
 
     // Recursive: if the resulting scene has exactly one change-scene exit,
     // it is a must-pass node — prefetch its child too.
@@ -469,7 +471,20 @@ function prefetchScenePath(
     return data;
   })();
 
-  promise.catch(() => {});
+  promise.catch((e) => {
+    if ((e as { name?: string }).name === "AbortError") return;
+    const { kind, http_status } = classifyError(e);
+    track("play_error", {
+      source: "prefetch" as const,
+      kind,
+      http_status,
+      orientation: baseSession.orientation ?? "landscape",
+      connection: getConnectionType(),
+      was_hidden: typeof document !== "undefined" && document.visibilityState === "hidden",
+      scene_index: baseSession.history.length,
+      elapsed_bucket: elapsedBucket(prefetchT0),
+    });
+  });
   pool.set(key, { promise, abort });
 }
 
@@ -525,7 +540,7 @@ async function resolveByoVoice(
     return ready;
   }
   if (!speaker.voiceDescription) return null;
-  const p = provisionVoice(cfg, speaker.voiceDescription);
+  const p = provisionVoice(cfg, speaker.voiceDescription, speaker.name);
   cache.set(speaker.name, p);
   try {
     return await p;
@@ -533,6 +548,51 @@ async function resolveByoVoice(
     cache.delete(speaker.name); // failed provision — let a later beat retry
     throw e;
   }
+}
+
+// ── Error observability helpers ────────────────────────────────────────
+
+type ErrorSource = "scene" | "start" | "vision" | "insert_beat" | "freeform" | "prefetch";
+
+function classifyError(
+  e: unknown,
+  res?: Response,
+): { kind: "network" | "timeout" | "http_5xx" | "http_4xx" | "abort" | "unknown"; http_status: number } {
+  if (res) {
+    const s = res.status;
+    if (s >= 500) return { kind: "http_5xx", http_status: s };
+    if (s >= 400) return { kind: "http_4xx", http_status: s };
+  }
+  if (e instanceof Error) {
+    if (e.name === "AbortError") return { kind: "abort", http_status: 0 };
+    if (e instanceof TypeError && /fetch|network/i.test(e.message))
+      return { kind: "network", http_status: 0 };
+    if (/timeout/i.test(e.message)) return { kind: "timeout", http_status: 0 };
+    const httpMatch = e.message.match(/^HTTP (\d+)$/);
+    if (httpMatch) {
+      const s = Number(httpMatch[1]);
+      if (s >= 500) return { kind: "http_5xx", http_status: s };
+      if (s >= 400) return { kind: "http_4xx", http_status: s };
+    }
+  }
+  return { kind: "unknown", http_status: 0 };
+}
+
+function elapsedBucket(startMs: number): "<5s" | "5-30s" | "30-60s" | "60-120s" | "120s+" {
+  const s = (Date.now() - startMs) / 1000;
+  if (s < 5) return "<5s";
+  if (s < 30) return "5-30s";
+  if (s < 60) return "30-60s";
+  if (s < 120) return "60-120s";
+  return "120s+";
+}
+
+function getConnectionType(): "4g" | "3g" | "2g" | "slow-2g" | "unknown" {
+  const nav = typeof navigator !== "undefined" ? navigator : undefined;
+  const conn = (nav as { connection?: { effectiveType?: string } } | undefined)?.connection;
+  const et = conn?.effectiveType;
+  if (et === "4g" || et === "3g" || et === "2g" || et === "slow-2g") return et;
+  return "unknown";
 }
 
 // ──────────────────────────────────────────────────────────────────────
@@ -587,6 +647,110 @@ function PlayInner() {
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [visionClickEnabled, setVisionClickEnabled] = useState(true);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const authResolveRef = useRef<(() => void) | null>(null);
+  // Serializable description of the action that hit the 401 (choice / freeform
+  // text / background-click coords), captured alongside the retry closure. An
+  // OAuth round-trip destroys the closure, but this survives in sessionStorage
+  // so the exact action can be replayed after game state is restored.
+  const pendingResumeActionRef = useRef<PendingResumeAction | null>(null);
+  // Set by restorePlayResume when a snapshot carries a pending action; a
+  // dedicated effect dispatches it once the restored state has committed
+  // (phase "ready", session + scene present), then clears it. Mirrors the
+  // homepage's autoStartPending resume pattern.
+  const [pendingReplayAction, setPendingReplayAction] =
+    useState<PendingResumeAction | null>(null);
+  // Bumped by the OAuth-resume fallback to retrigger the bootstrap effect after
+  // relinquishing its `startedRef` slot (snapshot consumed but user not signed
+  // in → run normal card/preset/custom bootstrap instead of leaving a blank
+  // loading screen).
+  const [retryBootstrap, setRetryBootstrap] = useState(0);
+  // Top-of-screen progress toast for the gallery / story export pipeline.
+  // null when idle; { done, total, label } while collecting beat audio.
+  const [exportProgress, setExportProgress] = useState<
+    { done: number; total: number; label: string } | null
+  >(null);
+
+  // `retry` re-runs the action that hit the 401, replayed by AuthModal.onSuccess
+  // after the user signs in. Omitted by callers whose path can't actually 401
+  // (initial load already gated on the homepage, recorded replay is local).
+  // `action` is the serializable twin of `retry`: same intent, but survives an
+  // OAuth full-page redirect via sessionStorage so it can be replayed after
+  // game state is restored (the retry closure itself is destroyed on unmount).
+  const handleAuthError = useCallback(
+    (
+      e: unknown,
+      retry?: () => void,
+      action?: PendingResumeAction,
+    ): boolean => {
+      if (e instanceof AuthRequiredError) {
+        authResolveRef.current = retry ?? null;
+        pendingResumeActionRef.current = action ?? null;
+        setAuthModalOpen(true);
+        return true;
+      }
+      return false;
+    },
+    [],
+  );
+
+  // Snapshot the in-progress game just before an OAuth full-page redirect so
+  // the play page can resume the exact scene/beat on return. Reads only refs
+  // (stable across renders), so an empty dep list is safe. Mirrors the
+  // homepage's persistPendingStart + quota-fallback degradation.
+  const persistPlayResume = useCallback((): void => {
+    const sess = sessionRef.current;
+    const beat = currentBeatRef.current;
+    const imageOriginalUrl = lastImageOriginalUrlRef.current;
+    if (!sess || !beat || !imageOriginalUrl) return;
+    const snap: PlayResumeSnapshot = {
+      session: sess,
+      beatId: beat.id,
+      visitedBeats: [...visitedBeatsRef.current],
+      orientation: sess.orientation ?? "landscape",
+      imageOriginalUrl,
+      pendingAction: pendingResumeActionRef.current ?? undefined,
+    };
+    // Quota-safe write: the only heavy field is the user-uploaded style ref
+    // (~100KB data URL), which only affects the Painter on FUTURE scenes, not
+    // the resumed scene — so stripping it degrades gracefully. Voices are
+    // deliberately kept (continuity > rare quota miss; a typical session of
+    // remote-image URLs + a few ~160KB voice refs fits under the 5MB cap).
+    writeResumeSnapshot(PLAY_RESUME_KEY, snap, [
+      // Fallback: drop the style-reference data URL from the session.
+      { ...snap, session: { ...sess, styleReferenceImage: undefined } },
+    ]);
+  }, []);
+
+  // Restore an in-progress game from a PLAY_RESUME_KEY snapshot after an OAuth
+  // round-trip. Re-resolves the remote image URL to a fresh blob (the old blob
+  // was revoked on unmount), repopulates the runtime refs the handlers read,
+  // and hands any pending action to the deferred-replay effect. Throws on a
+  // corrupt snapshot so the caller can fall back to normal bootstrap.
+  const restorePlayResume = useCallback(
+    async (snap: PlayResumeSnapshot): Promise<void> => {
+      const last = snap.session.history[snap.session.history.length - 1];
+      if (!last?.scene) throw new Error("resume snapshot missing current scene");
+
+      setOrientation(snap.orientation);
+      visitedBeatsRef.current = [...snap.visitedBeats];
+      lastImageOriginalUrlRef.current = snap.imageOriginalUrl;
+
+      setSession(snap.session);
+      setCurrentScene(last.scene);
+      setCurrentBeatId(snap.beatId);
+
+      const blobUrl = await getOrCreateBlobUrl(snap.imageOriginalUrl);
+      const ready = waitForImageReady();
+      setImageUrl(blobUrl);
+      await ready;
+      setPhase("ready");
+      track("scene_reached", { scene_index: snap.session.history.length });
+
+      if (snap.pendingAction) setPendingReplayAction(snap.pendingAction);
+    },
+    [],
+  );
 
   const startedRef = useRef(false);
   const poolRef = useRef<Map<string, PrefetchEntry>>(new Map());
@@ -606,6 +770,7 @@ function PlayInner() {
   // 首页「语音配音 关闭」会把 muted 初值置为 true（见上方 useState 初始化），
   // 不再单独维护 audioEnabledRef —— 单一来源避免两个 flag 漂移。
   const mutedRef = useRef<boolean>(muted);
+  const phaseRef = useRef<Phase>(phase);
 
   // Resolved bring-your-own Xiaomi TTS config (region preset + key), read once
   // from localStorage. When non-null, the browser provisions + synths voices
@@ -616,6 +781,14 @@ function PlayInner() {
     loadClientTtsConfig(),
   );
   const byoTtsRef = useRef<TtsConfig | null>(byoTtsConfig);
+  // Server TTS provider (probed once at mount via /api/tts-provider). Used by
+  // fetchBeatAudio to decide which voice fields to send: when the server runs
+  // StepFun, omit the ~220KB Xiaomi `voice` and send stepfunVoiceId /
+  // voiceDescription instead (saves Fast Origin Transfer bandwidth). null =
+  // probe failed or server has no TTS; fetchBeatAudio then sends defensively
+  // and the server normalizes. Ignored entirely in BYO mode (byoTtsRef wins).
+  const [serverTtsProvider, setServerTtsProvider] = useState<TtsProvider>(null);
+  const serverTtsProviderRef = useRef<TtsProvider>(null);
   // BYO voice cache (see resolveByoVoice). Keyed by character name; persists
   // across scenes so each speaker is provisioned at most once per session.
   const provisionedVoicesRef = useRef<Map<string, Promise<CharacterVoice>>>(
@@ -631,10 +804,37 @@ function PlayInner() {
   const replayIndexRef = useRef(-1);
   const replayActiveRef = useRef(false);
   const exportingStoryRef = useRef(false);
+  const exportingGalleryRef = useRef(false);
+  // Audio carried in from a `.infiplot` share file, keyed by `${sceneId}:${beatId}`.
+  // Survives scene swaps so a player who re-exports a replayed game keeps the
+  // baked voices that the original creator already paid to synth — they're
+  // free to embed back into the new gallery / share file.
+  const prebakedAudioRef = useRef<Record<string, string>>({});
   // Original (CDN) URL of the currently-rendered scene image. Used as the key
   // to revoke its blob: URL when the scene swaps. We track the ORIGINAL URL,
   // not the blob URL, because blobUrlCache is keyed by original URL.
   const lastImageOriginalUrlRef = useRef<string | null>(null);
+
+  // Image-ready gate: keeps the "transitioning" overlay visible until the
+  // actual <img> element has decoded its bitmap, so the user never sees
+  // progressive paint or a blank flash between scenes.
+  const imageReadyResolverRef = useRef<(() => void) | null>(null);
+  function waitForImageReady(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        imageReadyResolverRef.current = null;
+        resolve();
+      };
+      imageReadyResolverRef.current = done;
+      setTimeout(done, IMAGE_READY_TIMEOUT_MS);
+    });
+  }
+  const handleImageReady = useCallback(() => {
+    imageReadyResolverRef.current?.();
+  }, []);
 
   const currentBeat = useMemo<Beat | null>(() => {
     if (!currentScene || !currentBeatId) return null;
@@ -661,8 +861,52 @@ function PlayInner() {
     mutedRef.current = muted;
   }, [muted]);
   useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+  useEffect(() => {
+    serverTtsProviderRef.current = serverTtsProvider;
+  }, [serverTtsProvider]);
+  useEffect(() => {
     setVisionClickEnabled(readStoredVisionClick());
   }, []);
+
+  // Probe the server's TTS provider ONCE at mount. Non-BYO users need this so
+  // fetchBeatAudio can skip the ~220KB Xiaomi reference audio when the server
+  // runs StepFun. BYO users never read this ref (byoTtsRef takes precedence),
+  // but the probe is harmless and cheap, so we run it unconditionally and let
+  // getTtsProvider short-circuit for BYO. AuthRequiredError is handled by the
+  // bootstrap flow's handleAuthError; other errors degrade to null silently.
+  useEffect(() => {
+    let cancelled = false;
+    getTtsProvider()
+      .then((p) => {
+        if (!cancelled) setServerTtsProvider(p);
+      })
+      .catch((e) => {
+        if (!cancelled && e instanceof AuthRequiredError) {
+          // Defer to the bootstrap effect's auth modal — leave provider null.
+          return;
+        }
+        // Non-auth errors already logged in getTtsProvider; null = unknown.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function trackPlayError(source: ErrorSource, e: unknown, startMs: number, res?: Response) {
+    const { kind, http_status } = classifyError(e, res);
+    track("play_error", {
+      source,
+      kind,
+      http_status,
+      orientation,
+      connection: getConnectionType(),
+      was_hidden: document.visibilityState === "hidden",
+      scene_index: session?.history.length ?? 0,
+      elapsed_bucket: elapsedBucket(startMs),
+    });
+  }
 
   // Coarse liveness ping for active-time analytics. /play is a single SPA
   // route, so page views alone read as ~0 duration; a 30s heartbeat (only
@@ -677,6 +921,20 @@ function PlayInner() {
       if (document.visibilityState === "visible") track("play_heartbeat");
     }, 30_000);
     return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    function onVisChange() {
+      if (document.visibilityState === "hidden") {
+        const p = phaseRef.current;
+        track("play_visibility_lost", {
+          phase: p,
+          had_pending_fetch: p !== "ready",
+        });
+      }
+    }
+    document.addEventListener("visibilitychange", onVisChange);
+    return () => document.removeEventListener("visibilitychange", onVisChange);
   }, []);
 
   // Whenever currentBeatId changes, append it to visited (skip consecutive dups)
@@ -711,15 +969,39 @@ function PlayInner() {
       if (mutedRef.current) return; // 静音 → 不合成 TTS（避免无谓的调用与花费）。
       // 「首页选关闭」也走这条路：bootstrap 时 muted 已被初始化为 true。
       if (!beat.speaker || !beat.line) return;
+
+      // Reuse pre-baked audio from a `.infiplot` import before any synth —
+      // free, instant, and identical to what the original player heard.
+      const curSceneId = currentSceneRef.current?.id;
+      if (curSceneId) {
+        const baked = prebakedAudioRef.current[`${curSceneId}:${beat.id}`];
+        if (baked) {
+          setBeatAudioMap((m) => (m[beat.id] === baked ? m : { ...m, [beat.id]: baked }));
+          return;
+        }
+      }
+
       const speaker = sess.characters.find((c) => c.name === beat.speaker);
       if (!speaker) return;
 
       const byo = byoTtsRef.current;
-      // Non-BYO relies on the server having provisioned speaker.voice. BYO
-      // skipped server TTS, so it needs a baked voice (prebaked card) or a
-      // voiceDescription to provision from in the browser.
-      if (!byo && !speaker.voice) return;
-      if (byo && !speaker.voice && !speaker.voiceDescription) return;
+      const serverProvider = serverTtsProviderRef.current;
+      // What we need to synthesize depends on the path:
+      //   - BYO (xiaomi): baked voice OR voiceDescription to provision locally.
+      //   - Server stepfun: stepfunVoiceId or voiceDescription — no Xiaomi
+      //     `voice` needed (saves the ~220KB reference-audio FOT).
+      //   - Server xiaomi / unknown (probe pending): accept ANY synthesizable
+      //     source. The null case covers the race where getTtsProvider hasn't
+      //     resolved before the first beat fetch fires — without this widening
+      //     a stepfun-only speaker (no Xiaomi voice) would be silently dropped.
+      //     The server resolves + normalizes regardless of which fields arrive.
+      if (byo) {
+        if (!speaker.voice && !speaker.voiceDescription) return;
+      } else if (serverProvider === "stepfun") {
+        if (!speaker.stepfunVoiceId && !speaker.voiceDescription) return;
+      } else {
+        if (!speaker.voice && !speaker.stepfunVoiceId && !speaker.voiceDescription) return;
+      }
 
       if (beatAudioAbortRef.current.has(beat.id)) return;
       const abort = new AbortController();
@@ -728,8 +1010,7 @@ function PlayInner() {
         let audioUrl: string | null = null;
         if (byo) {
           // Client-direct: provision (once per speaker, cached) + synth against
-          // Xiaomi with the user's own key — no /api/beat-audio round-trip and
-          // the key never touches our server.
+          // Xiaomi with the user's own key — the key never touches our server.
           const voice = await resolveByoVoice(
             provisionedVoicesRef.current,
             byo,
@@ -745,14 +1026,35 @@ function PlayInner() {
           );
           audioUrl = `data:${out.mimeType};base64,${out.audioBase64}`;
         } else {
+          // Server-side synth: shape the body by the probed provider so we don't
+          // waste Fast Origin Transfer bandwidth on the ~220KB Xiaomi reference
+          // audio when the server actually runs StepFun.
+          //   - stepfun → stepfunVoiceId + voiceDescription + characterName
+          //     (all lightweight; the server synths directly with the id).
+          //   - xiaomi / unknown → voice (the ~220KB reference audio the server
+          //     needs to clone), PLUS the lightweight fallback fields so the
+          //     server can still normalize on a provider mismatch (e.g. a prebaked
+          //     card holding a Xiaomi voice while the server runs StepFun).
+          const isStepfunServer = serverProvider === "stepfun";
           const res = await fetch("/api/beat-audio", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               beat: { id: beat.id, line: beat.line, lineDelivery: beat.lineDelivery },
-              voice: speaker.voice,
+              ...(isStepfunServer
+                ? {
+                    stepfunVoiceId: speaker.stepfunVoiceId,
+                    voiceDescription: speaker.voiceDescription,
+                    characterName: speaker.name,
+                  }
+                : {
+                    voice: speaker.voice,
+                    // Defensive fallback fields (lightweight) — let the server
+                    // re-provision if speaker.voice.provider ≠ server provider.
+                    stepfunVoiceId: speaker.stepfunVoiceId,
+                    voiceDescription: speaker.voiceDescription,
+                    characterName: speaker.name,
+                  }),
             }),
             signal: abort.signal,
           });
@@ -765,6 +1067,14 @@ function PlayInner() {
             return;
           }
           const blob = await res.blob();
+          // Defensive: a 200 with an empty body (proxy/CDN truncation,
+          // framework edge cases) would create a silent blob URL and wrongly
+          // reset the silence counter. Treat empty as a miss so the nudge
+          // still surfaces when the shared key is being rate-limited.
+          if (blob.size === 0) {
+            setSilenceStrikes((n) => Math.min(n + 1, 99));
+            return;
+          }
           audioUrl = URL.createObjectURL(blob);
           setSilenceStrikes(0);
         }
@@ -775,10 +1085,22 @@ function PlayInner() {
         if (audioUrl && !abort.signal.aborted) {
           setBeatAudioMap((m) => ({ ...m, [beat.id]: audioUrl }));
         } else if (audioUrl?.startsWith("blob:")) {
+          // Aborted between synth and store — revoke the blob URL we just
+          // created so it doesn't leak. (Scene-change and mute transitions
+          // revoke stored URLs separately; this only covers this race.)
           URL.revokeObjectURL(audioUrl);
         }
       } catch {
-        // aborted / network / Xiaomi rate-limit — silent fallback (no audio)
+        // aborted (scene change / mute) — silent fallback, NOT a strike.
+        // Network failure / server 5xx / shared-key rate-limit that surfaces
+        // as a thrown error on the server path DOES count — otherwise the
+        // silence nudge would never fire for those cases (the explicit 204/
+        // !ok/empty-blob branches above only cover responses, not throws).
+        // BYO throws are the user's own key quota, not the shared-key pain
+        // the nudge addresses, so they don't count.
+        if (!abort.signal.aborted && !byo) {
+          setSilenceStrikes((n) => Math.min(n + 1, 99));
+        }
       } finally {
         // Only clear the slot if it's still ours. An aborted prior fetch
         // running its finally late could otherwise delete the controller of a
@@ -864,14 +1186,19 @@ function PlayInner() {
   }, [muted, prefetchSceneAudio]);
 
   const handleSettingsSaved = useCallback(
-    (settings: { ttsConfigured: boolean; playerName: string; visionClickEnabled: boolean }) => {
+    (settings: { playerName: string; visionClickEnabled: boolean; ttsConfigured: boolean }) => {
       setVisionClickEnabled(settings.visionClickEnabled);
       const nextPlayerName = settings.playerName || undefined;
       setSession((prev) => prev ? { ...prev, playerName: nextPlayerName } : prev);
+      // Refresh the BYO TTS config so a key entered mid-session takes effect
+      // immediately — byoTtsRef is otherwise only read once at mount.
       const cfg = settings.ttsConfigured ? loadClientTtsConfig() : null;
       byoTtsRef.current = cfg;
       setByoTtsConfig(cfg);
       if (cfg) {
+        // Switching to BYO: any server-path audio in flight is now stale,
+        // and the silence nudge is no longer relevant. Abort + clear, then
+        // re-synth the current scene with the user's own key.
         setSilenceStrikes(0);
         cancelBeatAudioFetches();
         setBeatAudioMap((prev) => {
@@ -899,13 +1226,26 @@ function PlayInner() {
   // export so the cap is enforced strictly (≤ keepCount + 1 transiently → ≤ N
   // once write completes). Corrupt entries (un-parseable / no createdAt) sort
   // last and get evicted first.
+  //
+  // Audio lives in a sidecar key `infiplot:gallery:<id>:audio` so the main
+  // doc JSON.parse on gallery load doesn't block the main thread with several
+  // MB of base64. The sidecar key inherits its doc's age — paired by id, not
+  // its own createdAt (it never has one) — and is evicted alongside its doc.
   const trimGalleryExports = useCallback((keepCount: number) => {
     try {
       const prefix = "infiplot:gallery:";
-      const entries: { key: string; createdAt: number }[] = [];
+      const audioSuffix = ":audio";
+      const docs: Map<string, { key: string; createdAt: number }> = new Map();
+      const sidecars: Map<string, string> = new Map();
       for (let i = 0; i < window.localStorage.length; i++) {
         const k = window.localStorage.key(i);
         if (!k || !k.startsWith(prefix)) continue;
+        if (k.endsWith(audioSuffix)) {
+          const id = k.slice(prefix.length, -audioSuffix.length);
+          sidecars.set(id, k);
+          continue;
+        }
+        const id = k.slice(prefix.length);
         let createdAt = 0;
         try {
           const raw = window.localStorage.getItem(k);
@@ -916,11 +1256,22 @@ function PlayInner() {
         } catch {
           createdAt = 0;
         }
-        entries.push({ key: k, createdAt });
+        docs.set(id, { key: k, createdAt });
       }
-      entries.sort((a, b) => b.createdAt - a.createdAt);
-      for (const e of entries.slice(keepCount)) {
-        window.localStorage.removeItem(e.key);
+      const ordered = [...docs.entries()].sort(
+        (a, b) => b[1].createdAt - a[1].createdAt,
+      );
+      for (const [id, { key }] of ordered.slice(keepCount)) {
+        window.localStorage.removeItem(key);
+        const sc = sidecars.get(id);
+        if (sc) window.localStorage.removeItem(sc);
+        sidecars.delete(id);
+      }
+      // Orphan sidecars (their doc was already gone) get cleaned up too.
+      for (const sc of sidecars.values()) {
+        if (!docs.has(sc.slice(prefix.length, -audioSuffix.length))) {
+          window.localStorage.removeItem(sc);
+        }
       }
     } catch {
       // best-effort — quota or disabled storage shouldn't block the export
@@ -932,9 +1283,15 @@ function PlayInner() {
   // reference (those are tens-to-hundreds of KB each). Writes it to
   // localStorage under a one-shot id and opens /gallery#<id> in a new tab
   // so the play session keeps running.
-  const handleExportGallery = useCallback(() => {
+  //
+  // Beat audio is collected synchronously here (reusing the per-scene
+  // beatAudioMap when possible, BYO / server TTS for the rest) and stashed
+  // in a sidecar localStorage key so the gallery's first paint isn't
+  // bottlenecked on JSON.parse-ing several MB of base64.
+  const handleExportGallery = useCallback(async () => {
     const s = sessionRef.current;
-    if (!s) return;
+    if (!s || exportingGalleryRef.current) return;
+    exportingGalleryRef.current = true;
     const scenes: GalleryScene[] = s.history
       .map((h) => ({
         id: h.scene.id,
@@ -947,7 +1304,10 @@ function PlayInner() {
         exit: h.exit,
       }))
       .filter((sc) => sc.imageUrl);
-    if (scenes.length === 0) return;
+    if (scenes.length === 0) {
+      exportingGalleryRef.current = false;
+      return;
+    }
 
     // Alternates: ${parentSceneId}:${choiceId} → reachable scene. Two sources,
     // merged with main-path winning ties (it always agrees with prefetch when
@@ -999,8 +1359,29 @@ function PlayInner() {
     const id = `${Date.now().toString(36)}_${Math.random()
       .toString(36)
       .slice(2, 8)}`;
+
+    let audioByBeatId: Record<string, string> = {};
+    try {
+      setExportProgress({ done: 0, total: 0, label: "正在准备配音" });
+      audioByBeatId = await collectBeatAudioForExport({
+        session: s,
+        beatAudioMap,
+        currentSceneId: currentSceneRef.current?.id ?? null,
+        byoTts: byoTtsRef.current,
+        byoVoiceCache: provisionedVoicesRef.current,
+        prebakedAudio: prebakedAudioRef.current,
+        onProgress: (done, total) =>
+          setExportProgress({ done, total, label: "正在准备配音" }),
+      });
+    } catch {
+      // best-effort — even if the collector throws, the gallery without audio
+      // is still usable; we keep going rather than block the export.
+    } finally {
+      setExportProgress(null);
+    }
+
     const doc: GalleryDoc = {
-      v: 2,
+      v: audioByBeatId && Object.keys(audioByBeatId).length > 0 ? 3 : 2,
       id,
       createdAt: Date.now(),
       orientation: s.orientation ?? "landscape",
@@ -1017,78 +1398,86 @@ function PlayInner() {
       window.localStorage.setItem(`infiplot:gallery:${id}`, docStr);
     } catch {
       // localStorage full or disabled — silently bail; the player keeps playing.
+      exportingGalleryRef.current = false;
       return;
     }
-    track("gallery_export", { scene_count: scenes.length });
-    window.open(`/gallery#id=${id}`, "_blank", "noopener");
-
-    // Fire-and-forget: also pack an encrypted `.infiplot` share file for the
-    // player to send to a friend. The local-tab view above is instant either
-    // way; this happens in the background. Server returns 503 if
-    // GALLERY_SECRET isn't configured, in which case we silently skip — the
-    // local view still works, just no share file.
-    void (async () => {
+    const audioCount = Object.keys(audioByBeatId).length;
+    if (audioCount > 0) {
       try {
-        const r = await fetch("/api/gallery-pack", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ docStr }),
-        });
-        if (!r.ok) return;
-        const blob = await r.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `infiplot-${id}.infiplot`;
-        a.rel = "noopener";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        window.localStorage.setItem(
+          `infiplot:gallery:${id}:audio`,
+          JSON.stringify(audioByBeatId),
+        );
       } catch {
-        // network / decrypt error — local view above already worked
+        // Sidecar too big for quota — gallery still opens without sound.
       }
-    })();
-  }, [trimGalleryExports]);
+    }
+    track("gallery_export", { scene_count: scenes.length, audio_count: audioCount });
+    window.open(`/gallery#id=${id}`, "_blank", "noopener");
+    exportingGalleryRef.current = false;
+  }, [beatAudioMap, trimGalleryExports]);
 
-  const handleExportStory = useCallback(() => {
+  const handleExportStory = useCallback(async () => {
     const s = sessionRef.current;
     if (!s || s.history.length === 0 || exportingStoryRef.current) return;
     exportingStoryRef.current = true;
     const sceneIndex = Math.max(0, s.history.length - 1);
-    const doc = createStoryShareDoc(s, {
-      sceneIndex,
-      beatId: currentBeatRef.current?.id ?? s.history[sceneIndex]?.scene.entryBeatId,
-    });
-    void (async () => {
-      try {
-        const r = await fetch("/api/story-pack", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ docStr: JSON.stringify(doc) }),
-        });
-        if (!r.ok) {
-          const j = (await r.json().catch(() => ({}))) as { error?: string };
-          window.alert(j.error ?? "剧情分享打包失败");
-          return;
-        }
-        const blob = await r.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = storyShareFilename(doc);
-        a.rel = "noopener";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-      } catch {
-        window.alert("剧情分享打包失败");
-      } finally {
-        exportingStoryRef.current = false;
+
+    let audioByBeatId: Record<string, string> = {};
+    try {
+      setExportProgress({ done: 0, total: 0, label: "正在准备配音" });
+      audioByBeatId = await collectBeatAudioForExport({
+        session: s,
+        beatAudioMap,
+        currentSceneId: currentSceneRef.current?.id ?? null,
+        byoTts: byoTtsRef.current,
+        byoVoiceCache: provisionedVoicesRef.current,
+        prebakedAudio: prebakedAudioRef.current,
+        onProgress: (done, total) =>
+          setExportProgress({ done, total, label: "正在准备配音" }),
+      });
+    } catch {
+      // best-effort — share the doc silent if collecting audio failed
+    } finally {
+      setExportProgress(null);
+    }
+
+    const doc = createStoryShareDoc(
+      s,
+      {
+        sceneIndex,
+        beatId: currentBeatRef.current?.id ?? s.history[sceneIndex]?.scene.entryBeatId,
+      },
+      Object.keys(audioByBeatId).length > 0 ? audioByBeatId : undefined,
+    );
+
+    try {
+      const r = await fetch("/api/story-pack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docStr: JSON.stringify(doc) }),
+      });
+      if (!r.ok) {
+        const j = (await r.json().catch(() => ({}))) as { error?: string };
+        window.alert(j.error ?? "剧情分享打包失败");
+        return;
       }
-    })();
-  }, []);
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = storyShareFilename(doc);
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch {
+      window.alert("剧情分享打包失败");
+    } finally {
+      exportingStoryRef.current = false;
+    }
+  }, [beatAudioMap]);
 
   // ── Presentation mode toggle ─────────────────────────────────────────
   const togglePresentation = useCallback(async () => {
@@ -1148,6 +1537,47 @@ function PlayInner() {
     if (startedRef.current) return;
     startedRef.current = true;
 
+    // ── OAuth resume ────────────────────────────────────────────────
+    // Returning from a Google/GitHub round-trip? The full-page redirect
+    // destroyed the in-memory Session; if we stashed a snapshot just before
+    // navigating away (persistPlayResume via AuthModal.onBeforeOAuth) and the
+    // user is now signed in, restore the exact scene/beat instead of
+    // re-bootstrapping from `?card=…` (which would restart the story). OTP
+    // login never writes a snapshot — its onSuccess retry keeps state
+    // in-memory.
+    //
+    // Peek before awaiting: when there's no snapshot (the common case —
+    // normal card/preset/custom entry), fall straight through to the
+    // bootstrap below. Only when a snapshot exists do we enter the async
+    // gate, which itself removes the entry. This keeps the no-snapshot path
+    // off the retryBootstrap re-trigger loop entirely.
+    if (
+      AUTH_ENABLED &&
+      sessionStorage.getItem(PLAY_RESUME_KEY) !== null
+    ) {
+      void (async () => {
+        const snap = await consumeResumeSnapshot<PlayResumeSnapshot>(
+          PLAY_RESUME_KEY,
+        );
+        if (!snap) {
+          // Snapshot existed but user isn't signed in / payload corrupt →
+          // consumeResumeSnapshot already removed it. Relinquish the slot so
+          // the normal bootstrap below re-runs on the next effect cycle.
+          startedRef.current = false;
+          setRetryBootstrap((n) => n + 1);
+          return;
+        }
+        try {
+          await restorePlayResume(snap);
+        } catch {
+          // Corrupt snapshot / network — relinquish and bootstrap normally.
+          startedRef.current = false;
+          setRetryBootstrap((n) => n + 1);
+        }
+      })();
+      return;
+    }
+
     // 三条进入路径：
     //   ?card=<m0..f31>      → 首页精选卡，直接从 /home/firstact/{name}.json
     //                          静态文件加载（已在构建期 prebake，免一切引擎调用）
@@ -1162,6 +1592,7 @@ function PlayInner() {
 
     if (isShare) {
       (async () => {
+        const t0 = Date.now();
         try {
           const raw = sessionStorage.getItem(STORY_SHARE_STORAGE_KEY);
           if (!raw) throw new Error("没有找到要载入的剧情文件。");
@@ -1196,14 +1627,34 @@ function PlayInner() {
           replayIndexRef.current = 0;
           replayActiveRef.current = imported.history.length > 1;
           visitedBeatsRef.current = [first.scene.entryBeatId];
+          // Stash pre-baked audio (from doc.audioByBeatId) so it survives scene
+          // swaps and re-exports. Keyed by `${sceneId}:${beatId}`. Also seed the
+          // current beatAudioMap for the first scene so audio plays right away
+          // — the scene-change effect normally clears the map on transition,
+          // and bare beat ids "b1/b2/..." would otherwise miss prebaked entries.
+          if (doc.audioByBeatId) {
+            prebakedAudioRef.current = { ...doc.audioByBeatId };
+            const seed: Record<string, string> = {};
+            for (const beat of first.scene.beats) {
+              const k = `${first.scene.id}:${beat.id}`;
+              const v = doc.audioByBeatId[k];
+              if (v) seed[beat.id] = v;
+            }
+            if (Object.keys(seed).length > 0) setBeatAudioMap(seed);
+          }
           setSession(initial);
           setCurrentScene(first.scene);
           setCurrentBeatId(first.scene.entryBeatId);
+          const ready = waitForImageReady();
           setImageUrl(blobUrl);
+          await ready;
           setPhase("ready");
           track("scene_reached", { scene_index: 1 });
         } catch (e) {
-          setError(e instanceof Error ? e.message : String(e));
+          if (!handleAuthError(e)) {
+            trackPlayError("start", e, t0);
+            setError(e instanceof Error ? e.message : String(e));
+          }
         }
       })();
       return;
@@ -1273,6 +1724,7 @@ function PlayInner() {
       ? "firstact-portrait"
       : "firstact";
 
+    const startT0 = Date.now();
     const fetchStart: Promise<PrebakedFirstAct> = cardName
       ? fetch(`/home/${firstactDir}/${encodeURIComponent(cardName)}.json`).then(
           async (r) => {
@@ -1288,31 +1740,21 @@ function PlayInner() {
             throw new Error(`找不到精选剧情：${cardName}`);
           },
         )
-      : fetch("/api/start", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...livePayload,
+      : (async () => {
+          const data = await startSession({
+            ...livePayload!,
             clientTts: !!byoTtsRef.current,
-          }),
-        }).then(async (r) => {
-          if (!r.ok) {
-            const j = (await r.json().catch(() => ({}))) as { error?: string };
-            throw new Error(j.error ?? r.statusText);
-          }
-          const data = (await r.json()) as StartResponse;
-          // Live /api/start doesn't echo ws/sg back — splice in what we sent.
+          });
+          // startSession doesn't echo ws/sg back — splice in what we sent.
           // styleReferenceImage is similarly not in StartResponse; tag it on so
-          // the session we build below carries it for every /api/scene call.
+          // the session we build below carries it for every scene call.
           return {
             ...data,
             worldSetting: livePayload!.worldSetting,
             styleGuide: livePayload!.styleGuide,
             styleReferenceImage: livePayload!.styleReferenceImage,
           };
-        });
+        })();
 
     fetchStart
       .then(async (data) => {
@@ -1344,14 +1786,42 @@ function PlayInner() {
         setSession(initial);
         setCurrentScene(data.scene);
         setCurrentBeatId(data.scene.entryBeatId);
+        const ready = waitForImageReady();
         setImageUrl(blobUrl);
-        // beatAudioMap is populated lazily by the per-beat fetch effect once
-        // currentScene becomes non-null (see fetchBeatAudio).
+        await ready;
         setPhase("ready");
         track("scene_reached", { scene_index: initial.history.length });
       })
-      .catch((e) => setError(String(e)));
-  }, [params, router]);
+      .catch((e) => {
+        if (!handleAuthError(e)) {
+          trackPlayError("start", e, startT0);
+          setError(String(e));
+        }
+      });
+  }, [params, router, retryBootstrap, restorePlayResume]);
+
+  // ── Deferred replay of the action that hit 401 (OAuth resume) ─────────
+  // After restorePlayResume commits the restored session/scene/beat, dispatch
+  // the pending action so the player lands exactly where they were headed
+  // (seamless continuation). Runs once the restored state is interactive,
+  // then clears the slot. Mirrors the homepage's autoStartPending pattern.
+  useEffect(() => {
+    if (!pendingReplayAction) return;
+    if (phase !== "ready" || !session || !currentScene) return;
+    const action = pendingReplayAction;
+    setPendingReplayAction(null);
+    if (action.kind === "choice") {
+      onSelectChoice(action.choice);
+    } else if (action.kind === "freeform") {
+      void onFreeformInput(action.text);
+    } else {
+      void onBackgroundClick({ x: action.x, y: action.y });
+    }
+    // onSelectChoice/onFreeformInput/onBackgroundClick are stable inner
+    // functions keyed off the restored state; listing them would re-fire on
+    // every render, so we intentionally scope deps to the readiness gate.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingReplayAction, phase, session, currentScene]);
 
   // ── Prefetch on scene entry: L1 + recursive L2/L3 for must-pass ──────
   useEffect(() => {
@@ -1418,7 +1888,10 @@ function PlayInner() {
     exit: SceneExit,
     visitedForCurrent: string[],
     exitLabel: string,
+    retry?: () => void,
+    action?: PendingResumeAction,
   ) {
+    const sceneT0 = Date.now();
     setPhase("transitioning");
     setPendingClick(null);
     try {
@@ -1458,19 +1931,17 @@ function PlayInner() {
             storyStateAfter: result.storyState,
           },
         ],
-        characters: mergeCharactersPreserveVoice(
-          base.characters,
-          result.characters,
-        ),
+        characters: result.characters,
         storyState: result.storyState,
       };
       visitedBeatsRef.current = [result.scene.entryBeatId];
       setSession(newSession);
       setCurrentScene(result.scene);
       setCurrentBeatId(result.scene.entryBeatId);
+      const ready = waitForImageReady();
       setImageUrl(blobUrl);
-      // beatAudioMap reset + per-beat fetches kicked off by the scene effect.
       setLastExitLabel(exitLabel);
+      await ready;
       setPhase("ready");
       track("scene_reached", { scene_index: newSession.history.length });
     } catch (e) {
@@ -1478,7 +1949,10 @@ function PlayInner() {
         setPhase("ready");
         return;
       }
-      setError(String(e));
+      if (!handleAuthError(e, retry, action)) {
+        trackPlayError("scene", e, sceneT0);
+        setError(String(e));
+      }
       setPhase("ready");
     }
   }
@@ -1507,6 +1981,7 @@ function PlayInner() {
     }
 
     void (async () => {
+      const replayT0 = Date.now();
       setPhase("transitioning");
       setPendingClick(null);
       try {
@@ -1546,12 +2021,17 @@ function PlayInner() {
         setSession(nextSession);
         setCurrentScene(next.scene);
         setCurrentBeatId(next.scene.entryBeatId);
+        const ready = waitForImageReady();
         setImageUrl(blobUrl);
         setLastExitLabel(choice.label);
+        await ready;
         setPhase("ready");
         track("scene_reached", { scene_index: nextSession.history.length });
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
+        if (!handleAuthError(e)) {
+          trackPlayError("scene", e, replayT0);
+          setError(e instanceof Error ? e.message : String(e));
+        }
         setPhase("ready");
       }
     })();
@@ -1666,7 +2146,14 @@ function PlayInner() {
 
     const cached = consumeChoice(poolRef.current, choice.id);
     if (cached) {
-      void performSceneTransition(cached, exit, visited, choice.label);
+      void performSceneTransition(
+        cached,
+        exit,
+        visited,
+        choice.label,
+        () => onSelectChoice(choice),
+        { kind: "choice", choice },
+      );
       return;
     }
 
@@ -1684,24 +2171,21 @@ function PlayInner() {
     clearPool(poolRef.current);
 
     const promise = (async () => {
-      const res = await fetch("/api/scene", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          session: stripVoicesForTransport(specSession),
-          clientTts: !!byoTtsRef.current,
-        }),
+      const data = await requestScene({
+        session: specSession,
+        clientTts: !!byoTtsRef.current,
       });
-      if (!res.ok) {
-        const j = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(j.error ?? res.statusText);
-      }
-      return (await res.json()) as SceneResponse;
+      return data;
     })();
 
-    void performSceneTransition(promise, exit, visited, choice.label);
+    void performSceneTransition(
+      promise,
+      exit,
+      visited,
+      choice.label,
+      () => onSelectChoice(choice),
+      { kind: "choice", choice },
+    );
   }
 
   async function onFreeformInput(text: string) {
@@ -1713,41 +2197,23 @@ function PlayInner() {
       text_length: text.length,
     });
 
+    const freeformT0 = Date.now();
     setPhase("vision-thinking");
 
     try {
-      const classifyRes = await fetch("/api/classify-freeform", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session: stripVoicesForTransport(session),
-          freeformText: text,
-        }),
+      const decision = await classifyFreeform({
+        session,
+        freeformText: text,
       });
-      if (!classifyRes.ok) {
-        const j = (await classifyRes.json().catch(() => ({}))) as { error?: string };
-        throw new Error(j.error ?? classifyRes.statusText);
-      }
-      const decision = (await classifyRes.json()) as FreeformClassifyResponse;
 
       if (decision.classify === "insert-beat") {
         // Interactive beat: NPC responds to the player's action, scene stays
         setPhase("inserting-beat");
-        const insertRes = await fetch("/api/insert-beat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            session: stripVoicesForTransport(session),
-            freeformAction: decision.freeformAction,
-            clientTts: !!byoTtsRef.current,
-          }),
+        const { partial, characters: insertChars } = await requestInsertBeat({
+          session,
+          freeformAction: decision.freeformAction,
+          clientTts: !!byoTtsRef.current,
         });
-        if (!insertRes.ok) {
-          const j = (await insertRes.json().catch(() => ({}))) as { error?: string };
-          throw new Error(j.error ?? insertRes.statusText);
-        }
-        const { partial, characters: insertChars } =
-          (await insertRes.json()) as InsertBeatResponse;
 
         const fromBeatId =
           currentBeatRef.current?.id ?? currentScene.entryBeatId;
@@ -1774,10 +2240,7 @@ function PlayInner() {
           history: session.history.map((h, i, arr) =>
             i === arr.length - 1 ? { ...h, scene: patched, visitedBeatIds: nextVisited } : h,
           ),
-          characters: mergeCharactersPreserveVoice(
-            session.characters,
-            insertChars,
-          ),
+          characters: insertChars,
         };
         setSession(nextSession);
         setCurrentScene(patched);
@@ -1813,25 +2276,27 @@ function PlayInner() {
       };
 
       const promise = (async () => {
-        const res = await fetch("/api/scene", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            session: stripVoicesForTransport(specSession),
-            clientTts: !!byoTtsRef.current,
-          }),
+        const data = await requestScene({
+          session: specSession,
+          clientTts: !!byoTtsRef.current,
         });
-        if (!res.ok) {
-          const j = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(j.error ?? res.statusText);
-        }
-        return (await res.json()) as SceneResponse;
+        return data;
       })();
 
       setPendingClick(null);
-      void performSceneTransition(promise, exit, visited, decision.freeformAction);
+      void performSceneTransition(
+        promise,
+        exit,
+        visited,
+        decision.freeformAction,
+        () => onFreeformInput(text),
+        { kind: "freeform", text },
+      );
     } catch (e) {
-      setError(String(e));
+      if (!handleAuthError(e, () => onFreeformInput(text), { kind: "freeform", text })) {
+        trackPlayError("freeform", e, freeformT0);
+        setError(String(e));
+      }
       setPhase("ready");
     }
   }
@@ -1839,48 +2304,25 @@ function PlayInner() {
   async function onBackgroundClick(click: { x: number; y: number }) {
     if (phase !== "ready" || !session || !currentScene || !imageUrl) return;
     if (replayActiveRef.current) detachRecordedReplay();
+    const visionT0 = Date.now();
     setPhase("vision-thinking");
     setPendingClick(click);
 
     try {
       const annotatedImageBase64 = await annotateClick(imageUrl, click);
-      const visionRes = await fetch("/api/vision", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ session: stripVoicesForTransport(session), annotatedImageBase64 }),
+      const decision = await visionDecide({
+        session,
+        annotatedImageBase64,
       });
-      if (!visionRes.ok) {
-        const j = (await visionRes.json().catch(() => ({}))) as {
-          error?: string;
-        };
-        throw new Error(j.error ?? visionRes.statusText);
-      }
-      const decision = (await visionRes.json()) as VisionResponse;
       track("vision_click", { result: decision.classify });
 
       if (decision.classify === "insert-beat") {
         setPhase("inserting-beat");
-        const insertRes = await fetch("/api/insert-beat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            session: stripVoicesForTransport(session),
-            freeformAction: decision.intent.freeformAction,
-            clientTts: !!byoTtsRef.current,
-          }),
+        const { partial, characters: insertChars } = await requestInsertBeat({
+          session,
+          freeformAction: decision.intent.freeformAction,
+          clientTts: !!byoTtsRef.current,
         });
-        if (!insertRes.ok) {
-          const j = (await insertRes.json().catch(() => ({}))) as {
-            error?: string;
-          };
-          throw new Error(j.error ?? insertRes.statusText);
-        }
-        const { partial, characters: insertChars } =
-          (await insertRes.json()) as InsertBeatResponse;
 
         const fromBeatId =
           currentBeatRef.current?.id ?? currentScene.entryBeatId;
@@ -1906,10 +2348,7 @@ function PlayInner() {
           history: session.history.map((h, i, arr) =>
             i === arr.length - 1 ? { ...h, scene: patched } : h,
           ),
-          characters: mergeCharactersPreserveVoice(
-            session.characters,
-            insertChars,
-          ),
+          characters: insertChars,
         };
         setSession(nextSession);
         setCurrentScene(patched);
@@ -1948,23 +2387,11 @@ function PlayInner() {
         clearPool(poolRef.current);
 
         const promise = (async () => {
-          const res = await fetch("/api/scene", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              session: stripVoicesForTransport(specSession),
-              clientTts: !!byoTtsRef.current,
-            }),
+          const data = await requestScene({
+            session: specSession,
+            clientTts: !!byoTtsRef.current,
           });
-          if (!res.ok) {
-            const j = (await res.json().catch(() => ({}))) as {
-              error?: string;
-            };
-            throw new Error(j.error ?? res.statusText);
-          }
-          return (await res.json()) as SceneResponse;
+          return data;
         })();
 
         await performSceneTransition(
@@ -1972,10 +2399,15 @@ function PlayInner() {
           exit,
           visited,
           decision.intent.freeformAction,
+          () => onBackgroundClick(click),
+          { kind: "background-click", x: click.x, y: click.y },
         );
       }
     } catch (e) {
-      setError(String(e));
+      if (!handleAuthError(e, () => onBackgroundClick(click), { kind: "background-click", x: click.x, y: click.y })) {
+        trackPlayError("vision", e, visionT0);
+        setError(String(e));
+      }
       setPendingClick(null);
       setPhase("ready");
     }
@@ -2038,6 +2470,7 @@ function PlayInner() {
           playerName={session?.playerName}
           visionClickEnabled={visionClickEnabled}
           onOpenSettings={() => setSettingsOpen(true)}
+          onImageReady={handleImageReady}
           fullViewport
           dialogueHistory={dialogueHistory}
           disabledChoiceIds={disabledReplayChoiceIds}
@@ -2075,6 +2508,24 @@ function PlayInner() {
             footerNote="保存后配音 Key 会立即生效，用你自己的额度合成当前这一幕的配音。"
           />
         )}
+        {authModalOpen && (
+          <AuthModal
+            onClose={() => {
+              setAuthModalOpen(false);
+              // User dismissed login — drop the retry, don't re-run the action.
+              authResolveRef.current = null;
+              pendingResumeActionRef.current = null;
+            }}
+            onSuccess={() => {
+              setAuthModalOpen(false);
+              const retry = authResolveRef.current;
+              authResolveRef.current = null;
+              pendingResumeActionRef.current = null;
+              retry?.();
+            }}
+            onBeforeOAuth={persistPlayResume}
+          />
+        )}
       </div>
     );
   }
@@ -2094,6 +2545,19 @@ function PlayInner() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {exportProgress && (
+        <div
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 rounded-full bg-black/75 px-4 py-2 text-[11px] smallcaps text-white/95 backdrop-blur-sm shadow-lg flex items-center gap-2"
+        >
+          <i className="fa-solid fa-circle-notch animate-spin text-[11px] text-amber-300" />
+          <span>{exportProgress.label}</span>
+          {exportProgress.total > 0 && (
+            <span className="num text-white/70">
+              {exportProgress.done}/{exportProgress.total}
+            </span>
+          )}
+        </div>
+      )}
       <header className="px-5 md:px-12 pt-6 md:pt-8 flex items-center justify-between">
         <Link
           href="/"
@@ -2104,10 +2568,13 @@ function PlayInner() {
             Infi<em className="italic font-light text-ember-500">Plot</em>
           </span>
         </Link>
-        <div className="flex items-center gap-3 text-[10px] smallcaps text-clay-500 num">
-          <span>第 · {String(sceneCount).padStart(3, "0")} · 幕</span>
-          <span className="text-clay-300">·</span>
-          <span>{String(beatCount).padStart(3, "0")} · 拍</span>
+        <div className="flex items-center gap-3">
+          <div className="text-[10px] smallcaps text-clay-500 num flex items-center gap-3">
+            <span>第 · {String(sceneCount).padStart(3, "0")} · 幕</span>
+            <span className="text-clay-300">·</span>
+            <span>{String(beatCount).padStart(3, "0")} · 拍</span>
+          </div>
+          <UserChip onLoginClick={() => setAuthModalOpen(true)} />
         </div>
       </header>
 
@@ -2127,6 +2594,7 @@ function PlayInner() {
           playerName={session?.playerName}
           visionClickEnabled={visionClickEnabled}
           onOpenSettings={() => setSettingsOpen(true)}
+          onImageReady={handleImageReady}
           dialogueHistory={dialogueHistory}
           disabledChoiceIds={disabledReplayChoiceIds}
           freeformDisabled={replayLocked}
@@ -2147,20 +2615,22 @@ function PlayInner() {
               <>
                 <button
                   type="button"
-                  onClick={handleExportGallery}
-                  className="text-[10px] smallcaps text-clay-500 hover:text-ember-500 transition-colors flex items-center gap-2"
+                  onClick={() => void handleExportGallery()}
+                  disabled={!!exportProgress}
+                  className="text-[10px] smallcaps text-clay-500 hover:text-ember-500 transition-colors flex items-center gap-2 disabled:opacity-50"
                   aria-label="导出可交互图集"
-                  title="导出本局为可交互图集链接（只会保留最近两次的可交互图集链接）"
+                  title="导出本局为可交互图集链接（含配音；只会保留最近两次的可交互图集链接）"
                 >
                   <i className="fa-solid fa-link text-[10px]" />
                   导 · 出 · 图 · 集
                 </button>
                 <button
                   type="button"
-                  onClick={handleExportStory}
-                  className="text-[10px] smallcaps text-clay-500 hover:text-ember-500 transition-colors flex items-center gap-2"
+                  onClick={() => void handleExportStory()}
+                  disabled={!!exportProgress}
+                  className="text-[10px] smallcaps text-clay-500 hover:text-ember-500 transition-colors flex items-center gap-2 disabled:opacity-50"
                   aria-label="分享当前剧情"
-                  title="导出本局为可继续游玩的剧情 JSON"
+                  title="导出本局为可继续游玩的剧情 .infiplot（含配音）"
                 >
                   <i className="fa-solid fa-share-nodes text-[10px]" />
                   分 · 享 · 剧 · 情
@@ -2184,18 +2654,21 @@ function PlayInner() {
               </button>
 
               {/* Silence nudge — a compact pill right beside the mute toggle.
-                  Clicking opens the BYO-key modal in place (no trip to the
-                  homepage). The × dismisses it for the session. */}
+                  Triggers when the shared server key keeps coming back silent,
+                  which usually means it's rate-limited; nudges the player to
+                  enter their own API Key for a more stable experience.
+                  Clicking opens the settings modal in place; the × dismisses
+                  it for the session. */}
               {showSilenceNudge && (
                 <span className="flex items-center gap-1 animate-fade-in">
                   <button
                     type="button"
                     onClick={() => setSettingsOpen(true)}
                     className="inline-flex items-center gap-1.5 rounded-full border border-ember-500/40 bg-ember-500/10 px-2.5 py-1 text-[10px] text-ember-500 hover:bg-ember-500/20 transition-colors"
-                    title="经常没声音？填入你自己的小米 MiMo Key（免费），配音更稳定"
+                    title="效果不满意/经常没声音？填入自己的 API Key 试试"
                   >
                     <i className="fa-solid fa-volume-xmark text-[9px]" />
-                    经常没声音？自带 Key
+                    效果不满意/经常没声音？填入自己的 API Key 试试
                   </button>
                   <button
                     type="button"
@@ -2234,6 +2707,24 @@ function PlayInner() {
           onClose={() => setSettingsOpen(false)}
           onSaved={handleSettingsSaved}
           footerNote="保存后配音 Key 会立即生效，用你自己的额度合成当前这一幕的配音。"
+        />
+      )}
+      {authModalOpen && (
+        <AuthModal
+          onClose={() => {
+            setAuthModalOpen(false);
+            // User dismissed login — drop the retry, don't re-run the action.
+            authResolveRef.current = null;
+            pendingResumeActionRef.current = null;
+          }}
+          onSuccess={() => {
+            setAuthModalOpen(false);
+            const retry = authResolveRef.current;
+            authResolveRef.current = null;
+            pendingResumeActionRef.current = null;
+            retry?.();
+          }}
+          onBeforeOAuth={persistPlayResume}
         />
       )}
     </div>

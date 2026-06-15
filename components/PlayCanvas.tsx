@@ -19,9 +19,6 @@ const SHADOW =
 
 const DEFAULT_CHAR_MS = 28;
 const MIN_CHAR_MS = 30;
-// Voice playback speed multiplier. >1 speeds up the (somewhat slow) MiMo voice
-// while preserving pitch. Typewriter pacing is divided by the same factor.
-const SPEECH_RATE = 1.2;
 // If audio metadata never arrives within this window, give up waiting and
 // let the typewriter run at default speed.
 const AUDIO_WAIT_TIMEOUT_MS = 2500;
@@ -183,6 +180,7 @@ export function PlayCanvas({
   playerName,
   visionClickEnabled = true,
   onOpenSettings,
+  onImageReady,
   aboveCanvas,
   aboveCanvasLeft,
   belowCanvas,
@@ -207,6 +205,7 @@ export function PlayCanvas({
   // 选择节点点击背景是否触发识图。关闭时背景点击保持静默，用户只能点选项。
   visionClickEnabled?: boolean;
   onOpenSettings?: () => void;
+  onImageReady?: () => void;
   // 渲染在图片正上方、右对齐的 slot（画面外、紧贴右上角）。
   aboveCanvas?: ReactNode;
   // 渲染在图片正上方、左对齐的 slot（画面外、紧贴左上角），与 aboveCanvas 水平镜像。
@@ -259,7 +258,6 @@ export function PlayCanvas({
     const el = audioRef.current;
     if (!el) return;
     el.muted = muted;
-    el.playbackRate = SPEECH_RATE;
     if (!muted && audioSrc && el.paused) {
       el.play().catch(() => {
         // autoplay blocked — silent until next interaction
@@ -270,11 +268,7 @@ export function PlayCanvas({
   function handleAudioMetadata() {
     const el = audioRef.current;
     if (!el) return;
-    el.playbackRate = SPEECH_RATE;
-    // Effective playback time is shorter once sped up — keep the typewriter in sync.
-    const ms = Number.isFinite(el.duration)
-      ? (el.duration * 1000) / SPEECH_RATE
-      : 0;
+    const ms = Number.isFinite(el.duration) ? el.duration * 1000 : 0;
     setAudioDurationMs(ms > 0 ? ms : 0);
     if (!muted) {
       el.play().catch(() => {
@@ -349,10 +343,20 @@ export function PlayCanvas({
   // the 9:16 image matches the exact device/window — no letterbox. Landscape
   // keeps the prior contain-style sizing so the full 16:9 frame stays visible.
   const sizeStyle: React.CSSProperties = portrait
-    ? { width: "100vw", height: "100dvh", objectFit: "cover" }
+    ? { width: "100%", height: "100%", objectFit: "cover" }
     : fullViewport
-      ? { maxWidth: "100vw", maxHeight: "100dvh" }
-      : { maxWidth: "96vw", maxHeight: "calc(100dvh - 200px)" };
+      ? { width: "100%", height: "100%", objectFit: "contain" }
+      : { width: "100%", height: "100%" };
+
+  const canvasStyle: React.CSSProperties = portrait
+    ? { width: "100vw", height: "100dvh" }
+    : {
+        width: fullViewport
+          ? "min(100vw, calc(100dvh * 16 / 9))"
+          : "min(96vw, calc((100dvh - 200px) * 16 / 9))",
+        aspectRatio: "16 / 9",
+        maxHeight: fullViewport ? "100dvh" : "calc(100dvh - 200px)",
+      };
 
   const placeholderStyle: React.CSSProperties = portrait
     ? { width: "100vw", height: "100dvh" }
@@ -382,17 +386,15 @@ export function PlayCanvas({
 
       {imageUrl ? (
         <div
-          className="relative inline-block"
-          style={{ boxShadow: fullViewport ? "none" : SHADOW }}
+          className="relative"
+          style={{ ...canvasStyle, boxShadow: fullViewport ? "none" : SHADOW }}
         >
-          {/* Background image — Runware CDN URL or data URI (mock mode).
-              The width/height attributes give the browser the intrinsic aspect
-              ratio (1792:1024 landscape / 1024:1792 portrait) so that, while the
-              bytes are still arriving from the CDN, the <img> reserves the right
-              box instead of collapsing to a one-pixel sliver — fixes the
-              "等很久 → 一根线 → 突然出图" jank. Landscape uses w-auto/h-auto +
-              maxWidth/maxHeight (contain); portrait switches sizeStyle to
-              100vw×100dvh with object-fit:cover (full-bleed, no letterbox). */}
+          {/* The stable wrapper owns the frame size. Keeping overlay geometry
+              independent of <img> decode/source swaps prevents controls from
+              jumping when a newly generated image is committed. The key uses
+              a short high-entropy slice (matching the <audio> element) so data
+              URIs from the gpt-image/mock paths — which can be several MB —
+              don't become React's reconciliation key. */}
           <img
             key={imageUrl.slice(-48)}
             ref={imgRef}
@@ -402,7 +404,14 @@ export function PlayCanvas({
             alt="Generated scene"
             onClick={handleImageClick}
             draggable={false}
-            className={`block ${portrait ? "" : "w-auto h-auto"} select-none animate-fade-in transition-opacity duration-700 ease-out ${
+            onLoad={() => {
+              if (!onImageReady) return;
+              const el = imgRef.current;
+              if (!el) { onImageReady(); return; }
+              const notify = () => { if (imgRef.current === el) onImageReady(); };
+              el.decode().then(notify, notify);
+            }}
+            className={`block select-none animate-fade-in transition-opacity duration-700 ease-out ${
               imageClickable ? "cursor-pointer" : interactive ? "cursor-default" : "cursor-wait"
             } ${dimmed ? "opacity-40" : "opacity-100"}`}
             style={sizeStyle}
