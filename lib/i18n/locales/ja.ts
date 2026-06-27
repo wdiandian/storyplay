@@ -370,6 +370,12 @@ export const ja = {
 
     // Models tab
     models: {
+      modeTitle: "モデル利用方式",
+      officialMode: "公式モデル",
+      officialModeSub: "デフォルトではプラットフォーム設定を使用し、後続では利用枠または回数で課金します。",
+      byokMode: "自分の Key",
+      byokModeSub: "自分の API Key を使用し、プラットフォームのモデル枠は消費しません。",
+      officialNotice: "公式モデルはプラットフォーム側で一元管理されます。この画面では利用枠と利用可能な機能のみを表示し、プロバイダーやモデル設定は表示しません。",
       corsNotice: "すべての API キーはブラウザのローカルにのみ保存され、サーバーにアップロードされることはありません。リクエストはブラウザから API エンドポイントへ直接送信されます。エンドポイントが CORS に対応していない場合は、自動的にサーバー経由で中継されます——キーはその一回の中継にのみ使用され、記録・保存されることはありません。",
       textModel: "テキストモデル",
       imageModel: "描画モデル",
@@ -382,6 +388,17 @@ export const ja = {
       providerAuto: "自動判定（推奨）",
       show: "表示",
       hide: "非表示",
+    },
+    billing: {
+      title: "本日の公式枠",
+      loading: "読み込み中…",
+      unavailable: "利用枠を取得できません",
+      remaining: "残り {remaining} / {limit} 点",
+      spent: "{spent} 点使用済み",
+      resets: "{time} にリセット",
+      refresh: "利用枠を更新",
+      hint: "これは匿名ベータ期間の1日無料枠であり、正式なウォレットではありません。自分の Key では公式枠を消費しません。",
+      byokHint: "現在は自分の Key を使用しています。リクエストはご自身のプロバイダー枠を消費し、本日の公式枠は消費しません。",
     },
 
     // TTS section

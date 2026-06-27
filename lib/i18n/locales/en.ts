@@ -340,6 +340,12 @@ Dreamy watercolor style with soft tones and nostalgic atmosphere
     },
 
     models: {
+      modeTitle: "Model Access",
+      officialMode: "Official Models",
+      officialModeSub: "Use the platform configuration by default; later billed by platform quota or usage.",
+      byokMode: "Bring Your Key",
+      byokModeSub: "Use your own API keys without consuming platform model quota.",
+      officialNotice: "Official models are managed by the platform. This view only shows quota and available capabilities, not provider or model parameters.",
       corsNotice: "All API keys are stored locally in your browser and never uploaded to our server. Requests are sent directly from your browser to the API endpoint; if the endpoint does not support CORS, requests are automatically routed through our server — your key is used only for that single relay and is never logged or stored.",
       textModel: "Text Model",
       imageModel: "Image Model",
@@ -352,6 +358,17 @@ Dreamy watercolor style with soft tones and nostalgic atmosphere
       providerAuto: "Auto-detect (Recommended)",
       show: "Show",
       hide: "Hide",
+    },
+    billing: {
+      title: "Today's Official Quota",
+      loading: "Loading…",
+      unavailable: "Quota unavailable",
+      remaining: "{remaining} / {limit} credits left",
+      spent: "{spent} credits used",
+      resets: "Resets at {time}",
+      refresh: "Refresh quota",
+      hint: "This is a daily free quota for the anonymous beta, not a formal wallet. Bring Your Key does not consume it.",
+      byokHint: "Bring Your Key is active. Requests use your provider quota and do not consume today's official quota.",
     },
 
     tts: {

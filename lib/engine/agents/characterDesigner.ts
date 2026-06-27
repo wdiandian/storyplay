@@ -10,6 +10,7 @@ import type {
   CharacterIntent,
   CharacterVoice,
   EngineConfig,
+  ProviderConfig,
   Session,
 } from "@storyplay/types";
 import {
@@ -60,9 +61,10 @@ async function runDesignLLM(
   session: Session,
   charName: string,
   intent?: CharacterIntent,
+  textConfig: ProviderConfig = config.text,
 ): Promise<CharacterDesignOutput> {
   const result = await runTextAgent(
-    config.text,
+    textConfig,
     characterDesignerContract as AgentContract<
       {
         session: Session;
@@ -276,9 +278,10 @@ export async function designCharacterCard(
   session: Session,
   charName: string,
   intent?: CharacterIntent,
+  textConfig?: ProviderConfig,
 ): Promise<CharacterCard> {
   const tDesign = Date.now();
-  const design = await runDesignLLM(config, session, charName, intent);
+  const design = await runDesignLLM(config, session, charName, intent, textConfig);
   tlog(`[charDesigner ${charName}] design LLM`, tDesign);
 
   // Drop invalid catalog picks before they reach provision/synth. A hallucinated

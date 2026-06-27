@@ -68,6 +68,13 @@ function tlog(label: string, t0: number): void {
   console.log(`${label}: ${Date.now() - t0}ms`);
 }
 
+function textProfile(
+  config: EngineConfig,
+  profile: "main" | "fast" | "lite",
+): ProviderConfig {
+  return config.textProfiles?.[profile] ?? config.text;
+}
+
 // Merge a freshly-designed Character into a registry, preserving any
 // previously-set voice/portrait that the new design didn't fill in (so
 // re-designing a known character can't silently drop their voice or wipe
@@ -186,7 +193,7 @@ export async function directScene(
   //  <story>. Prose is split into Beat[] after routing completes.
 
   const tStream = Date.now();
-  const writerResult = runWriterStream(config.text, session);
+  const writerResult = runWriterStream(textProfile(config, "main"), session);
 
   // Deferred that settles when onPlan fires (or when routing completes
   // without a plan -degraded fallback).
@@ -275,7 +282,13 @@ export async function directScene(
     plan.characterIntents?.find((ci) => ci.name === name);
 
   const cardPromises = newCharNames.map((name) =>
-    designCharacterCard(config, session, name, findIntent(name)).catch(
+    designCharacterCard(
+      config,
+      session,
+      name,
+      findIntent(name),
+      textProfile(config, "fast"),
+    ).catch(
       (err): CharacterCard => {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[directScene] designCharacterCard(${name}) failed: ${msg}`);
@@ -287,7 +300,7 @@ export async function directScene(
     ),
   );
 
-  const cinemaPromise = runCinematographer(config.text, {
+  const cinemaPromise = runCinematographer(textProfile(config, "fast"), {
     sceneSummary: plan.sceneSummary,
     styleGuide: session.styleGuide,
     entryBeatActive,

@@ -14,7 +14,8 @@ import {
 } from "@/lib/options";
 import { SettingsModal, readStoredPlayerName, readStoredVisionClick } from "@/components/SettingsModal";
 import { analyzeImageDataUrl } from "@storyplay/ai-client";
-import { readStoredModelConfig, resolveEngineConfig } from "@/lib/clientModelConfig";
+import { readStoredModelConfig, readStoredModelMode, resolveEngineConfig } from "@/lib/clientModelConfig";
+import { guestHeaders } from "@/lib/guestId";
 import { STYLE_EXTRACTION_PROMPT } from "@/lib/styleExtraction";
 import { AUTH_ENABLED } from "@/lib/supabase/config";
 import { isAuthed, writeResumeSnapshot } from "@/lib/authResume";
@@ -1128,7 +1129,7 @@ const PENDING_PARSE_KEY = "storyplay:pending-parse";
 // resized data URL into an English style prompt, via the browser engine when a
 // BYO model config is present, otherwise the server route.
 async function extractStylePromptFromImage(resized: string): Promise<string> {
-  const modelCfg = readStoredModelConfig();
+  const modelCfg = readStoredModelMode() === "byok" ? readStoredModelConfig() : null;
   if (modelCfg) {
     const config = resolveEngineConfig(modelCfg, null);
     const raw = await analyzeImageDataUrl(
@@ -1146,7 +1147,7 @@ async function extractStylePromptFromImage(resized: string): Promise<string> {
   }
   const r = await fetch("/api/parse-style-image", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...guestHeaders() },
     body: JSON.stringify({ imageDataUrl: resized }),
   });
   if (!r.ok) {

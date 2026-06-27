@@ -7,9 +7,11 @@ import {
 } from "@storyplay/engine";
 import {
   readStoredModelConfig,
+  readStoredModelMode,
   resolveEngineConfig,
 } from "@/lib/clientModelConfig";
 import { loadClientTtsConfig } from "@/lib/clientTtsConfig";
+import { guestHeaders } from "@/lib/guestId";
 import type {
   Character,
   FreeformClassifyRequest,
@@ -29,6 +31,7 @@ import type {
 } from "@storyplay/types";
 
 function getClientConfig(): EngineConfig | null {
+  if (readStoredModelMode() !== "byok") return null;
   const modelCfg = readStoredModelConfig();
   const ttsCfg = loadClientTtsConfig();
   if (!modelCfg) return null;
@@ -45,7 +48,7 @@ export class AuthRequiredError extends Error {
 async function postJson<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(path, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...guestHeaders() },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
@@ -65,7 +68,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 // GET variant of postJson — same 401 → AuthRequiredError mapping. Used by
 // getTtsProvider (a tiny config probe, no body).
 async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(path, { method: "GET" });
+  const res = await fetch(path, { method: "GET", headers: guestHeaders() });
   if (!res.ok) {
     if (res.status === 401) throw new AuthRequiredError();
     throw new Error(`HTTP ${res.status}`);
@@ -122,6 +125,7 @@ async function fetchSSE<T>(
     headers: {
       "Content-Type": "application/json",
       Accept: "text/event-stream",
+      ...guestHeaders(),
     },
     body: JSON.stringify(body),
   });

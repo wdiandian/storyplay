@@ -370,6 +370,12 @@ export const zhCN = {
 
     // Models tab
     models: {
+      modeTitle: "模型使用方式",
+      officialMode: "官方模型",
+      officialModeSub: "默认使用平台配置，后续按平台额度或次数计费。",
+      byokMode: "自带 Key",
+      byokModeSub: "使用你自己的 API Key，不消耗平台模型额度。",
+      officialNotice: "当前使用平台统一托管的官方模型；这里仅展示额度和可用能力，不展示具体供应商与模型参数。",
       corsNotice: "所有 Key 仅保存在本地浏览器，不会上传到服务器。请求优先从浏览器直连 API 端点；若端点不支持跨域（CORS），将自动通过我们的服务器中转——Key 仅用于当次转发，不会被记录或存储。",
       textModel: "文本模型",
       imageModel: "绘图模型",
@@ -382,6 +388,17 @@ export const zhCN = {
       providerAuto: "自动推断（推荐）",
       show: "显示",
       hide: "隐藏",
+    },
+    billing: {
+      title: "今日官方额度",
+      loading: "读取中…",
+      unavailable: "暂时无法读取额度",
+      remaining: "剩余 {remaining} / {limit} 点",
+      spent: "已用 {spent} 点",
+      resets: "{time} 重置",
+      refresh: "刷新额度",
+      hint: "这是匿名测试期的每日免费额度，不是正式余额；自带 Key 模式不消耗官方额度。",
+      byokHint: "当前使用自带 Key，请求会消耗你自己的供应商额度，不消耗今日官方额度。",
     },
 
     // TTS section

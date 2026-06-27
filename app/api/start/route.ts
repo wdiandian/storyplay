@@ -1,7 +1,10 @@
 import { startSession } from "@storyplay/engine";
 import type { SceneStreamEvent, StartRequest } from "@storyplay/types";
 import { NextResponse } from "next/server";
-import { loadEngineConfig } from "@/lib/config";
+import { startOfficialModelUsage } from "@/lib/modelUsage";
+import { loadEngineConfigForScenario, modelRouteMetadata } from "@/lib/modelRouting";
+import { checkOfficialQuota } from "@/lib/officialQuota";
+import { resolveBillingUserId } from "@/lib/serverIdentity";
 import { requireUser } from "@/lib/supabase/guard";
 
 function formatSSE(event: SceneStreamEvent | { type: string; [k: string]: unknown }): string {
@@ -49,14 +52,45 @@ export async function POST(req: Request) {
   }
 
   const acceptsSSE = req.headers.get("accept")?.includes("text/event-stream");
+  const billingUserId = resolveBillingUserId(auth.userId, req);
 
   try {
-    const base = loadEngineConfig();
+    const { config: base, route: modelRoute } = loadEngineConfigForScenario("start");
     const config = body.clientTts === true ? { ...base, tts: undefined } : base;
+    const quota = await checkOfficialQuota({
+      userId: billingUserId,
+      feature: "start",
+    });
+    if (!quota.allowed) return quota.response;
+    const usage = startOfficialModelUsage({
+      userId: billingUserId,
+      feature: "start",
+      domains: config.tts ? ["text", "image", "tts"] : ["text", "image"],
+      config,
+      metadata: {
+        streaming: acceptsSSE,
+        clientTts: body.clientTts === true,
+        hasStyleReferenceImage: Boolean(body.styleReferenceImage),
+        orientation: body.orientation ?? "landscape",
+        source: body.source ?? "prompt",
+        ...modelRouteMetadata(modelRoute),
+      },
+    });
 
     if (!acceptsSSE) {
-      const result = await startSession(config, body);
-      return NextResponse.json(result);
+      try {
+        const result = await startSession(config, body);
+        usage.finish("success", {
+          sceneId: result.scene.id,
+          characterCount: result.characters.length,
+        });
+        return NextResponse.json(result);
+      } catch (err) {
+        usage.finish("error", {
+          message: err instanceof Error ? err.message : "Unknown error",
+        });
+        throw err;
+      }
     }
 
     const encoder = new TextEncoder();
@@ -69,6 +103,10 @@ export async function POST(req: Request) {
           const result = await startSession(config, body, (event) => {
             controller.enqueue(encoder.encode(formatSSE(event)));
           });
+          usage.finish("success", {
+            sceneId: result.scene.id,
+            characterCount: result.characters.length,
+          });
           controller.enqueue(
             encoder.encode(
               formatSSE({ type: "done", response: result }),
@@ -77,6 +115,7 @@ export async function POST(req: Request) {
           controller.close();
         } catch (err) {
           const message = err instanceof Error ? err.message : "Unknown error";
+          usage.finish("error", { message });
           controller.enqueue(
             encoder.encode(formatSSE({ type: "error", message })),
           );

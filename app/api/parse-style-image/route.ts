@@ -4,7 +4,10 @@ import type {
   ParseStyleImageResponse,
 } from "@storyplay/types";
 import { NextResponse } from "next/server";
-import { loadEngineConfig } from "@/lib/config";
+import { startOfficialModelUsage } from "@/lib/modelUsage";
+import { loadEngineConfigForScenario, modelRouteMetadata } from "@/lib/modelRouting";
+import { checkOfficialQuota } from "@/lib/officialQuota";
+import { resolveBillingUserId } from "@/lib/serverIdentity";
 import { requireUser } from "@/lib/supabase/guard";
 
 export const runtime = "nodejs";
@@ -53,13 +56,38 @@ export async function POST(req: Request) {
     );
   }
 
+  const billingUserId = resolveBillingUserId(auth.userId, req);
   try {
-    const config = loadEngineConfig();
-    const raw = await analyzeImageDataUrl(
-      config.vision,
-      body.imageDataUrl,
-      STYLE_EXTRACTION_PROMPT,
-    );
+    const { config, route: modelRoute } = loadEngineConfigForScenario("parse-style-image");
+    const quota = await checkOfficialQuota({
+      userId: billingUserId,
+      feature: "parse-style-image",
+    });
+    if (!quota.allowed) return quota.response;
+    const usage = startOfficialModelUsage({
+      userId: billingUserId,
+      feature: "parse-style-image",
+      domains: ["vision"],
+      config,
+      metadata: {
+        imageBytes: body.imageDataUrl.length,
+        ...modelRouteMetadata(modelRoute),
+      },
+    });
+    let raw: string;
+    try {
+      raw = await analyzeImageDataUrl(
+        config.vision,
+        body.imageDataUrl,
+        STYLE_EXTRACTION_PROMPT,
+      );
+      usage.finish("success", { outputLength: raw.length });
+    } catch (err) {
+      usage.finish("error", {
+        message: err instanceof Error ? err.message : "Unknown error",
+      });
+      throw err;
+    }
 
     let parsed: { stylePrompt?: string };
     try {

@@ -44,6 +44,13 @@ function tlog(label: string, t0: number): void {
   console.log(`${label}: ${Date.now() - t0}ms`);
 }
 
+function textProfile(
+  config: EngineConfig,
+  profile: "main" | "fast" | "lite",
+) {
+  return config.textProfiles?.[profile] ?? config.text;
+}
+
 // ──────────────────────────────────────────────────────────────────────
 //  startSession — initial Scene via the multi-agent pipeline.
 //
@@ -84,7 +91,7 @@ export async function startSession(
     session.styleGuide = "由 AI 根据剧情自动匹配最佳画风";
     const tStyle = Date.now();
     const autoStyleGuide = await selectStyle(
-      config.text,
+      textProfile(config, "lite"),
       session.worldSetting,
     ).catch((err) => {
       console.warn(`[styleSelector] failed, falling back to 吉卜力:`, err);

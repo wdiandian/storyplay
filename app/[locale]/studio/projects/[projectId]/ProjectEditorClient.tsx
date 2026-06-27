@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { SettingsModal, readStoredVisionClick } from "@/components/SettingsModal";
-import { readStoredModelConfig } from "@/lib/clientModelConfig";
+import { readStoredModelConfig, readStoredModelMode } from "@/lib/clientModelConfig";
+import { guestHeaders } from "@/lib/guestId";
 import {
   hasCreatorStoryAssistantPatch,
   mergeCreatorStoryAssistantPatch,
@@ -382,7 +383,7 @@ export function ProjectEditorClient({
     try {
       const response = await fetch(`/api/studio/projects/${project.id}/assistant`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...guestHeaders() },
         body: JSON.stringify({
           action,
           project,
@@ -689,7 +690,7 @@ export function ProjectEditorClient({
   }
 
   async function ensurePlayRuntimeReady() {
-    if (readStoredModelConfig()) return true;
+    if (readStoredModelMode() === "byok" && readStoredModelConfig()) return true;
 
     try {
       const response = await fetch("/api/studio/runtime-status", { cache: "no-store" });

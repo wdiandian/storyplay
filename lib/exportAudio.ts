@@ -23,6 +23,7 @@
 // ──────────────────────────────────────────────────────────────────────
 
 import { provisionVoice, synthesize } from "@storyplay/tts-client";
+import { guestHeaders } from "@/lib/guestId";
 import type {
   Beat,
   Character,
@@ -166,7 +167,7 @@ async function synthesizeBeatForExport(
   if (!speaker.voice) return null;
   const res = await fetch("/api/beat-audio", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...guestHeaders() },
     body: JSON.stringify({
       beat: { id: beat.id, line: beat.line, lineDelivery: beat.lineDelivery },
       voice: speaker.voice,

@@ -15,6 +15,7 @@ const VALID_PROTOCOLS: ProviderProtocol[] = [
 ];
 
 export type StoredModelConfig = {
+  modelMode?: ModelAccessMode;
   textBaseUrl: string;
   textApiKey: string;
   textModel: string;
@@ -29,6 +30,8 @@ export type StoredModelConfig = {
   visionProvider?: ProviderProtocol;
 };
 
+export type ModelAccessMode = "official" | "byok";
+
 function isValidProtocol(p: string): p is ProviderProtocol {
   return (VALID_PROTOCOLS as readonly string[]).includes(p);
 }
@@ -38,15 +41,41 @@ function readProtocol(raw: unknown): ProviderProtocol | undefined {
   return undefined;
 }
 
+function readRawStoredModelPayload(): Record<string, unknown> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function readStoredModelMode(): ModelAccessMode {
+  const parsed = readRawStoredModelPayload();
+  return parsed?.modelMode === "byok" ? "byok" : "official";
+}
+
+export function writeStoredModelMode(mode: ModelAccessMode): void {
+  if (typeof window === "undefined") return;
+  try {
+    const prev = readRawStoredModelPayload() ?? {};
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, modelMode: mode }));
+  } catch {
+    // ignore
+  }
+}
+
 /** Read + validate the persisted model config. Returns null when running on the
  *  server, when nothing is stored, on parse failure, or when required fields are
  *  missing. */
 export function readStoredModelConfig(): StoredModelConfig | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<StoredModelConfig>;
+    const parsed = readRawStoredModelPayload() as Partial<StoredModelConfig> | null;
+    if (!parsed) return null;
 
     const textBaseUrl = typeof parsed.textBaseUrl === "string" ? parsed.textBaseUrl.trim() : "";
     const textApiKey = typeof parsed.textApiKey === "string" ? parsed.textApiKey.trim() : "";
@@ -73,6 +102,7 @@ export function readStoredModelConfig(): StoredModelConfig | null {
     }
 
     return {
+      modelMode: parsed.modelMode === "byok" ? "byok" : "official",
       textBaseUrl,
       textApiKey,
       textModel,
@@ -97,6 +127,7 @@ export function writeStoredModelConfig(config: StoredModelConfig): void {
   if (typeof window === "undefined") return;
   try {
     const payload: StoredModelConfig = {
+      modelMode: config.modelMode ?? readStoredModelMode(),
       textBaseUrl: config.textBaseUrl.trim(),
       textApiKey: config.textApiKey.trim(),
       textModel: config.textModel.trim(),

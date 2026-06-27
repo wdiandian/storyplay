@@ -8,6 +8,7 @@
 
 import type { TtsConfig } from "@storyplay/types";
 import { DEFAULT_TTS_SPEECH_MODEL, findTtsPreset } from "./ttsPresets";
+import { readStoredModelMode } from "./clientModelConfig";
 
 const STORAGE_KEY = "storyplay:tts";
 
@@ -82,5 +83,6 @@ export function resolveTtsConfig(
 
 /** Convenience: read storage and resolve in one step. */
 export function loadClientTtsConfig(): TtsConfig | null {
+  if (readStoredModelMode() !== "byok") return null;
   return resolveTtsConfig(readStoredTtsConfig());
 }

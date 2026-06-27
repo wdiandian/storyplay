@@ -109,6 +109,71 @@ export const featuredStories = sqliteTable(
   }),
 );
 
+// ── Official Model Usage ─────────────────────────────────────────────────
+// Append-only metering records for official-mode model operations. This is
+// observability and billing input, not the user-facing credit ledger itself.
+export const modelUsageRecords = sqliteTable(
+  "model_usage_records",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    accessMode: text("access_mode").notNull().default("official"),
+    feature: text("feature").notNull(),
+    domainsJson: text("domains_json").notNull(),
+    modelsJson: text("models_json").notNull(),
+    status: text("status").notNull(),
+    durationMs: integer("duration_ms").notNull(),
+    metadataJson: text("metadata_json").notNull().default("{}"),
+    resultJson: text("result_json").notNull().default("{}"),
+    creditsCharged: integer("credits_charged").notNull().default(0),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => ({
+    userCreatedAtIdx: index("model_usage_user_created_at_idx").on(
+      table.userId,
+      table.createdAt,
+    ),
+    featureCreatedAtIdx: index("model_usage_feature_created_at_idx").on(
+      table.feature,
+      table.createdAt,
+    ),
+    statusCreatedAtIdx: index("model_usage_status_created_at_idx").on(
+      table.status,
+      table.createdAt,
+    ),
+  }),
+);
+
+// ── Credit Ledger ────────────────────────────────────────────────────────
+// Append-only ledger. Positive amount grants/refunds credits; negative amount
+// charges credits. Balance is derived by summing entries.
+export const creditLedgerEntries = sqliteTable(
+  "credit_ledger_entries",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    usageRecordId: text("usage_record_id").references(() => modelUsageRecords.id),
+    kind: text("kind").notNull(),
+    amount: integer("amount").notNull(),
+    feature: text("feature"),
+    reason: text("reason").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => ({
+    userCreatedAtIdx: index("credit_ledger_user_created_at_idx").on(
+      table.userId,
+      table.createdAt,
+    ),
+    usageRecordIdx: index("credit_ledger_usage_record_idx").on(
+      table.usageRecordId,
+    ),
+  }),
+);
+
 // ── Type exports ─────────────────────────────────────────────────────────
 export type Story = typeof stories.$inferSelect;
 export type NewStory = typeof stories.$inferInsert;
@@ -121,3 +186,9 @@ export type NewCharacter = typeof characters.$inferInsert;
 
 export type FeaturedStory = typeof featuredStories.$inferSelect;
 export type NewFeaturedStory = typeof featuredStories.$inferInsert;
+
+export type ModelUsageRecord = typeof modelUsageRecords.$inferSelect;
+export type NewModelUsageRecord = typeof modelUsageRecords.$inferInsert;
+
+export type CreditLedgerEntry = typeof creditLedgerEntries.$inferSelect;
+export type NewCreditLedgerEntry = typeof creditLedgerEntries.$inferInsert;

@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
-import { loadEngineConfig } from "@/lib/config";
 import { diagnoseStoryProjectLocally } from "@/lib/creatorAssistant/localDiagnose";
 import { runCreatorStoryAssistant } from "@/lib/creatorAssistant/runCreatorStoryAssistant";
+import {
+  startOfficialModelUsage,
+  type OfficialModelUsageTracker,
+} from "@/lib/modelUsage";
+import { loadEngineConfigForScenario, modelRouteMetadata } from "@/lib/modelRouting";
+import { checkOfficialQuota } from "@/lib/officialQuota";
+import { resolveBillingUserId } from "@/lib/serverIdentity";
 import type { CreatorStoryAssistantAction } from "@/lib/creatorAssistant/types";
 import { getStoredStoryProject } from "@/lib/storyProject/store";
 import {
@@ -66,9 +72,9 @@ export async function POST(req: Request, context: ProjectAssistantRouteContext) 
         } as StoryProject)
       : project;
 
-  let config: ReturnType<typeof loadEngineConfig>;
+  let routedConfig: ReturnType<typeof loadEngineConfigForScenario>;
   try {
-    config = loadEngineConfig();
+    routedConfig = loadEngineConfigForScenario("studio-assistant");
   } catch (err) {
     const message = err instanceof Error ? err.message : "模型配置不可用";
     const result = diagnoseStoryProjectLocally(inputProject);
@@ -87,8 +93,28 @@ export async function POST(req: Request, context: ProjectAssistantRouteContext) 
     });
   }
 
+  const billingUserId = resolveBillingUserId("anonymous", req);
+  const quota = await checkOfficialQuota({
+    userId: billingUserId,
+    feature: "studio-assistant",
+  });
+  if (!quota.allowed) return quota.response;
+
+  const usage: OfficialModelUsageTracker = startOfficialModelUsage({
+    userId: billingUserId,
+    feature: "studio-assistant",
+    domains: ["text"],
+    config: routedConfig.config,
+    metadata: {
+      action,
+      projectId: id,
+      locale: readLocale(body.locale, inputProject.language),
+      ...modelRouteMetadata(routedConfig.route),
+    },
+  });
+
   try {
-    const result = await runCreatorStoryAssistant(config.text, {
+    const result = await runCreatorStoryAssistant(routedConfig.config.text, {
       action,
       project: inputProject,
       userInstruction: readOptionalString(body.userInstruction),
@@ -97,10 +123,15 @@ export async function POST(req: Request, context: ProjectAssistantRouteContext) 
       playtestId: readOptionalString(body.playtestId),
       locale: readLocale(body.locale, inputProject.language),
     });
+    usage.finish("success", {
+      suggestionCount: result.suggestions.length,
+      hasPatch: Boolean(result.patch),
+    });
 
     return NextResponse.json({ result });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Creator assistant failed";
+    usage.finish("error", { message });
     return jsonError(message, 500);
   }
 }

@@ -21,6 +21,7 @@ import { SettingsModal, readStoredPlayerName, readStoredVisionClick } from "@/co
 import { annotateClick } from "@/lib/annotateClient";
 import { loadClientTtsConfig } from "@/lib/clientTtsConfig";
 import { collectBeatAudioForExport } from "@/lib/exportAudio";
+import { guestHeaders } from "@/lib/guestId";
 import { loadFromLocalStorage } from "@/lib/clientStoryPersistence";
 import { PRESETS } from "@/lib/presets";
 import {
@@ -1046,7 +1047,7 @@ function PlayInner() {
           const isStepfunServer = serverProvider === "stepfun";
           const res = await fetch("/api/beat-audio", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...guestHeaders() },
             body: JSON.stringify({
               beat: { id: beat.id, line: beat.line, lineDelivery: beat.lineDelivery },
               ...(isStepfunServer

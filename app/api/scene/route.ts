@@ -1,7 +1,10 @@
 import { requestScene } from "@storyplay/engine";
 import type { Character, SceneRequest, SceneStreamEvent } from "@storyplay/types";
 import { NextResponse } from "next/server";
-import { loadEngineConfig } from "@/lib/config";
+import { startOfficialModelUsage } from "@/lib/modelUsage";
+import { loadEngineConfigForScenario, modelRouteMetadata } from "@/lib/modelRouting";
+import { checkOfficialQuota } from "@/lib/officialQuota";
+import { resolveBillingUserId } from "@/lib/serverIdentity";
 import { requireUser } from "@/lib/supabase/guard";
 
 function stripKnownVoices(
@@ -36,20 +39,50 @@ export async function POST(req: Request) {
   }
 
   const acceptsSSE = req.headers.get("accept")?.includes("text/event-stream");
+  const billingUserId = resolveBillingUserId(auth.userId, req);
 
   try {
-    const base = loadEngineConfig();
+    const { config: base, route: modelRoute } = loadEngineConfigForScenario("scene");
     const config = body.clientTts === true ? { ...base, tts: undefined } : base;
+    const quota = await checkOfficialQuota({
+      userId: billingUserId,
+      feature: "scene",
+    });
+    if (!quota.allowed) return quota.response;
+    const usage = startOfficialModelUsage({
+      userId: billingUserId,
+      feature: "scene",
+      domains: config.tts ? ["text", "image", "tts"] : ["text", "image"],
+      config,
+      metadata: {
+        streaming: acceptsSSE,
+        clientTts: body.clientTts === true,
+        sessionId: body.session.id,
+        sceneCount: body.session.history.length,
+        ...modelRouteMetadata(modelRoute),
+      },
+    });
 
     if (!acceptsSSE) {
-      const result = await requestScene(config, body);
-      const knownNames = new Set(
-        (body.session.characters ?? []).map((c) => c.name),
-      );
-      return NextResponse.json({
-        ...result,
-        characters: stripKnownVoices(result.characters, knownNames),
-      });
+      try {
+        const result = await requestScene(config, body);
+        const knownNames = new Set(
+          (body.session.characters ?? []).map((c) => c.name),
+        );
+        usage.finish("success", {
+          sceneId: result.scene.id,
+          characterCount: result.characters.length,
+        });
+        return NextResponse.json({
+          ...result,
+          characters: stripKnownVoices(result.characters, knownNames),
+        });
+      } catch (err) {
+        usage.finish("error", {
+          message: err instanceof Error ? err.message : "Unknown error",
+        });
+        throw err;
+      }
     }
 
     const encoder = new TextEncoder();
@@ -66,6 +99,10 @@ export async function POST(req: Request) {
           const result = await requestScene(config, body, (event) => {
             controller.enqueue(encoder.encode(formatSSE(event)));
           });
+          usage.finish("success", {
+            sceneId: result.scene.id,
+            characterCount: result.characters.length,
+          });
           controller.enqueue(
             encoder.encode(
               formatSSE({
@@ -80,6 +117,7 @@ export async function POST(req: Request) {
           controller.close();
         } catch (err) {
           const message = err instanceof Error ? err.message : "Unknown error";
+          usage.finish("error", { message });
           controller.enqueue(
             encoder.encode(formatSSE({ type: "error", message })),
           );

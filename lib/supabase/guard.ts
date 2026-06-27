@@ -13,3 +13,13 @@ export async function requireUser(): Promise<
   }
   return { userId: claims.data.claims.sub };
 }
+
+export async function optionalUser(): Promise<{ userId: string }> {
+  if (!AUTH_ENABLED) return { userId: "anonymous" };
+  const supabase = await createClient();
+  const claims = await supabase.auth.getClaims();
+  if (claims.error || !claims.data?.claims?.sub) {
+    return { userId: "anonymous" };
+  }
+  return { userId: claims.data.claims.sub };
+}

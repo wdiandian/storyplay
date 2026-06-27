@@ -3,9 +3,16 @@
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import type { ProviderProtocol } from "@storyplay/types";
 import {
+  fetchBillingSummary,
+  type BillingSummary,
+} from "@/lib/clientBilling";
+import {
+  type ModelAccessMode,
   clearStoredModelConfig,
   readStoredModelConfig,
+  readStoredModelMode,
   writeStoredModelConfig,
+  writeStoredModelMode,
 } from "@/lib/clientModelConfig";
 import {
   clearStoredTtsConfig,
@@ -95,6 +102,7 @@ export function SettingsModal({
 
   // ── Models tab state ──
   const initial = readStoredModelConfig();
+  const [modelMode, setModelMode] = useState<ModelAccessMode>(() => readStoredModelMode());
   const [groups, setGroups] = useState<ModelGroup[]>([
     {
       key: "text",
@@ -125,6 +133,9 @@ export function SettingsModal({
     },
   ]);
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
+  const [billingSummary, setBillingSummary] = useState<BillingSummary | null>(null);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingError, setBillingError] = useState("");
 
   // TTS state
   const [initialTts] = useState(() => readStoredTtsConfig());
@@ -141,6 +152,27 @@ export function SettingsModal({
   const expectedPrefix = keyType === "payg" ? "sk-" : "tp-";
   const prefixMismatch =
     ttsApiKey.trim().length > 0 && !ttsApiKey.trim().startsWith(expectedPrefix);
+
+  const loadBillingSummary = useCallback(async () => {
+    setBillingLoading(true);
+    setBillingError("");
+    try {
+      const summary = await fetchBillingSummary();
+      setBillingSummary(summary);
+    } catch (err) {
+      setBillingError(err instanceof Error ? err.message : "Billing unavailable");
+    } finally {
+      setBillingLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (initialTab !== "models" || modelMode !== "official") return;
+    const id = window.setTimeout(() => {
+      void loadBillingSummary();
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [initialTab, loadBillingSummary, modelMode]);
 
   // ── Animation ──
   const [shown, setShown] = useState(false);
@@ -192,9 +224,11 @@ export function SettingsModal({
   };
 
   const saveModels = () => {
+    writeStoredModelMode(modelMode);
     const [text, image, vision] = groups;
     if (text && image && vision) {
       writeStoredModelConfig({
+        modelMode,
         textBaseUrl: text.baseUrl,
         textApiKey: text.apiKey,
         textModel: text.model,
@@ -225,10 +259,12 @@ export function SettingsModal({
     setGroups((prev) =>
       prev.map((g) => ({ ...g, baseUrl: "", apiKey: "", model: "", provider: "" })),
     );
+    setModelMode("official");
     setTtsApiKey("");
   };
 
   const hasModelSetting =
+    modelMode !== "official" ||
     groups.some((g) => g.baseUrl.trim() && g.apiKey.trim() && g.model.trim()) ||
     initialTts != null;
 
@@ -312,7 +348,12 @@ export function SettingsModal({
               <button
                 key={t.key}
                 type="button"
-                onClick={() => setActiveTab(t.key)}
+                onClick={() => {
+                  setActiveTab(t.key);
+                  if (t.key === "models" && modelMode === "official") {
+                    void loadBillingSummary();
+                  }
+                }}
                 className={
                   "flex items-center gap-2 px-4 py-3 text-[13px] font-sans transition-colors border-b-2 -mb-px " +
                   (active
@@ -412,43 +453,335 @@ export function SettingsModal({
           {activeTab === "models" && (
             <>
               <div className="px-6 md:px-8 py-4">
+                <div className="mb-4 flex flex-col gap-2">
+                  <span className="text-[10px] smallcaps text-clay-500">
+                    {t("settings.models.modeTitle")}
+                  </span>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {(
+                      [
+                        {
+                          mode: "official",
+                          labelKey: "settings.models.officialMode",
+                          subKey: "settings.models.officialModeSub",
+                          icon: "fa-solid fa-cloud",
+                        },
+                        {
+                          mode: "byok",
+                          labelKey: "settings.models.byokMode",
+                          subKey: "settings.models.byokModeSub",
+                          icon: "fa-solid fa-key",
+                        },
+                      ] as const
+                    ).map((opt) => {
+                      const active = modelMode === opt.mode;
+                      return (
+                        <button
+                          key={opt.mode}
+                          type="button"
+                          onClick={() => {
+                            setModelMode(opt.mode);
+                            if (opt.mode === "official") {
+                              void loadBillingSummary();
+                            }
+                          }}
+                          className={
+                            "flex items-start gap-3 rounded-sm border px-3 py-2.5 text-left transition-all " +
+                            (active
+                              ? "border-ember-500 bg-ember-500/5 text-clay-900"
+                              : "border-clay-900/12 text-clay-600 hover:border-clay-900/35 hover:bg-cream-100")
+                          }
+                        >
+                          <i className={`${opt.icon} mt-1 text-[11px]`} />
+                          <span className="min-w-0">
+                            <span className="block text-[13px]">{t(opt.labelKey)}</span>
+                            <span className="mt-0.5 block text-[10px] leading-relaxed text-clay-400">
+                              {t(opt.subKey)}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 <p className="text-[11px] leading-relaxed text-clay-400">
                   <i className="fa-solid fa-shield-halved mr-1.5" />
-                  {t("settings.models.corsNotice")}
+                  {modelMode === "byok"
+                    ? t("settings.models.corsNotice")
+                    : t("settings.models.officialNotice")}
                 </p>
+                {modelMode === "official" ? (
+                  <div className="mt-4 rounded-sm border border-clay-900/10 bg-cream-100 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 text-[10px] smallcaps text-clay-500">
+                          <i className="fa-solid fa-gauge-high text-[10px]" />
+                          {t("settings.billing.title")}
+                        </div>
+                        <div className="mt-1 font-serif text-lg text-clay-900">
+                          {billingLoading
+                            ? t("settings.billing.loading")
+                            : billingSummary
+                              ? t("settings.billing.remaining", {
+                                  remaining: billingSummary.dailyQuota.remaining,
+                                  limit: billingSummary.dailyQuota.limit,
+                                })
+                              : t("settings.billing.unavailable")}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void loadBillingSummary()}
+                        disabled={billingLoading}
+                        aria-label={t("settings.billing.refresh")}
+                        title={t("settings.billing.refresh")}
+                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-clay-900/10 text-clay-500 transition-colors hover:border-clay-900/30 hover:text-clay-900 disabled:opacity-50"
+                      >
+                        <i className={`fa-solid fa-rotate-right text-[11px] ${billingLoading ? "animate-spin" : ""}`} />
+                      </button>
+                    </div>
+                    {billingSummary && (
+                      <>
+                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-clay-900/10">
+                          <div
+                            className="h-full rounded-full bg-ember-500 transition-all"
+                            style={{
+                              width: `${Math.min(
+                                100,
+                                Math.max(
+                                  0,
+                                  billingSummary.dailyQuota.limit > 0
+                                    ? (billingSummary.dailyQuota.spent / billingSummary.dailyQuota.limit) * 100
+                                    : 100,
+                                ),
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-clay-400">
+                          <span>
+                            {t("settings.billing.spent", {
+                              spent: billingSummary.dailyQuota.spent,
+                            })}
+                          </span>
+                          <span>
+                            {t("settings.billing.resets", {
+                              time: billingSummary.dailyQuota.resetsAt
+                                ? new Date(billingSummary.dailyQuota.resetsAt).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
+                                : "-",
+                            })}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    <p className="mt-2 text-[11px] leading-relaxed text-clay-400">
+                      {billingError || t("settings.billing.hint")}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-sm border border-clay-900/10 bg-cream-100 px-4 py-3 text-[11px] leading-relaxed text-clay-500">
+                    <i className="fa-solid fa-key mr-1.5 text-[10px]" />
+                    {t("settings.billing.byokHint")}
+                  </div>
+                )}
               </div>
 
-              <div className="border-t border-clay-900/8 mx-6 md:mx-8" />
+              {modelMode === "byok" && (
+                <>
+                  <div className="border-t border-clay-900/8 mx-6 md:mx-8" />
 
-              {groups.map((g, idx) => (
-                <div key={g.key}>
-                  {idx > 0 && (
-                    <div className="border-t border-clay-900/8 mx-6 md:mx-8" />
-                  )}
-                  <div className="flex flex-col gap-3 px-6 md:px-8 py-5">
+                  {groups.map((g, idx) => (
+                    <div key={g.key}>
+                      {idx > 0 && (
+                        <div className="border-t border-clay-900/8 mx-6 md:mx-8" />
+                      )}
+                      <div className="flex flex-col gap-3 px-6 md:px-8 py-5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-sm border border-clay-900/10 bg-cream-100 text-clay-400">
+                            <i className={`${g.icon} text-[11px]`} />
+                          </span>
+                          <span className="font-serif text-base text-clay-900">
+                            {groupLabel(g.key)}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[10px] smallcaps text-clay-500">
+                            {t("settings.models.baseUrl")}
+                          </span>
+                          <input
+                            value={g.baseUrl}
+                            onChange={(e) => updateGroup(g.key, "baseUrl", e.target.value)}
+                            type="text"
+                            autoComplete="off"
+                            spellCheck={false}
+                            placeholder="https://api.example.com/v1"
+                            className="h-10 w-full rounded-sm border border-clay-900/15 bg-cream-100 px-4 font-sans text-sm text-clay-900 outline-none transition-colors focus:border-ember-500 placeholder:text-clay-400"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[10px] smallcaps text-clay-500">
+                            {t("settings.models.apiKey")}
+                          </span>
+                          <div className="relative">
+                            <input
+                              value={g.apiKey}
+                              onChange={(e) => updateGroup(g.key, "apiKey", e.target.value)}
+                              type={showKeys[g.key] ? "text" : "password"}
+                              autoComplete="off"
+                              spellCheck={false}
+                              placeholder="sk-..."
+                              className="h-10 w-full rounded-sm border border-clay-900/15 bg-cream-100 pl-4 pr-11 font-sans text-sm text-clay-900 outline-none transition-colors focus:border-ember-500 placeholder:text-clay-400"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setShowKeys((prev) => ({
+                                  ...prev,
+                                  [g.key]: !prev[g.key],
+                                }))
+                              }
+                              aria-label={showKeys[g.key] ? t("settings.models.hide") : t("settings.models.show")}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-clay-400 hover:text-clay-700 transition-colors"
+                            >
+                              <i
+                                className={`fa-solid ${showKeys[g.key] ? "fa-eye-slash" : "fa-eye"} text-sm`}
+                              />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[10px] smallcaps text-clay-500">
+                            {t("settings.models.model")}
+                          </span>
+                          <input
+                            value={g.model}
+                            onChange={(e) => updateGroup(g.key, "model", e.target.value)}
+                            type="text"
+                            autoComplete="off"
+                            spellCheck={false}
+                            placeholder="gpt-4o / claude-3-5-sonnet / flux-1-dev ..."
+                            className="h-10 w-full rounded-sm border border-clay-900/15 bg-cream-100 px-4 font-sans text-sm text-clay-900 outline-none transition-colors focus:border-ember-500 placeholder:text-clay-400"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[10px] smallcaps text-clay-500">
+                            {t("settings.models.provider")}
+                          </span>
+                          <select
+                            value={g.provider}
+                            onChange={(e) => updateGroup(g.key, "provider", e.target.value)}
+                            className="h-10 w-full rounded-sm border border-clay-900/15 bg-cream-100 px-4 font-sans text-sm text-clay-900 outline-none transition-colors focus:border-ember-500"
+                          >
+                            {PROVIDER_OPTIONS.map((opt) => (
+                              <option key={opt.value || "auto"} value={opt.value}>
+                                {opt.labelKey ? t(opt.labelKey) : opt.fallback}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="text-[11px] text-clay-400">
+                            {t("settings.models.providerHint")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="border-t border-clay-900/8 mx-6 md:mx-8" />
+
+                  {/* ── TTS Key Section ── */}
+                  <div className="flex flex-col gap-3 px-6 md:px-8 pt-5 pb-5">
                     <div className="flex items-center gap-2.5">
                       <span className="flex h-7 w-7 items-center justify-center rounded-sm border border-clay-900/10 bg-cream-100 text-clay-400">
-                        <i className={`${g.icon} text-[11px]`} />
+                        <i className="fa-solid fa-volume-high text-[11px]" />
                       </span>
                       <span className="font-serif text-base text-clay-900">
-                        {groupLabel(g.key)}
+                        {t("settings.tts.title")}
                       </span>
                     </div>
+                    <p
+                      className="text-[12px] leading-relaxed text-clay-500"
+                      dangerouslySetInnerHTML={{ __html: t("settings.tts.description") }}
+                    />
 
                     <div className="flex flex-col gap-2">
                       <span className="text-[10px] smallcaps text-clay-500">
-                        {t("settings.models.baseUrl")}
+                        {t("settings.tts.keyType")}
                       </span>
-                      <input
-                        value={g.baseUrl}
-                        onChange={(e) => updateGroup(g.key, "baseUrl", e.target.value)}
-                        type="text"
-                        autoComplete="off"
-                        spellCheck={false}
-                        placeholder="https://api.example.com/v1"
-                        className="h-10 w-full rounded-sm border border-clay-900/15 bg-cream-100 px-4 font-sans text-sm text-clay-900 outline-none transition-colors focus:border-ember-500 placeholder:text-clay-400"
-                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        {(
+                          [
+                            {
+                              kind: "payg",
+                              labelKey: "settings.tts.payg",
+                              subKey: "settings.tts.paygSub",
+                            },
+                            {
+                              kind: "token-plan",
+                              labelKey: "settings.tts.tokenPlan",
+                              subKey: "settings.tts.tokenPlanSub",
+                            },
+                          ] as const
+                        ).map((opt) => {
+                          const active = keyType === opt.kind;
+                          return (
+                            <button
+                              key={opt.kind}
+                              type="button"
+                              onClick={() => setKeyType(opt.kind)}
+                              className={
+                                "flex flex-col gap-0.5 rounded-sm border px-3 py-2.5 text-left transition-all " +
+                                (active
+                                  ? "border-ember-500 bg-ember-500/5 text-clay-900"
+                                  : "border-clay-900/12 text-clay-600 hover:border-clay-900/35 hover:bg-cream-100")
+                              }
+                            >
+                              <span className="text-[13px]">{t(opt.labelKey)}</span>
+                              <span className="text-[10px] text-clay-400">
+                                {t(opt.subKey)}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
+
+                    {keyType === "token-plan" && (
+                      <div className="flex flex-col gap-2">
+                        <span className="text-[10px] smallcaps text-clay-500">
+                          {t("settings.tts.region")}
+                        </span>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                          {TTS_REGION_PRESETS.map((p) => {
+                            const active = p.id === regionId;
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setRegionId(p.id)}
+                                className={
+                                  "rounded-sm border px-3 py-2.5 text-left text-[13px] transition-all " +
+                                  (active
+                                    ? "border-ember-500 bg-ember-500/5 text-clay-900"
+                                    : "border-clay-900/12 text-clay-600 hover:border-clay-900/35 hover:bg-cream-100")
+                                }
+                              >
+                                {p.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <span className="text-[11px] text-clay-400">
+                          {t("settings.tts.regionHint")}
+                        </span>
+                      </div>
+                    )}
 
                     <div className="flex flex-col gap-2">
                       <span className="text-[10px] smallcaps text-clay-500">
@@ -456,208 +789,50 @@ export function SettingsModal({
                       </span>
                       <div className="relative">
                         <input
-                          value={g.apiKey}
-                          onChange={(e) => updateGroup(g.key, "apiKey", e.target.value)}
-                          type={showKeys[g.key] ? "text" : "password"}
+                          value={ttsApiKey}
+                          onChange={(e) => setTtsApiKey(e.target.value)}
+                          type={showTtsKey ? "text" : "password"}
                           autoComplete="off"
                           spellCheck={false}
-                          placeholder="sk-..."
-                          className="h-10 w-full rounded-sm border border-clay-900/15 bg-cream-100 pl-4 pr-11 font-sans text-sm text-clay-900 outline-none transition-colors focus:border-ember-500 placeholder:text-clay-400"
+                          placeholder={
+                            keyType === "payg"
+                              ? t("settings.tts.apiKeyPlaceholderPayg")
+                              : t("settings.tts.apiKeyPlaceholderToken")
+                          }
+                          className="h-11 w-full rounded-sm border border-clay-900/15 bg-cream-100 pl-4 pr-11 font-sans text-sm text-clay-900 outline-none transition-colors focus:border-ember-500 placeholder:text-clay-400"
                         />
                         <button
                           type="button"
-                          onClick={() =>
-                            setShowKeys((prev) => ({
-                              ...prev,
-                              [g.key]: !prev[g.key],
-                            }))
-                          }
-                          aria-label={showKeys[g.key] ? t("settings.models.hide") : t("settings.models.show")}
+                          onClick={() => setShowTtsKey((v) => !v)}
+                          aria-label={showTtsKey ? t("settings.models.hide") : t("settings.models.show")}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-clay-400 hover:text-clay-700 transition-colors"
                         >
                           <i
-                            className={`fa-solid ${showKeys[g.key] ? "fa-eye-slash" : "fa-eye"} text-sm`}
+                            className={`fa-solid ${showTtsKey ? "fa-eye-slash" : "fa-eye"} text-sm`}
                           />
                         </button>
                       </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <span className="text-[10px] smallcaps text-clay-500">
-                        {t("settings.models.model")}
-                      </span>
-                      <input
-                        value={g.model}
-                        onChange={(e) => updateGroup(g.key, "model", e.target.value)}
-                        type="text"
-                        autoComplete="off"
-                        spellCheck={false}
-                        placeholder="gpt-4o / claude-3-5-sonnet / flux-1-dev ..."
-                        className="h-10 w-full rounded-sm border border-clay-900/15 bg-cream-100 px-4 font-sans text-sm text-clay-900 outline-none transition-colors focus:border-ember-500 placeholder:text-clay-400"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <span className="text-[10px] smallcaps text-clay-500">
-                        {t("settings.models.provider")}
-                      </span>
-                      <select
-                        value={g.provider}
-                        onChange={(e) => updateGroup(g.key, "provider", e.target.value)}
-                        className="h-10 w-full rounded-sm border border-clay-900/15 bg-cream-100 px-4 font-sans text-sm text-clay-900 outline-none transition-colors focus:border-ember-500"
+                      {prefixMismatch && (
+                        <span className="flex items-start gap-1.5 text-[11px] leading-relaxed text-ember-500">
+                          <i className="fa-solid fa-triangle-exclamation mt-0.5 text-[10px]" />
+                          {keyType === "payg"
+                            ? t("settings.tts.keyMismatchPayg")
+                            : t("settings.tts.keyMismatchToken")}
+                        </span>
+                      )}
+                      <a
+                        href={TTS_KEY_DOC_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-[11px] text-ember-500 hover:text-ember-400 transition-colors"
                       >
-                        {PROVIDER_OPTIONS.map((opt) => (
-                          <option key={opt.value || "auto"} value={opt.value}>
-                            {opt.labelKey ? t(opt.labelKey) : opt.fallback}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="text-[11px] text-clay-400">
-                        {t("settings.models.providerHint")}
-                      </span>
+                        <i className="fa-brands fa-github text-[11px]" />
+                        {t("settings.tts.tutorialLink")}
+                      </a>
                     </div>
                   </div>
-                </div>
-              ))}
-
-              <div className="border-t border-clay-900/8 mx-6 md:mx-8" />
-
-              {/* ── TTS Key Section ── */}
-              <div className="flex flex-col gap-3 px-6 md:px-8 pt-5 pb-5">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-sm border border-clay-900/10 bg-cream-100 text-clay-400">
-                    <i className="fa-solid fa-volume-high text-[11px]" />
-                  </span>
-                  <span className="font-serif text-base text-clay-900">
-                    {t("settings.tts.title")}
-                  </span>
-                </div>
-                <p
-                  className="text-[12px] leading-relaxed text-clay-500"
-                  dangerouslySetInnerHTML={{ __html: t("settings.tts.description") }}
-                />
-
-                <div className="flex flex-col gap-2">
-                  <span className="text-[10px] smallcaps text-clay-500">
-                    {t("settings.tts.keyType")}
-                  </span>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(
-                      [
-                        {
-                          kind: "payg",
-                          labelKey: "settings.tts.payg",
-                          subKey: "settings.tts.paygSub",
-                        },
-                        {
-                          kind: "token-plan",
-                          labelKey: "settings.tts.tokenPlan",
-                          subKey: "settings.tts.tokenPlanSub",
-                        },
-                      ] as const
-                    ).map((opt) => {
-                      const active = keyType === opt.kind;
-                      return (
-                        <button
-                          key={opt.kind}
-                          type="button"
-                          onClick={() => setKeyType(opt.kind)}
-                          className={
-                            "flex flex-col gap-0.5 rounded-sm border px-3 py-2.5 text-left transition-all " +
-                            (active
-                              ? "border-ember-500 bg-ember-500/5 text-clay-900"
-                              : "border-clay-900/12 text-clay-600 hover:border-clay-900/35 hover:bg-cream-100")
-                          }
-                        >
-                          <span className="text-[13px]">{t(opt.labelKey)}</span>
-                          <span className="text-[10px] text-clay-400">
-                            {t(opt.subKey)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {keyType === "token-plan" && (
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[10px] smallcaps text-clay-500">
-                      {t("settings.tts.region")}
-                    </span>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                      {TTS_REGION_PRESETS.map((p) => {
-                        const active = p.id === regionId;
-                        return (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => setRegionId(p.id)}
-                            className={
-                              "rounded-sm border px-3 py-2.5 text-left text-[13px] transition-all " +
-                              (active
-                                ? "border-ember-500 bg-ember-500/5 text-clay-900"
-                                : "border-clay-900/12 text-clay-600 hover:border-clay-900/35 hover:bg-cream-100")
-                            }
-                          >
-                            {p.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <span className="text-[11px] text-clay-400">
-                      {t("settings.tts.regionHint")}
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-2">
-                  <span className="text-[10px] smallcaps text-clay-500">
-                    {t("settings.models.apiKey")}
-                  </span>
-                  <div className="relative">
-                    <input
-                      value={ttsApiKey}
-                      onChange={(e) => setTtsApiKey(e.target.value)}
-                      type={showTtsKey ? "text" : "password"}
-                      autoComplete="off"
-                      spellCheck={false}
-                      placeholder={
-                        keyType === "payg"
-                          ? t("settings.tts.apiKeyPlaceholderPayg")
-                          : t("settings.tts.apiKeyPlaceholderToken")
-                      }
-                      className="h-11 w-full rounded-sm border border-clay-900/15 bg-cream-100 pl-4 pr-11 font-sans text-sm text-clay-900 outline-none transition-colors focus:border-ember-500 placeholder:text-clay-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowTtsKey((v) => !v)}
-                      aria-label={showTtsKey ? t("settings.models.hide") : t("settings.models.show")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-clay-400 hover:text-clay-700 transition-colors"
-                    >
-                      <i
-                        className={`fa-solid ${showTtsKey ? "fa-eye-slash" : "fa-eye"} text-sm`}
-                      />
-                    </button>
-                  </div>
-                  {prefixMismatch && (
-                    <span className="flex items-start gap-1.5 text-[11px] leading-relaxed text-ember-500">
-                      <i className="fa-solid fa-triangle-exclamation mt-0.5 text-[10px]" />
-                      {keyType === "payg"
-                        ? t("settings.tts.keyMismatchPayg")
-                        : t("settings.tts.keyMismatchToken")}
-                    </span>
-                  )}
-                  <a
-                    href={TTS_KEY_DOC_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-[11px] text-ember-500 hover:text-ember-400 transition-colors"
-                  >
-                    <i className="fa-brands fa-github text-[11px]" />
-                    {t("settings.tts.tutorialLink")}
-                  </a>
-                </div>
-              </div>
+                </>
+              )}
             </>
           )}
         </div>

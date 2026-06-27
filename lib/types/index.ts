@@ -487,6 +487,11 @@ export type TtsProviderResponse = {
 
 export type EngineConfig = {
   text: ProviderConfig;
+  /**
+   * Optional internal text profiles for official-mode agent routing.
+   * When absent, all text agents fall back to `text`.
+   */
+  textProfiles?: Partial<Record<"main" | "fast" | "lite", ProviderConfig>>;
   image: ProviderConfig;
   vision: ProviderConfig;
   /** Optional — when missing the game runs silently (no TTS). */

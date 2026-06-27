@@ -1,23 +1,18 @@
-# Platform Infrastructure
+# 平台基建
 
-Status: Plan / Current Map.
+状态：规划 / 当前地图。
 
-This section tracks StoryPlay platform infrastructure: agent runtime, model
-API, server routes, runtime config, data layer, and deployment-facing concerns.
-Detailed agent documents remain under `../agent-system/`.
+本目录记录 StoryPlay 的平台基建：agent 运行时、模型 API、服务端路由、运行配置、数据层和部署相关内容。更细的 agent 文档仍放在 `../agent-system/`。
 
-## Scope
+## 范围
 
-- Agent system: registry, contracts, parsers, fallbacks, fixtures, tests.
-- Model API: text, image, vision, and TTS provider calls, routing, fallback,
-  cost, limits, and BYOK behavior.
-- Server API: generation, continuation, vision click, insert beat, audio,
-  story packaging, studio routes.
-- Runtime config: environment variables, provider keys, user-provided keys,
-  deployment config.
-- Data layer: database schema, repositories, Supabase, migrations.
+- Agent system：注册表、contracts、parser、fallback、fixtures、测试。
+- Model API：Text、Image、Vision、TTS 的供应商调用、路由、降级、成本、限流和 BYOK 行为。
+- Server API：生成、续写、视觉点击、插入互动、音频、故事打包、Studio 路由。
+- Runtime config：环境变量、供应商 Key、用户自带 Key、部署配置。
+- Data layer：数据库 schema、repositories、Supabase、migrations。
 
-## Main Code
+## 主要代码
 
 - `lib/engine/agent-system/`
 - `lib/engine/agents/`
@@ -32,19 +27,16 @@ Detailed agent documents remain under `../agent-system/`.
 - `lib/supabase/`
 - `app/api/`
 
-## Related Documents
+## 关联文档
 
 - [../project-modules.md](../project-modules.md)
 - [../agent-system/README.md](../agent-system/README.md)
 - [../creative-engine/current-architecture.md](../creative-engine/current-architecture.md)
 - [../integrations/README.md](../integrations/README.md)
 
-## Model / Runtime Documents
+## 模型 / 运行时文档
 
-- [model-infrastructure.md](model-infrastructure.md): official hosted models,
-  BYOK, usage metering, billing, model routing, and admin controls.
-- `api-map.md`: API route responsibilities, input/output contracts, and
-  runtime call graph.
-- `data-layer.md`: database schema, repositories, and migration strategy.
-- `runtime-config.md`: environment variables, deployment config, and local
-  development config.
+- [model-infrastructure.md](model-infrastructure.md)：官方托管模型、BYOK、用量记录、点数计费、模型路由和后台控制。
+- `api-map.md`：API route 职责、输入输出协议和运行时调用图。
+- `data-layer.md`：数据库 schema、repository 和迁移策略。
+- `runtime-config.md`：环境变量、部署配置和本地开发配置。
