@@ -150,7 +150,12 @@ export async function visionDecide(
   req: VisionRequest,
 ): Promise<VisionResponse> {
   const current = req.session.history.at(-1)?.scene ?? null;
-  return interpret(config.vision, req.annotatedImageBase64, current);
+  return interpret(
+    config.vision,
+    req.annotatedImageBase64,
+    current,
+    config.visionTimeoutMs,
+  );
 }
 
 // ──────────────────────────────────────────────────────────────────────

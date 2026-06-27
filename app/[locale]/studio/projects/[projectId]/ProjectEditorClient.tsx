@@ -6,6 +6,15 @@ import { useMemo, useState } from "react";
 import { SettingsModal, readStoredVisionClick } from "@/components/SettingsModal";
 import { readStoredModelConfig } from "@/lib/clientModelConfig";
 import {
+  hasCreatorStoryAssistantPatch,
+  mergeCreatorStoryAssistantPatch,
+  previewCreatorStoryAssistantPatch,
+} from "@/lib/creatorAssistant/mergePatch";
+import type {
+  CreatorStoryAssistantAction,
+  CreatorStoryAssistantOutput,
+} from "@/lib/creatorAssistant/types";
+import {
   createStoryProjectAct,
   createStoryProjectOpeningPackage,
   createStoryProjectScene,
@@ -34,6 +43,38 @@ const SHOW_STORY_STRUCTURE_EDITOR = false;
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 type PublishState = "idle" | "publishing" | "published" | "unpublishing" | "error";
+
+const assistantActions: Array<{
+  action: CreatorStoryAssistantAction;
+  label: string;
+  description: string;
+  icon: string;
+}> = [
+  {
+    action: "diagnose",
+    label: "诊断工程",
+    description: "检查缺口、跑偏风险和试玩前需要补齐的字段。",
+    icon: "fa-stethoscope",
+  },
+  {
+    action: "expand-concept",
+    label: "扩展设定",
+    description: "补强概念、世界观、冲突、标签和视觉方向。",
+    icon: "fa-wand-magic-sparkles",
+  },
+  {
+    action: "build-outline",
+    label: "生成大纲",
+    description: "生成主线目标、阶段推进、必达节点和章节规划。",
+    icon: "fa-list-check",
+  },
+  {
+    action: "create-characters",
+    label: "生成角色",
+    description: "补齐角色卡、关系定位、视觉和声音描述。",
+    icon: "fa-users",
+  },
+];
 
 function localePath(path: string, locale: string) {
   if (locale === "zh-CN") return path;
@@ -200,6 +241,9 @@ export function ProjectEditorClient({
   const [notice, setNotice] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [visionClickEnabled, setVisionClickEnabled] = useState(() => readStoredVisionClick());
+  const [assistantInstruction, setAssistantInstruction] = useState("");
+  const [assistantLoadingAction, setAssistantLoadingAction] = useState<CreatorStoryAssistantAction | "">("");
+  const [assistantResult, setAssistantResult] = useState<CreatorStoryAssistantOutput | null>(null);
 
   const dirty = useMemo(
     () => JSON.stringify(project) !== JSON.stringify(lastSavedProject),
@@ -320,11 +364,61 @@ export function ProjectEditorClient({
   const visiblePlaytests = selectedScene ? selectedScenePlaytests : project.playtests;
   const selectedPlaytest =
     visiblePlaytests.find((playtest) => playtest.id === selectedPlaytestId) ?? visiblePlaytests[0];
+  const assistantPatchPreview = useMemo(
+    () => assistantResult ? previewCreatorStoryAssistantPatch(project, assistantResult.patch) : [],
+    [assistantResult, project],
+  );
 
   function updateProject(patch: Partial<StoryProject>) {
     setSaveState("idle");
     setNotice("");
     setProject((current) => ({ ...current, ...patch }));
+  }
+
+  async function runAssistant(action: CreatorStoryAssistantAction) {
+    setAssistantLoadingAction(action);
+    setAssistantResult(null);
+    setNotice("");
+    try {
+      const response = await fetch(`/api/studio/projects/${project.id}/assistant`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          project,
+          userInstruction: assistantInstruction,
+          selectedActId: selectedAct?.id,
+          selectedSceneId: selectedScene?.id,
+          playtestId: selectedPlaytest?.id,
+          locale: project.language,
+        }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        result?: CreatorStoryAssistantOutput;
+        error?: string;
+      };
+
+      if (!response.ok || !data.result) {
+        setSaveState("error");
+        setNotice(data.error || "AI 创作助手暂时不可用，请检查模型配置后重试。");
+        return;
+      }
+
+      setAssistantResult(data.result);
+      setNotice("AI 创作助手已生成建议；应用后仍需手动保存工程。");
+    } catch {
+      setSaveState("error");
+      setNotice("AI 创作助手请求失败，请稍后重试。");
+    } finally {
+      setAssistantLoadingAction("");
+    }
+  }
+
+  function applyAssistantPatch() {
+    if (!assistantResult || !hasCreatorStoryAssistantPatch(assistantResult.patch)) return;
+    setProject((current) => mergeCreatorStoryAssistantPatch(current, assistantResult.patch));
+    setSaveState("idle");
+    setNotice("已应用 AI 建议到当前草稿，请确认后保存工程。");
   }
 
   function updateWorld(patch: Partial<StoryProject["world"]>) {
@@ -889,6 +983,143 @@ export function ProjectEditorClient({
             </div>
           )}
         </header>
+
+        <section className="mt-6 rounded-2xl border border-sp-border bg-sp-surface p-5 shadow-sm shadow-black/[0.04]">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <i className="fa-solid fa-sparkles text-sm text-sp-accent" />
+                <h2 className="font-serif text-xl font-semibold text-sp-text">AI 创作助手</h2>
+              </div>
+              <p className="mt-1 text-xs leading-5 text-sp-subdued">
+                面向创作者后台的故事辅助 Agent。它只读取当前 StoryProject 草稿，输出诊断、建议和可选 patch，不会修改内部 agent / skill 基建，也不会自动保存。
+              </p>
+              <textarea
+                value={assistantInstruction}
+                onChange={(event) => setAssistantInstruction(event.target.value)}
+                rows={3}
+                placeholder="可选：告诉助手这次重点处理什么，例如“更偏悬疑恋爱”“先补完前三幕大纲”“不要改女主设定”。"
+                className="mt-4 w-full resize-none rounded-xl border border-sp-border bg-sp-muted px-3 py-2 text-sm leading-6 text-sp-text outline-none transition-colors placeholder:text-sp-subdued/70 focus:border-sp-accent"
+              />
+            </div>
+            <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:w-[420px]">
+              {assistantActions.map((item) => (
+                <button
+                  key={item.action}
+                  type="button"
+                  onClick={() => runAssistant(item.action)}
+                  disabled={Boolean(assistantLoadingAction)}
+                  className="min-h-[84px] rounded-xl border border-sp-border bg-sp-muted p-3 text-left transition-colors hover:border-sp-accent disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="flex items-center gap-2 text-sm font-semibold text-sp-text">
+                    <i className={`fa-solid ${item.icon} text-[12px] text-sp-accent`} />
+                    {assistantLoadingAction === item.action ? "生成中" : item.label}
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-sp-subdued">{item.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {assistantResult && (
+            <div className="mt-5 rounded-xl border border-sp-border bg-sp-muted p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-sp-text">助手结果</div>
+                  <p className="mt-1 text-sm leading-6 text-sp-subdued">{assistantResult.summary}</p>
+                </div>
+                {assistantPatchPreview.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={applyAssistantPatch}
+                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-sp-accent px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  >
+                    <i className="fa-solid fa-check text-[12px]" />
+                    应用建议
+                  </button>
+                )}
+              </div>
+
+              {assistantResult.suggestions.length > 0 && (
+                <div className="mt-4 grid gap-2 md:grid-cols-2">
+                  {assistantResult.suggestions.slice(0, 6).map((suggestion, index) => (
+                    <div
+                      key={`${suggestion.field}-${index}`}
+                      className="rounded-xl border border-sp-border bg-sp-surface p-3 text-xs leading-5"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-[11px] text-sp-subdued">{suggestion.field}</span>
+                        <span
+                          className={
+                            "rounded-full px-2 py-0.5 text-[10px] font-semibold " +
+                            (suggestion.severity === "critical"
+                              ? "bg-sp-accentSoft text-sp-accent"
+                              : suggestion.severity === "warning"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-sp-accentSoft text-sp-accent")
+                          }
+                        >
+                          {suggestion.severity}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-sp-text">{suggestion.message}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {(assistantPatchPreview.length > 0 ||
+                assistantResult.patchNotes.length > 0 ||
+                assistantResult.nextActions.length > 0) && (
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  {assistantPatchPreview.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold text-sp-text">修改预览</div>
+                      <ul className="mt-2 space-y-2 text-xs leading-5 text-sp-subdued">
+                        {assistantPatchPreview.map((item) => (
+                          <li key={item.field} className="rounded-lg bg-sp-surface px-3 py-2">
+                            <span className="font-mono text-[11px]">{item.field}</span>
+                            <span className="mt-1 block text-sp-subdued line-through">
+                              {item.before || "空"}
+                            </span>
+                            <span className="mt-1 block text-sp-text">
+                              {item.after || "空"}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {assistantResult.patchNotes.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold text-sp-text">将要修改</div>
+                      <ul className="mt-2 space-y-2 text-xs leading-5 text-sp-subdued">
+                        {assistantResult.patchNotes.slice(0, 6).map((note, index) => (
+                          <li key={`${note.field}-${index}`} className="rounded-lg bg-sp-surface px-3 py-2">
+                            <span className="font-mono text-[11px]">{note.field}</span>
+                            <span className="block text-sp-text">{note.reason}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {assistantPatchPreview.length === 0 && assistantResult.nextActions.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold text-sp-text">下一步</div>
+                      <ul className="mt-2 space-y-2 text-xs leading-5 text-sp-subdued">
+                        {assistantResult.nextActions.slice(0, 6).map((item, index) => (
+                          <li key={`${item}-${index}`} className="rounded-lg bg-sp-surface px-3 py-2">
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
 
         <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-6">

@@ -2,17 +2,22 @@
 
 Status: Plan / Current Map.
 
-本目录负责 StoryPlay 的内部基建总览，重点覆盖 Agent 系统、模型 API、服务端路由、数据库和运行环境。更细的 agent 文档仍放在 `../agent-system/`。
+This section tracks StoryPlay platform infrastructure: agent runtime, model
+API, server routes, runtime config, data layer, and deployment-facing concerns.
+Detailed agent documents remain under `../agent-system/`.
 
-## 范围
+## Scope
 
-- Agent system：注册、contract、parser、fallback、fixtures、测试。
-- Model API：文本、图像、视觉、TTS 的 provider 调用和降级。
-- Server API：生成、续写、视觉点击、插入剧情、音频、故事打包。
-- Runtime config：环境变量、供应商 key、用户自带 key、部署配置。
-- Data layer：数据库 schema、repository、Supabase、migration。
+- Agent system: registry, contracts, parsers, fallbacks, fixtures, tests.
+- Model API: text, image, vision, and TTS provider calls, routing, fallback,
+  cost, limits, and BYOK behavior.
+- Server API: generation, continuation, vision click, insert beat, audio,
+  story packaging, studio routes.
+- Runtime config: environment variables, provider keys, user-provided keys,
+  deployment config.
+- Data layer: database schema, repositories, Supabase, migrations.
 
-## 当前主要代码
+## Main Code
 
 - `lib/engine/agent-system/`
 - `lib/engine/agents/`
@@ -27,16 +32,19 @@ Status: Plan / Current Map.
 - `lib/supabase/`
 - `app/api/`
 
-## 关联文档
+## Related Documents
 
 - [../project-modules.md](../project-modules.md)
 - [../agent-system/README.md](../agent-system/README.md)
 - [../creative-engine/current-architecture.md](../creative-engine/current-architecture.md)
 - [../integrations/README.md](../integrations/README.md)
 
-## 后续文档建议
+## Model / Runtime Documents
 
-- `model-routing.md`：模型 provider、fallback、成本和限流策略。
-- `api-map.md`：所有 API route 的职责、输入输出和调用关系。
-- `data-layer.md`：数据库 schema、repository 和迁移策略。
-- `runtime-config.md`：环境变量、部署配置和本地开发配置。
+- [model-infrastructure.md](model-infrastructure.md): official hosted models,
+  BYOK, usage metering, billing, model routing, and admin controls.
+- `api-map.md`: API route responsibilities, input/output contracts, and
+  runtime call graph.
+- `data-layer.md`: database schema, repositories, and migration strategy.
+- `runtime-config.md`: environment variables, deployment config, and local
+  development config.

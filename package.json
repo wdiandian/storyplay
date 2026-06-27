@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit",
     "agent:inventory": "tsx scripts/print-agent-inventory.mjs",
     "agent:test": "tsx scripts/test-agent-system.mjs",
+    "creator-assistant:test": "tsx scripts/test-creator-assistant.mjs",
     "story-sku:manifest": "node scripts/build-story-sku-manifest.mjs",
     "enrich:firstacts": "node scripts/enrich-firstacts-stepfun.mjs",
     "build:cf": "cross-env BUILD_STANDALONE=true next build --webpack && opennextjs-cloudflare build --skipNextBuild",

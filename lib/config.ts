@@ -68,29 +68,39 @@ export function loadTtsConfig(): TtsConfig | undefined {
 }
 
 export function loadEngineConfig(): EngineConfig {
+  const mockImage = readOptionalVar("MOCK_IMAGE") === "true";
+  const text: ProviderConfig = {
+    baseUrl: readVar("TEXT_BASE_URL"),
+    apiKey: readVar("TEXT_API_KEY"),
+    model: readVar("TEXT_MODEL"),
+    provider: readProvider("TEXT_PROVIDER"),
+  };
   return {
-    text: {
-      baseUrl: readVar("TEXT_BASE_URL"),
-      apiKey: readVar("TEXT_API_KEY"),
-      model: readVar("TEXT_MODEL"),
-      provider: readProvider("TEXT_PROVIDER"),
-    },
-    image: {
-      baseUrl: readVar("IMAGE_BASE_URL"),
-      apiKey: readVar("IMAGE_API_KEY"),
-      model: readVar("IMAGE_MODEL"),
-      provider: readProvider("IMAGE_PROVIDER"),
-    },
+    text,
+    image: mockImage
+      ? {
+          baseUrl: readOptionalVar("IMAGE_BASE_URL") ?? "https://mock.storyplay.local",
+          apiKey: readOptionalVar("IMAGE_API_KEY") ?? "mock",
+          model: readOptionalVar("IMAGE_MODEL") ?? "mock-image",
+          provider: readProvider("IMAGE_PROVIDER"),
+        }
+      : {
+          baseUrl: readVar("IMAGE_BASE_URL"),
+          apiKey: readVar("IMAGE_API_KEY"),
+          model: readVar("IMAGE_MODEL"),
+          provider: readProvider("IMAGE_PROVIDER"),
+        },
     vision: {
-      baseUrl: readVar("VISION_BASE_URL"),
-      apiKey: readVar("VISION_API_KEY"),
-      model: readVar("VISION_MODEL"),
-      provider: readProvider("VISION_PROVIDER"),
+      baseUrl: readOptionalVar("VISION_BASE_URL") ?? text.baseUrl,
+      apiKey: readOptionalVar("VISION_API_KEY") ?? text.apiKey,
+      model: readOptionalVar("VISION_MODEL") ?? text.model,
+      provider: readProvider("VISION_PROVIDER") ?? text.provider,
     },
     tts: loadTtsConfig(),
-    mockImage: readOptionalVar("MOCK_IMAGE") === "true",
+    mockImage,
     imageTimeoutMs: readOptionalPositiveInt("IMAGE_TIMEOUT_MS"),
     imageHedgeMs: readOptionalPositiveInt("IMAGE_HEDGE_MS"),
+    visionTimeoutMs: readOptionalPositiveInt("VISION_TIMEOUT_MS"),
   };
 }
 
@@ -208,5 +218,8 @@ export function buildByoEngineConfig(
       : officialConfig.vision,
     tts: officialConfig.tts, // TTS BYOK stays client-side only (existing flow)
     mockImage: officialConfig.mockImage,
+    imageTimeoutMs: officialConfig.imageTimeoutMs,
+    imageHedgeMs: officialConfig.imageHedgeMs,
+    visionTimeoutMs: officialConfig.visionTimeoutMs,
   };
 }

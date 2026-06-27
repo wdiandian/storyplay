@@ -2,17 +2,19 @@ import OpenAI from "openai";
 import type { ProviderConfig } from "@storyplay/types";
 import { normalizeBaseUrl } from "./normalizeUrl";
 
-const VISION_TIMEOUT_MS = 60_000;
+const DEFAULT_VISION_TIMEOUT_MS = 20_000;
 
 export async function interpretClick(
   config: ProviderConfig,
   imageBase64: string,
   prompt: string,
+  timeoutMs = DEFAULT_VISION_TIMEOUT_MS,
 ): Promise<string> {
   return analyzeImageDataUrl(
     config,
     `data:image/png;base64,${imageBase64}`,
     prompt,
+    timeoutMs,
   );
 }
 
@@ -20,12 +22,13 @@ export async function analyzeImageDataUrl(
   config: ProviderConfig,
   imageDataUrl: string,
   prompt: string,
+  timeoutMs = DEFAULT_VISION_TIMEOUT_MS,
 ): Promise<string> {
   const client = new OpenAI({
     apiKey: config.apiKey,
     baseURL: normalizeBaseUrl(config.baseUrl, "openai_compatible"),
     maxRetries: 0,
-    timeout: VISION_TIMEOUT_MS,
+    timeout: timeoutMs,
     dangerouslyAllowBrowser: true,
   });
 

@@ -234,7 +234,13 @@ export async function runPainter(
   entryBeat: Beat | undefined,
 ): Promise<PainterResult> {
   const result = await runAgent(
-    painterContract as AgentContract<PainterInput, PainterResult>,
+    {
+      ...painterContract,
+      fallback: async () => ({
+        kind: "mock" as const,
+        imageUrl: await mockImageDataUri(input.orientation),
+      }),
+    } as AgentContract<PainterInput, PainterResult>,
     input,
     async () => {
   if (config.mockImage) {
@@ -290,10 +296,16 @@ export async function runPainter(
   // Tier B — pure text-to-image. Last resort, used when Tier A failed OR
   // there are no references to send (first scene with no characters yet).
   // Errors here propagate to the caller.
-  const r = await generateImage(config.image, prompt, {
-    orientation: input.orientation,
-    timeoutMs: config.imageTimeoutMs,
-  });
+  const r = await tryGenerate(
+    config.image,
+    prompt,
+    {
+      orientation: input.orientation,
+      timeoutMs: config.imageTimeoutMs,
+    },
+    "text-to-image",
+  );
+  if (!r) throw new Error("Painter image generation failed.");
   return {
     output: {
       kind: "real" as const,

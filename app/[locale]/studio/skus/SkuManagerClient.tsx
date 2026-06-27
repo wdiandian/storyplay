@@ -425,34 +425,32 @@ export function SkuManagerClient({ skus, locale }: SkuManagerClientProps) {
     }
   };
 
-  const filteredSkus = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return visibleSkus.filter((sku) => {
-      const draft = drafts[sku.id];
-      if (gender !== "all" && sku.gender !== gender) return false;
-      if (genreFilter !== "all" && !draft?.genres.includes(genreFilter)) return false;
-      if (resourceFilter === "missing-cover" && sku.assets.cover) return false;
-      if (resourceFilter === "missing-first-act" && sku.firstAct.zh) return false;
-      if (resourceFilter === "missing-first-scene" && sku.assets.firstScene) return false;
-      if (!q) return true;
-      return [
-        sku.id,
-        sku.title,
-        sku.logline,
-        sku.synopsis,
-        sku.genreTagsRaw,
-        ...sku.tags,
-        ...(draft?.genres ?? []),
-        ...(draft?.moods ?? []),
-        draft?.interaction ?? "",
-        draft?.structure ?? "",
-        draft?.visualStyle ?? "",
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(q);
-    });
-  }, [drafts, gender, genreFilter, query, resourceFilter, visibleSkus]);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredSkus = visibleSkus.filter((sku) => {
+    const draft = drafts[sku.id];
+    if (gender !== "all" && sku.gender !== gender) return false;
+    if (genreFilter !== "all" && !draft?.genres.includes(genreFilter)) return false;
+    if (resourceFilter === "missing-cover" && sku.assets.cover) return false;
+    if (resourceFilter === "missing-first-act" && sku.firstAct.zh) return false;
+    if (resourceFilter === "missing-first-scene" && sku.assets.firstScene) return false;
+    if (!normalizedQuery) return true;
+    return [
+      sku.id,
+      sku.title,
+      sku.logline,
+      sku.synopsis,
+      sku.genreTagsRaw,
+      ...sku.tags,
+      ...(draft?.genres ?? []),
+      ...(draft?.moods ?? []),
+      draft?.interaction ?? "",
+      draft?.structure ?? "",
+      draft?.visualStyle ?? "",
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(normalizedQuery);
+  });
 
   return (
     <div className="mt-6 grid gap-6 2xl:grid-cols-[minmax(0,1fr)_380px]">

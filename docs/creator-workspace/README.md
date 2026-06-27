@@ -5,6 +5,7 @@ Status: Partial MVP.
 Current priority:
 
 - [Creator MVP Publish Loop](./creator-mvp-publish-loop.md)
+- [Creator Story Assistant](./creator-story-assistant.md)
 - [Opening Package Editor](./opening-package-editor.md)
 
 The first usable creator MVP is:
@@ -59,6 +60,7 @@ Story SKU = 发布产物
 
 ## 关联文档
 
+- [./creator-story-assistant.md](./creator-story-assistant.md)
 - [./creator-mvp-publish-loop.md](./creator-mvp-publish-loop.md)
 - [./deferred-feature-backlog.md](./deferred-feature-backlog.md)
 - [../creative-engine/story-project-schema.md](../creative-engine/story-project-schema.md)

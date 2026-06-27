@@ -99,6 +99,8 @@ IMAGE_MODEL=
 VISION_BASE_URL=
 VISION_API_KEY=
 VISION_MODEL=
+# Optional. If VISION_* is blank, StoryPlay reuses TEXT_* for click vision.
+VISION_TIMEOUT_MS=20000
 
 MOCK_IMAGE=false
 ```
@@ -111,6 +113,7 @@ TTS_API_KEY=
 TTS_SPEECH_MODEL=
 IMAGE_TIMEOUT_MS=
 IMAGE_HEDGE_MS=
+VISION_TIMEOUT_MS=
 ```
 
 Create `docker-compose.yml` or copy it from the repo:

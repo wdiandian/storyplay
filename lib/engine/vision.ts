@@ -22,6 +22,7 @@ export async function interpret(
   config: ProviderConfig,
   annotatedImageBase64: string,
   scene: Scene | null,
+  timeoutMs?: number,
 ): Promise<VisionInterpretation> {
   const result = await runAgent(
     {
@@ -31,7 +32,12 @@ export async function interpret(
     { annotatedImageBase64, scene },
     async () => {
       const userPrompt = `${VISION_SYSTEM_PROMPT}\n\n${buildVisionUserPrompt(scene)}`;
-      const raw = await interpretClick(config, annotatedImageBase64, userPrompt);
+      const raw = await interpretClick(
+        config,
+        annotatedImageBase64,
+        userPrompt,
+        timeoutMs,
+      );
 
       return {
         raw,

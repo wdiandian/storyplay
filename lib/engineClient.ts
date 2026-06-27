@@ -121,7 +121,7 @@ async function fetchSSE<T>(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(emit ? { Accept: "text/event-stream" } : {}),
+      Accept: "text/event-stream",
     },
     body: JSON.stringify(body),
   });
@@ -136,7 +136,7 @@ async function fetchSSE<T>(
     throw new Error(message);
   }
 
-  if (!emit || !res.headers.get("content-type")?.includes("text/event-stream")) {
+  if (!res.headers.get("content-type")?.includes("text/event-stream")) {
     return res.json() as Promise<T>;
   }
 
@@ -167,7 +167,7 @@ async function fetchSSE<T>(
         result = event.response as T;
       } else if (event.type === "error") {
         throw new Error(event.message || "Scene generation failed");
-      } else {
+      } else if (emit) {
         emit(event as SceneStreamEvent);
       }
     }

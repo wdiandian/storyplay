@@ -18,6 +18,7 @@ function formatSSE(event: SceneStreamEvent | { type: string; [k: string]: unknow
 }
 
 export const runtime = "nodejs";
+const SSE_HEARTBEAT_MS = 15_000;
 
 export async function POST(req: Request) {
   const auth = await requireUser();
@@ -58,6 +59,9 @@ export async function POST(req: Request) {
 
     const stream = new ReadableStream({
       async start(controller) {
+        const heartbeat = setInterval(() => {
+          controller.enqueue(encoder.encode(`: heartbeat ${Date.now()}\n\n`));
+        }, SSE_HEARTBEAT_MS);
         try {
           const result = await requestScene(config, body, (event) => {
             controller.enqueue(encoder.encode(formatSSE(event)));
@@ -80,6 +84,8 @@ export async function POST(req: Request) {
             encoder.encode(formatSSE({ type: "error", message })),
           );
           controller.close();
+        } finally {
+          clearInterval(heartbeat);
         }
       },
     });
@@ -88,6 +94,7 @@ export async function POST(req: Request) {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache, no-transform",
+        "X-Accel-Buffering": "no",
         Connection: "keep-alive",
       },
     });

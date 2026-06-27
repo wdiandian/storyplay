@@ -2680,7 +2680,7 @@ function PlayInner() {
         >
           <i className="fa-solid fa-arrow-left text-[12px]" />
           <span className="font-serif text-[22px] md:text-[26px] leading-none tracking-tight">
-            Infi<em className="italic font-light text-ember-500">Plot</em>
+            Story<em className="italic font-light text-ember-500">Play</em>
           </span>
         </Link>
         <div className="flex items-center gap-3">

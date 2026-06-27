@@ -506,6 +506,12 @@ export type EngineConfig = {
    * Derived from healthy-day Runware p95 (~14s); recommended 15000.
    */
   imageHedgeMs?: number;
+  /**
+   * Hard timeout (ms) for vision-click interpretation. The fallback parser can
+   * still turn failures into a generic in-scene action, so this should stay
+   * below proxy/CDN request timeouts.
+   */
+  visionTimeoutMs?: number;
 };
 
 // ──────────────────────────────────────────────────────────────────────
