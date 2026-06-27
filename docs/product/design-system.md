@@ -170,7 +170,7 @@ Use the same tokens, but allow more cinematic treatment:
 ## Current Product Surface Rules
 
 - Homepage contains only brand, creation controls, and playable story presets.
-- Footer, project team, community QR code, open-source repository, CLA, and old
+- Legacy footer, project team, community QR code, repository links, and old
   legal links stay removed from the main surface.
 - `/terms` and `/privacy` remain placeholders until StoryPlay-specific policies
   are written.
