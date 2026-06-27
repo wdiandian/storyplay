@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import type { StartRequest } from "@storyplay/types";
+import type { PublishedOpeningPackage } from "@/lib/storyProject/openingPackage";
 import { track } from "@/lib/analytics";
 import {
   ART_STYLES,
@@ -11,12 +12,10 @@ import {
   PLOT_STYLES,
   type Gender,
 } from "@/lib/options";
-import { readStoredTtsConfig } from "@/lib/clientTtsConfig";
 import { SettingsModal, readStoredPlayerName, readStoredVisionClick } from "@/components/SettingsModal";
-import { analyzeImageDataUrl } from "@infiplot/ai-client";
+import { analyzeImageDataUrl } from "@storyplay/ai-client";
 import { readStoredModelConfig, resolveEngineConfig } from "@/lib/clientModelConfig";
 import { STYLE_EXTRACTION_PROMPT } from "@/lib/styleExtraction";
-import { STORY_SHARE_STORAGE_KEY, parseStoryShareDoc } from "@/lib/storyShare";
 import { AUTH_ENABLED } from "@/lib/supabase/config";
 import { isAuthed, writeResumeSnapshot } from "@/lib/authResume";
 import { AuthModal } from "@/components/AuthModal";
@@ -24,6 +23,14 @@ import { UserChip } from "@/components/UserChip";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useI18n } from "@/lib/i18n/client";
 import { useLocalePath } from "@/lib/i18n/hooks";
+import { getStorySkuById, listFeaturedStorySkus, storySkuToCard } from "@/lib/storySku/manifest";
+import { inferStorySkuTaxonomy, storySkuGenreOptions } from "@/lib/storySku/taxonomy";
+import {
+  storySkuGenreKeys,
+  storySkuMoodKeys,
+  storySkuStructureKeys,
+  storySkuVisualStyleKeys,
+} from "@/lib/storySku/taxonomyI18n";
 
 // Option value → i18n key suffix maps. The Chinese strings from lib/options.ts
 // stay as the underlying identifier (so analytics unions and STYLE_MAP keys
@@ -91,7 +98,7 @@ const VOICE_KEYS: Record<string, string> = {
 };
 
 /* ============================================================================
-   InfiPlot · 首页（编辑式视觉风格 · 居中构图，呼应低保真原型）
+   StoryPlay · 首页（编辑式视觉风格 · 居中构图，呼应低保真原型）
    - 顶部 Header：左上角衬线 wordmark logo
    - Hero 控制区（居中）：标题 / prompt 输入框 + 开始 / 5 个类别选择器
    - 统一瀑布流（居中定宽）：7 张主推 + 16 张画廊，按性向整体 crossfade 切换
@@ -130,6 +137,15 @@ type FeaturedCard = {
   title: string;
   outline: string;
   coverPath: string; // e.g. "/home/m0.webp"
+  genres: string[];
+  moods: string[];
+  interaction: string;
+  structure: string;
+  visualStyle: string;
+  source?: "preset" | "creator";
+  sourceProjectId?: string;
+  startRequest?: StartRequest;
+  openingPackage?: PublishedOpeningPackage;
 };
 
 // D1 featured API 的响应行（与 lib/db/schema.ts FeaturedStory 对应的线上子集）。
@@ -146,7 +162,42 @@ type FeaturedStoryRow = {
   sortOrder: number;
   isActive: number;
   clickCount: number;
+  source?: "preset" | "creator";
+  sourceProjectId?: string;
+  startRequest?: StartRequest;
+  openingPackage?: PublishedOpeningPackage;
 };
+
+function taxonomyForCardId(id: string) {
+  const sku = getStorySkuById(id);
+  return sku ? inferStorySkuTaxonomy(sku) : null;
+}
+
+function rowToFeaturedCard(row: FeaturedStoryRow): FeaturedCard {
+  const taxonomy = taxonomyForCardId(row.id);
+  let legacyTags: string[] = [];
+  try {
+    legacyTags = JSON.parse(row.tags) as string[];
+  } catch {
+    legacyTags = [];
+  }
+
+  return {
+    id: row.id,
+    title: row.title,
+    outline: row.outline,
+    coverPath: row.coverPath,
+    genres: taxonomy?.genres ?? legacyTags.slice(0, 2),
+    moods: taxonomy?.moods ?? legacyTags.slice(2, 4),
+    interaction: taxonomy?.interaction ?? "中互动",
+    structure: taxonomy?.structure ?? "关系推进",
+    visualStyle: taxonomy?.visualStyle ?? "电影感",
+    source: row.source,
+    sourceProjectId: row.sourceProjectId,
+    startRequest: row.startRequest,
+    openingPackage: row.openingPackage,
+  };
+}
 
 import { STYLE_MAP } from "@/lib/options";
 
@@ -798,20 +849,10 @@ const DISPLAY_ORDER: Record<Gender, number[]> = {
   ],
 };
 
-// 从硬编码 STORIES + DISPLAY_ORDER 构造首页卡片（featured API 故障/空时的降级源，
+// 从 Story SKU manifest 构造首页卡片（featured API 故障/空时的降级源，
 // 同时作为首屏即时渲染的初始值，避免等 fetch 期间卡片区空白）。
 function buildFallbackCards(g: Gender): FeaturedCard[] {
-  const imgPrefix = g === "女性向" ? "f" : "m";
-  const localStories = STORIES[g];
-  return DISPLAY_ORDER[g].map((origIdx) => {
-    const c = localStories[origIdx]!;
-    return {
-      id: `${imgPrefix}${origIdx}`,
-      title: c.title,
-      outline: c.outline,
-      coverPath: `/home/${imgPrefix}${origIdx}.webp`,
-    };
-  });
+  return listFeaturedStorySkus(g).map(storySkuToCard);
 }
 
 type StoriesI18n = { male: StoryContent[]; female: StoryContent[] };
@@ -891,9 +932,45 @@ function Typewriter({
   return (
     <>
       <span>{txt}</span>
-      <span className="inline-block w-px h-[1.05em] bg-clay-400 ml-0.5 align-middle animate-pulse" />
+      <span className="ml-0.5 inline-block h-[1.05em] w-px animate-pulse bg-sp-subdued align-middle" />
     </>
   );
+}
+
+function ThemeToggle({
+  theme,
+  onToggle,
+}: {
+  theme: "light" | "dark";
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={theme === "dark" ? "切换到亮色模式" : "切换到暗色模式"}
+      title={theme === "dark" ? "切换到亮色模式" : "切换到暗色模式"}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-sp-border bg-sp-surface/82 text-sp-subdued shadow-sm shadow-black/[0.04] outline-none backdrop-blur transition-colors hover:border-sp-accent hover:text-sp-accent focus-visible:ring-2 focus-visible:ring-sp-focus/40"
+    >
+      <i className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"} text-[13px]`} />
+    </button>
+  );
+}
+
+function HeroTitle({ title }: { title: string }) {
+  const playWords = ["可玩", "Playable", "プレイ"];
+  const playWord = playWords.find((word) => title.includes(word));
+  if (playWord) {
+    const playIndex = title.indexOf(playWord);
+    return (
+      <>
+        {title.slice(0, playIndex)}
+        <span className="text-sp-play">{playWord}</span>
+        {title.slice(playIndex + playWord.length)}
+      </>
+    );
+  }
+  return <>{title}</>;
 }
 
 /* ---------- masonry story card ---------- */
@@ -902,19 +979,32 @@ function StoryCard({
   title,
   outline,
   image,
+  genres,
+  moods,
+  structure,
+  visualStyle,
+  source,
+  formatTaxonomyLabel,
   onClick,
 }: {
   title: string;
   outline: string;
   image: string;
+  genres: string[];
+  moods: string[];
+  structure: string;
+  visualStyle: string;
+  source?: "preset" | "creator";
+  formatTaxonomyLabel: (kind: "genres" | "moods" | "structures" | "visualStyles", value: string) => string;
   onClick: () => void;
 }) {
+  const primaryTags = [...genres.slice(0, 2), ...moods.slice(0, 1)];
   return (
     <button
       type="button"
       onClick={onClick}
       style={{ aspectRatio: "4 / 5" }}
-      className="group relative block w-full overflow-hidden rounded-sm border border-clay-900/10 bg-cream-100 text-left transition-transform duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:shadow-clay-900/5"
+      className="group relative block w-full overflow-hidden rounded-2xl border border-sp-border bg-sp-surface text-left shadow-sm shadow-black/[0.04] outline-none transition-[transform,border-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-sp-accent/70 hover:shadow-xl hover:shadow-black/10 focus-visible:border-sp-focus focus-visible:ring-2 focus-visible:ring-sp-focus/40"
     >
       <img
         src={image}
@@ -922,6 +1012,23 @@ function StoryCard({
         loading="lazy"
         className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
       />
+      <div className="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-1.5">
+        {source === "creator" && (
+          <span className="rounded-full border border-white/30 bg-white/88 px-2 py-0.5 text-[10px] font-semibold text-stone-800 shadow-sm backdrop-blur">
+            创作者
+          </span>
+        )}
+        {primaryTags.map((tag) => (
+          <span
+            key={tag}
+            className="rounded-full bg-black/42 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur"
+          >
+            {genres.includes(tag)
+              ? formatTaxonomyLabel("genres", tag)
+              : formatTaxonomyLabel("moods", tag)}
+          </span>
+        ))}
+      </div>
       {/* hover 浮层：展示故事标题与大纲内容 */}
       <div
         className="absolute inset-0 opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100 flex flex-col justify-end p-4 md:p-5"
@@ -936,6 +1043,18 @@ function StoryCard({
         <p className="font-serif italic text-cream-50/95 text-xs md:text-[13px] leading-relaxed line-clamp-4 [text-shadow:0_1px_6px_rgba(20,10,4,0.6)]">
           {outline}
         </p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {[structure, visualStyle].map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border border-white/24 bg-white/12 px-2 py-0.5 text-[10px] font-medium text-white/90 backdrop-blur"
+            >
+              {tag === structure
+                ? formatTaxonomyLabel("structures", tag)
+                : formatTaxonomyLabel("visualStyles", tag)}
+            </span>
+          ))}
+        </div>
       </div>
     </button>
   );
@@ -965,29 +1084,29 @@ function CategorySelect({
       <button
         type="button"
         onClick={onToggle}
-        className="group flex items-center gap-2.5 pb-1.5 border-b border-clay-900/20 hover:border-clay-900/45 transition-colors"
-      >
-        <span className="text-[10px] smallcaps text-clay-500">{label}</span>
-        <span className={"font-serif text-base md:text-lg " + (open ? "text-ember-500" : "text-clay-900")}>
+      className="group flex items-center gap-2.5 rounded-full border border-sp-border bg-sp-surface/72 px-4 py-2 shadow-sm shadow-black/[0.03] backdrop-blur transition-colors hover:border-sp-accent/70"
+    >
+        <span className="text-[10px] smallcaps text-sp-subdued">{label}</span>
+        <span className={"font-sans text-[14px] font-medium md:text-[15px] " + (open ? "text-sp-accent" : "text-sp-text")}>
           {itemLabels[value] ?? items[value]}
         </span>
         <i
           className={
-            "fa-solid fa-chevron-down text-[9px] text-clay-400 transition-transform duration-200 " +
+            "fa-solid fa-chevron-down text-[9px] text-sp-subdued transition-transform duration-200 " +
             (open ? "rotate-180" : "")
           }
         />
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-2 z-30 min-w-[150px] max-w-[calc(100vw-2rem)] py-1.5 bg-cream-50 border border-clay-900/15 rounded-sm shadow-xl shadow-clay-900/10">
+        <div className="absolute left-0 top-full z-30 mt-2 min-w-[160px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-sp-border bg-sp-surface py-1.5 shadow-xl shadow-black/10">
           {items.map((it, i) => (
             <button
               key={i}
               type="button"
               onClick={() => onPick(i)}
               className={
-                "flex w-full items-center justify-between gap-3 px-4 py-1.5 text-sm font-serif transition-colors hover:bg-cream-100 " +
-                (i === value ? "text-ember-500" : "text-clay-700")
+                "flex w-full items-center justify-between gap-3 px-4 py-2 text-sm font-sans transition-colors hover:bg-sp-muted " +
+                (i === value ? "text-sp-accent" : "text-sp-text")
               }
             >
               {itemLabels[i] ?? it}
@@ -1002,8 +1121,8 @@ function CategorySelect({
 
 /* ---------- style picker modal ---------- */
 
-const PENDING_START_KEY = "infiplot:pending-start";
-const PENDING_PARSE_KEY = "infiplot:pending-parse";
+const PENDING_START_KEY = "storyplay:pending-start";
+const PENDING_PARSE_KEY = "storyplay:pending-parse";
 
 // Shared by the StyleModal uploader and the post-login resume path: turns a
 // resized data URL into an English style prompt, via the browser engine when a
@@ -1455,16 +1574,11 @@ export default function HomePage() {
   const [customStyleGuide, setCustomStyleGuide] = useState("");
   const [customStyleRefImage, setCustomStyleRefImage] = useState<string>("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const storyImportRef = useRef<HTMLInputElement>(null);
-  const [storyImportError, setStoryImportError] = useState<string | null>(null);
-
-  // 顶部使用提示：默认展示，用户可点 × 永久关闭（localStorage:infiplot:hintClosed）。
-  const [hintClosed, setHintClosed] = useState(false);
 
   // 统一设置弹窗（通用 + 模型）：可选增强，数据只存浏览器。
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<"general" | "models">("general");
-  const [ttsConfigured, setTtsConfigured] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [playerName, setPlayerName] = useState("");
   const [visionClickEnabled, setVisionClickEnabled] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -1510,11 +1624,28 @@ export default function HomePage() {
     return o.items;
   });
   const optLabels = OPTS.map((o) => t(o.labelKey));
+  const formatTaxonomyLabel = (
+    kind: "genres" | "moods" | "structures" | "visualStyles",
+    value: string,
+  ) => {
+    const key =
+      kind === "genres"
+        ? storySkuGenreKeys[value as keyof typeof storySkuGenreKeys]
+        : kind === "moods"
+          ? storySkuMoodKeys[value as keyof typeof storySkuMoodKeys]
+          : kind === "structures"
+            ? storySkuStructureKeys[value as keyof typeof storySkuStructureKeys]
+            : storySkuVisualStyleKeys[value as keyof typeof storySkuVisualStyleKeys];
+
+    return key ? t(`home.storyTaxonomy.${kind}.${key}`) : value;
+  };
   const phrasesKey = GENDER_KEYS[gender] ?? "male";
   const phrases = tArray(`home.examples.${phrasesKey}`);
   // 当前 Typewriter 闪动到第几句——start() 空输入时会拿它做默认故事种子，
   // 实现「所见即所玩」。切性向时重置，否则索引可能越界。
   const [phraseIdx, setPhraseIdx] = useState(0);
+  const visiblePhraseIdx = phrases.length > 0 ? phraseIdx % phrases.length : 0;
+  const quickOptionRows = OPTS.map((_, i) => i).filter((i) => i !== voiceRow);
   useEffect(() => {
     setPhraseIdx(0);
   }, [gender]);
@@ -1524,6 +1655,7 @@ export default function HomePage() {
   const [fading, setFading] = useState(false);
   useEffect(() => {
     if (gender === galleryGender) return;
+    setActiveStoryGenre("全部");
     setFading(true);
     const t = setTimeout(() => {
       setGalleryGender(gender);
@@ -1538,6 +1670,7 @@ export default function HomePage() {
   const [featuredCards, setFeaturedCards] = useState<FeaturedCard[]>(() =>
     buildFallbackCards(galleryGender),
   );
+  const [activeStoryGenre, setActiveStoryGenre] = useState<string>("全部");
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -1562,12 +1695,7 @@ export default function HomePage() {
         }
         setFeaturedCards(
           localizeCards(
-            rows.map((s) => ({
-              id: s.id,
-              title: s.title,
-              outline: s.outline,
-              coverPath: s.coverPath,
-            })),
+            rows.map(rowToFeaturedCard),
             i18n,
           ),
         );
@@ -1577,6 +1705,11 @@ export default function HomePage() {
     })();
     return () => { cancelled = true; };
   }, [galleryGender, locale]);
+
+  const visibleFeaturedCards =
+    activeStoryGenre === "全部"
+      ? featuredCards
+      : featuredCards.filter((card) => card.genres.includes(activeStoryGenre));
 
   /* close any open dropdown on outside click */
   useEffect(() => {
@@ -1588,20 +1721,40 @@ export default function HomePage() {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
+  // 启动时回填配置状态——读 localStorage 判断用户是否已存过 Key / 名字。
+  useEffect(() => {
+    setPlayerName(readStoredPlayerName());
+    setVisionClickEnabled(readStoredVisionClick());
+  }, []);
+
   useEffect(() => {
     try {
-      if (localStorage.getItem("infiplot:hintClosed") === "1") setHintClosed(true);
+      const stored = localStorage.getItem("storyplay:theme");
+      const nextTheme =
+        stored === "dark" || stored === "light"
+          ? stored
+          : window.matchMedia?.("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+      setTheme(nextTheme);
+      document.documentElement.dataset.theme = nextTheme;
     } catch {
       /* ignore */
     }
   }, []);
 
-  // 启动时回填配置状态——读 localStorage 判断用户是否已存过 Key / 名字。
-  useEffect(() => {
-    setTtsConfigured(readStoredTtsConfig() != null);
-    setPlayerName(readStoredPlayerName());
-    setVisionClickEnabled(readStoredVisionClick());
-  }, []);
+  const toggleTheme = () => {
+    setTheme((current) => {
+      const nextTheme = current === "dark" ? "light" : "dark";
+      try {
+        localStorage.setItem("storyplay:theme", nextTheme);
+        document.documentElement.dataset.theme = nextTheme;
+      } catch {
+        /* ignore */
+      }
+      return nextTheme;
+    });
+  };
 
   // 输入框随内容自动增高：长文本整段可见（打字与点卡片填入都覆盖）。
   useEffect(() => {
@@ -1610,15 +1763,6 @@ export default function HomePage() {
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
   }, [prompt]);
-
-  const closeHint = () => {
-    setHintClosed(true);
-    try {
-      localStorage.setItem("infiplot:hintClosed", "1");
-    } catch {
-      /* ignore */
-    }
-  };
 
   // ── Auth-gated resume (OAuth round-trips lose all React state) ──────────
   // An OAuth login unmounts the homepage and discards everything the user
@@ -1731,7 +1875,7 @@ export default function HomePage() {
     // 空输入时落回 Typewriter 当前闪动的示例——用户看到啥就玩啥，
     // 不会再出现「点开始 → 剧情和占位文字毫无关系」的体验断层。
     const userPrompt =
-      prompt.trim() || (phrases[phraseIdx] ?? "").trim();
+      prompt.trim() || (phrases[visiblePhraseIdx] ?? "").trim();
     const artStyle = ART_STYLES[sel[1] ?? 0] ?? "自动";
     const plotStyle = PLOT_STYLES[sel[2] ?? 1] ?? "多线转折";
     const voice = OPTS[voiceRow]!.items[sel[voiceRow] ?? 1]!;
@@ -1793,57 +1937,11 @@ export default function HomePage() {
     });
 
     sessionStorage.setItem(
-      "infiplot:custom",
+      "storyplay:custom",
       JSON.stringify({ worldSetting, styleGuide, audioEnabled, styleReferenceImage, playerName: playerName || undefined }),
     );
     router.push(lp("/play?custom=1"));
   };
-
-  const handleStoryImport = async (file: File | undefined) => {
-    setStoryImportError(null);
-    if (!file) return;
-    if (file.size <= 0) {
-      setStoryImportError(t("home.errors.emptyFile"));
-      return;
-    }
-    const isJson = file.name.toLowerCase().endsWith(".json") || file.type === "application/json";
-    const maxImportBytes = isJson ? 12_000_000 : 13_000_000;
-    if (file.size > maxImportBytes) {
-      setStoryImportError(t("home.errors.fileTooLarge"));
-      return;
-    }
-    try {
-      let text: string;
-      if (isJson) {
-        text = await file.text();
-      } else {
-        const r = await fetch("/api/story-unpack", {
-          method: "POST",
-          body: await file.arrayBuffer(),
-        });
-        if (!r.ok) {
-          const j = (await r.json().catch(() => ({}))) as { error?: string };
-          throw new Error(j.error ?? t("home.errors.unpackFailed"));
-        }
-        const j = (await r.json()) as { docStr?: unknown };
-        if (typeof j.docStr !== "string") throw new Error(t("home.errors.unpackFailed"));
-        text = j.docStr;
-      }
-      const doc = parseStoryShareDoc(JSON.parse(text));
-      window.sessionStorage.setItem(STORY_SHARE_STORAGE_KEY, JSON.stringify(doc));
-      router.push(lp("/play?share=1"));
-    } catch (e) {
-      setStoryImportError(e instanceof Error ? e.message : t("home.errors.parseFailed"));
-    } finally {
-      if (storyImportRef.current) storyImportRef.current.value = "";
-    }
-  };
-
-  const stories = STORIES[galleryGender];
-  const imgPrefix = galleryGender === "女性向" ? "f" : "m";
-  const analyticsOn = Boolean(
-    process.env.NEXT_PUBLIC_UMAMI_SRC && process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID,
-  );
 
   // 点卡片 = 直接开始这张卡的故事，零等待：跳 /play?card=m0/f0... 由 /play
   // 页面从 /home/firstact/{name}.json 静态文件加载预烘焙好的首幕（含 scene /
@@ -1851,35 +1949,56 @@ export default function HomePage() {
   // 「语音配音」选项仍然生效：把 audioEnabled 经 sessionStorage 传给 /play。
   // 其余选项（剧情风格 / 内容节奏）在预烘焙时已锁成「多线转折 / 紧凑爽快」
   // 的红果默认基调，对精选卡不再生效。
-  const onCardClick = (cardId: string) => {
+  const onCardClick = (card: FeaturedCard) => {
     const voice = OPTS[voiceRow]!.items[sel[voiceRow] ?? 1]!;
     const audioEnabled = voice === "开启";
+    if (card.source === "creator" && card.startRequest) {
+      sessionStorage.setItem(
+        "storyplay:custom",
+        JSON.stringify({
+          ...card.startRequest,
+          audioEnabled,
+          playerName,
+          source: "creator-sku",
+          skuId: card.id,
+          projectId: card.sourceProjectId,
+          projectTitle: card.title,
+          openingPackage: card.openingPackage,
+        }),
+      );
+      track("game_start", {
+        source: "custom",
+      });
+      router.push(lp("/play?custom=1"));
+      return;
+    }
+
     sessionStorage.setItem(
-      "infiplot:custom",
+      "storyplay:custom",
       JSON.stringify({ worldSetting: "", styleGuide: "", audioEnabled, playerName }),
     );
     track("game_start", {
       source: "curated",
       gender: galleryGender,
       tts: audioEnabled,
-      card: cardId as `${"m" | "f"}${number}`,
+      card: card.id as `${"m" | "f"}${number}`,
     });
-    router.push(lp(`/play?card=${cardId}`));
+    router.push(lp(`/play?card=${card.id}`));
   };
 
   // overflow-x-hidden 在 wrapper 层兜底：body 的 overflow-x-hidden 在移动端会因
   // 规范的 overflow 传播而失效，wrapper 是最靠近溢出源（右下操作集群）的块级剪裁点。
   return (
-    <div className="min-h-screen flex flex-col overflow-x-hidden">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-sp-bg text-sp-text">
       {/* ================== HEADER ================== */}
       <header className="mx-auto w-full max-w-[1640px] px-6 md:px-16 pt-7 md:pt-10 flex items-center justify-between">
-        <span className="font-serif text-2xl md:text-[34px] leading-none tracking-tight text-clay-900">
-          Infi<em className="italic font-light text-ember-500">Plot</em>
+        <span className="font-serif text-2xl font-black leading-none tracking-normal md:text-[34px]">
+          <span className="text-sp-story">Story</span>
+          <span className="font-bold text-sp-play">Play</span>
         </span>
-        <div className="flex items-center gap-4 md:gap-5">
+        <div className="flex items-center gap-3 md:gap-4">
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
           <LanguageSwitcher variant="compact" />
-          {/* Story persistence UI hidden until auth integration is ready.
-             Code in app/stories/, app/api/stories/, lib/db/ is retained. */}
           <button
             type="button"
             onClick={() => {
@@ -1888,38 +2007,34 @@ export default function HomePage() {
             }}
             aria-label={t("home.ui.settings")}
             title={t("home.ui.settings")}
-            className="text-base text-clay-500 hover:text-ember-500 transition-colors"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-sp-border bg-sp-surface/82 text-sp-subdued shadow-sm shadow-black/[0.04] outline-none backdrop-blur transition-colors hover:border-sp-accent hover:text-sp-accent focus-visible:ring-2 focus-visible:ring-sp-focus/40"
           >
-            <i className="fa-solid fa-gear" />
+            <i className="fa-solid fa-gear text-[13px]" />
           </button>
-          <a
-            href="https://github.com/zonghaoyuan/infiplot"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="GitHub"
-            className="inline-flex text-lg text-clay-500 hover:text-ember-500 transition-colors"
-          >
-            <i className="fa-brands fa-github" />
-          </a>
-          <a
-            href="https://x.com/yzh_im"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="X / Twitter"
-            className="inline-flex text-base text-clay-500 hover:text-ember-500 transition-colors"
-          >
-            <i className="fa-brands fa-x-twitter" />
-          </a>
           <UserChip />
         </div>
       </header>
 
       {/* ================== HERO 控制区（居中，呼应原型布局） ================== */}
-      <section className="px-6 md:px-16 pt-12 md:pt-24 pb-10 md:pb-14">
-        <div className="mx-auto max-w-[1100px] text-center">
-          <h1 className="font-serif font-light text-[32px] md:text-[56px] leading-[1.12] tracking-tight text-clay-900">
-            {t("home.hero.title")}
-          </h1>
+      <section className="px-6 pb-10 pt-12 md:px-16 md:pb-14 md:pt-20">
+        <div className="mx-auto max-w-[1180px] text-center">
+          <div className="inline-flex items-center justify-center gap-3">
+            <h1 className="font-serif text-[34px] font-black leading-[1.12] tracking-normal text-sp-text md:text-[60px]">
+              <HeroTitle title={t("home.hero.title")} />
+            </h1>
+            <div className="group relative mt-1 inline-flex">
+              <button
+                type="button"
+                aria-label={t("home.hero.helpAriaLabel")}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-sp-border bg-sp-surface/82 text-sp-subdued shadow-sm shadow-black/[0.04] transition-colors hover:border-sp-accent hover:text-sp-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sp-focus/40"
+              >
+                <i className="fa-regular fa-circle-question text-sm" />
+              </button>
+              <div className="pointer-events-none absolute left-1/2 top-full z-30 mt-3 w-[min(360px,calc(100vw-3rem))] -translate-x-1/2 rounded-2xl border border-sp-border bg-sp-surface px-4 py-3 text-left font-sans text-xs leading-relaxed text-sp-subdued opacity-0 shadow-2xl shadow-black/10 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                {t("home.hero.helpText", { authEnabled: AUTH_ENABLED })}
+              </div>
+            </div>
+          </div>
 
           {/* prompt 输入（居中） */}
           <form
@@ -1927,9 +2042,9 @@ export default function HomePage() {
               e.preventDefault();
               start();
             }}
-            className="mx-auto mt-9 md:mt-12 max-w-[760px]"
+            className="mx-auto mt-8 max-w-[920px] md:mt-10"
           >
-            <div className="relative text-left">
+            <div className="relative rounded-2xl border border-sp-border bg-sp-surface/92 p-4 text-left shadow-[0_18px_48px_rgba(0,0,0,0.06)] backdrop-blur md:p-5">
               <textarea
                 ref={inputRef}
                 value={prompt}
@@ -1943,217 +2058,127 @@ export default function HomePage() {
                 rows={1}
                 placeholder=" "
                 spellCheck={false}
-                className="block w-full resize-none overflow-hidden border-b border-clay-900/25 bg-transparent py-3 md:py-4 pr-36 font-serif text-lg md:text-2xl lining-nums text-clay-900 outline-none transition-colors focus:border-ember-500"
+                className="block min-h-[112px] w-full resize-none overflow-hidden bg-transparent px-1 py-1 font-serif text-[21px] font-semibold leading-relaxed lining-nums text-sp-text outline-none md:min-h-[142px] md:text-[29px]"
               />
               {!prompt && (
-                <div className="pointer-events-none absolute left-0 right-0 top-0 overflow-hidden whitespace-nowrap py-3 md:py-4 pr-36 font-serif text-lg md:text-2xl text-clay-400">
+                <div className="pointer-events-none absolute left-5 right-5 top-5 overflow-hidden whitespace-nowrap font-serif text-[21px] font-semibold leading-relaxed text-sp-subdued md:left-6 md:right-6 md:top-6 md:text-[29px]">
                   <Typewriter
-                    phrase={phrases[phraseIdx] ?? ""}
+                    key={`${gender}:${visiblePhraseIdx}`}
+                    phrase={phrases[visiblePhraseIdx] ?? ""}
                     onCycle={() =>
-                      setPhraseIdx((i) => (i + 1) % phrases.length)
+                      setPhraseIdx((i) => (phrases.length > 0 ? (i + 1) % phrases.length : 0))
                     }
                   />
                 </div>
               )}
-              <input
-                ref={storyImportRef}
-                type="file"
-                accept=".infiplot,application/octet-stream,.json,application/json"
-                className="hidden"
-                onChange={(e) => void handleStoryImport(e.target.files?.[0])}
-              />
-              {/* 右下操作集群：载入剧情 + 开始，统一锚定 right-0，杜绝 right-[-...]
-                  负偏移导致的移动端横向溢出。 */}
-              <div className="absolute right-0 bottom-2 md:bottom-3 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => storyImportRef.current?.click()}
-                  className="group relative inline-flex items-center justify-center rounded-sm border border-clay-900/15 bg-cream-50/70 backdrop-blur-sm px-2 py-2 md:py-2.5 text-clay-400 transition-colors hover:border-ember-500 hover:bg-cream-50/90 hover:text-ember-500"
-                >
-                  <i className="fa-solid fa-file-import text-sm" />
-                  <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-clay-900 px-2 py-1 font-sans text-[11px] text-cream-50 opacity-0 transition-opacity group-hover:opacity-100">
-                    {t("home.ui.loadStory")}
-                  </span>
-                </button>
+              <div className="mt-4 flex flex-col gap-3 border-t border-sp-border pt-4 md:flex-row md:items-end md:justify-between">
+                <div className="flex min-w-0 flex-wrap gap-2">
+                  {quickOptionRows.map((r) => {
+                    const o = OPTS[r]!;
+                    return (
+                      <div data-cat key={r} className="text-left">
+                        <CategorySelect
+                          label={optLabels[r] ?? o.label}
+                          items={o.items}
+                          itemLabels={optItemLabels[r] ?? o.items}
+                          value={sel[r] ?? 0}
+                          open={open === r}
+                          onToggle={() => {
+                            if (o.modal) {
+                              setStyleOpen(true);
+                            } else {
+                              setOpen(open === r ? -1 : r);
+                            }
+                          }}
+                          onPick={(i) => {
+                            setSel((s) => s.map((v, j) => (j === r ? i : v)));
+                            setOpen(-1);
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-2 rounded-sm bg-clay-900 px-5 py-2 md:py-2.5 font-sans text-sm md:text-[15px] text-cream-50 transition-colors hover:bg-ember-500"
+                  className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-sp-accent px-6 font-sans text-sm font-semibold text-white transition-colors hover:bg-[#b85f3a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sp-focus/40 md:h-14 md:px-8 md:text-[15px]"
                 >
                   {t("home.ui.start")}
                   <i className="fa-solid fa-arrow-right text-xs" />
                 </button>
               </div>
             </div>
-            {storyImportError && (
-              <p className="mt-2 text-right text-xs leading-relaxed text-ember-500">
-                {storyImportError}
-              </p>
-            )}
             {prompt && (
-              <p className="mt-2 text-right text-xs text-clay-400">
+              <p className="mt-2 text-right text-xs text-sp-subdued">
                 {t("home.hero.enterHint")}
               </p>
             )}
           </form>
-
-          {/* 类别选择器（居中） */}
-          <div className="mt-9 md:mt-11 flex flex-wrap justify-center gap-x-8 gap-y-5">
-            {OPTS.map((o, r) => (
-              <div data-cat key={r} className="text-left">
-                <CategorySelect
-                  label={optLabels[r] ?? o.label}
-                  items={o.items}
-                  itemLabels={optItemLabels[r] ?? o.items}
-                  value={sel[r] ?? 0}
-                  open={open === r}
-                  onToggle={() => {
-                    if (o.modal) {
-                      setStyleOpen(true);
-                    } else {
-                      setOpen(open === r ? -1 : r);
-                    }
-                  }}
-                  onPick={(i) => {
-                    setSel((s) => s.map((v, j) => (j === r ? i : v)));
-                    setOpen(-1);
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-
-
-
-          {/* 使用提示：可被用户永久关闭（localStorage:infiplot:hintClosed） */}
-          {!hintClosed && (
-            <div className="relative mx-auto mt-10 md:mt-12 max-w-[640px] rounded-sm border border-clay-900/10 bg-cream-100/50 px-5 md:px-8 py-3.5">
-              <p
-                className="font-serif text-[13px] md:text-sm leading-relaxed text-clay-500"
-                dangerouslySetInnerHTML={{ __html: t("home.hint.text", { authEnabled: AUTH_ENABLED }) }}
-              />
-              <button
-                type="button"
-                onClick={closeHint}
-                aria-label={t("home.hint.closeAriaLabel")}
-                className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full text-clay-400 transition-colors hover:bg-clay-900/5 hover:text-clay-700"
-              >
-                <i className="fa-solid fa-xmark text-xs" />
-              </button>
-            </div>
-          )}
         </div>
       </section>
 
       {/* ================== 统一瀑布流（每性向 30 篇预设剧情） ================== */}
-      <section className="mx-auto w-full max-w-[1640px] px-6 md:px-16 pt-10 md:pt-14 pb-16 md:pb-24">
+      <section className="mx-auto w-full max-w-[1480px] px-6 pb-16 pt-8 md:px-16 md:pb-24 md:pt-12">
+        <div className="mb-5 flex flex-col gap-3 md:mb-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="text-[10px] smallcaps text-sp-subdued">
+              {t("home.storyTaxonomy.eyebrow")}
+            </div>
+            <h2 className="mt-2 font-serif text-2xl font-semibold text-sp-text md:text-3xl">
+              {t("home.storyTaxonomy.title")}
+            </h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {["全部", ...storySkuGenreOptions].map((genre) => {
+              const active = activeStoryGenre === genre;
+              return (
+                <button
+                  key={genre}
+                  type="button"
+                  onClick={() => setActiveStoryGenre(genre)}
+                  className={
+                    "inline-flex h-9 items-center rounded-full border px-3 text-xs font-medium transition-colors " +
+                    (active
+                      ? "border-sp-accent bg-sp-accent text-white"
+                      : "border-sp-border bg-sp-surface/82 text-sp-subdued hover:border-sp-accent hover:text-sp-accent")
+                  }
+                >
+                  {genre === "全部" ? t("home.storyTaxonomy.all") : formatTaxonomyLabel("genres", genre)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <div
           className={
             "transition-[opacity,filter] duration-300 ease-out " +
             (fading ? "opacity-0 blur-[3px]" : "opacity-100 blur-0")
           }
         >
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
-            {featuredCards.map((card) => (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 md:gap-5 xl:grid-cols-4">
+            {visibleFeaturedCards.map((card) => (
               <StoryCard
                 key={card.id}
                 title={card.title}
                 outline={card.outline}
                 image={card.coverPath}
-                onClick={() => onCardClick(card.id)}
+                genres={card.genres}
+                moods={card.moods}
+                structure={card.structure}
+                visualStyle={card.visualStyle}
+                source={card.source}
+                formatTaxonomyLabel={formatTaxonomyLabel}
+                onClick={() => onCardClick(card)}
               />
             ))}
           </div>
+          {visibleFeaturedCards.length === 0 && (
+            <div className="rounded-2xl border border-sp-border bg-sp-surface/82 px-5 py-12 text-center text-sm text-sp-subdued">
+              {t("home.storyTaxonomy.empty")}
+            </div>
+          )}
         </div>
       </section>
-
-      {/* ================== 项目介绍（居中题跋） ================== */}
-      <section id="about" className="mx-auto w-full max-w-[1640px] px-6 md:px-16 pb-12 md:pb-16">
-        <div className="hairline-full w-full mb-12 md:mb-16" />
-
-        <div className="mx-auto max-w-3xl text-center mb-14 md:mb-20">
-          <p className="font-serif text-clay-800 text-xl md:text-2xl leading-[1.7]">
-            <b className="font-medium text-clay-900">InfiPlot</b>{" "}
-            {t("home.about.description")}
-          </p>
-        </div>
-
-        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-y-10 text-center md:grid-cols-3 md:gap-x-10">
-          <div>
-            <p className="text-[10px] smallcaps text-clay-500 mb-3">{t("home.about.team")}</p>
-            <p className="font-serif italic text-clay-700 text-base leading-relaxed">
-              {t("home.about.teamText")}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-[10px] smallcaps text-clay-500 mb-3">{t("home.about.contact")}</p>
-            <p className="font-serif text-clay-700 text-base leading-relaxed">
-              <span className="block mb-2">
-                {t("home.about.email")}{" "}
-                <a
-                  href="mailto:hi@infiplot.com"
-                  className="text-ember-500 hover:text-ember-400 transition-colors"
-                >
-                  hi@infiplot.com
-                </a>
-              </span>
-              <a
-                href="https://x.com/yzh_im"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-clay-700 hover:text-ember-500 transition-colors"
-              >
-                <i className="fa-brands fa-x-twitter text-[15px]" />
-                <span className="font-sans text-sm">@yzh_im</span>
-              </a>
-            </p>
-            <p className="text-[10px] smallcaps text-clay-500 mb-3 mt-7">{t("home.about.openSource")}</p>
-            <a
-              href="https://github.com/zonghaoyuan/infiplot"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-clay-700 hover:text-ember-500 transition-colors"
-            >
-              <i className="fa-brands fa-github text-[15px]" />
-              <span className="font-sans text-sm">zonghaoyuan/infiplot</span>
-            </a>
-          </div>
-
-          <div>
-            <p className="text-[10px] smallcaps text-clay-500 mb-3">{t("home.about.betaUsers")}</p>
-            <img
-              src="/qq-group.webp"
-              alt={t("home.about.qqGroupAlt")}
-              width={760}
-              height={760}
-              loading="lazy"
-              className="mx-auto mb-3 w-32 max-w-full rounded-sm border border-clay-900/10 shadow-sm shadow-clay-900/5"
-            />
-            <p className="font-serif text-clay-700 text-base leading-relaxed">
-              {t("home.about.qqGroupLabel")}
-              <span className="font-sans text-sm text-clay-900">575404333</span>
-            </p>
-          </div>
-        </div>
-
-        <div className="hairline-full w-full mt-14 md:mt-20 mb-12 md:mb-16" />
-        <p
-          className="mx-auto max-w-3xl text-center font-sans text-xs md:text-[13px] leading-[1.85] text-clay-500"
-          dangerouslySetInnerHTML={{ __html: t("home.about.legalNotice", { analyticsOn }) }}
-        />
-      </section>
-
-      <footer className="mx-auto w-full max-w-[1640px] px-6 md:px-16 pb-10 mt-auto">
-        <div className="hairline-full w-full mb-5" />
-        <div className="flex flex-col items-center gap-2 text-[10px] smallcaps text-clay-500">
-          <span>{t("home.about.copyright")}</span>
-          <span className="flex items-center gap-3 normal-case tracking-normal text-[11px]">
-            <a href={lp("/privacy")} className="hover:text-ember-500 transition-colors">{t("home.about.privacyPolicy")}</a>
-            <span className="text-clay-300">·</span>
-            <a href={lp("/terms")} className="hover:text-ember-500 transition-colors">{t("home.about.terms")}</a>
-          </span>
-        </div>
-      </footer>
 
       {styleOpen && styleRow >= 0 && (
         <StyleModal
@@ -2180,7 +2205,6 @@ export default function HomePage() {
           onSaved={(settings) => {
             setPlayerName(settings.playerName);
             setVisionClickEnabled(settings.visionClickEnabled);
-            setTtsConfigured(settings.ttsConfigured);
             if (settings.ttsConfigured && voiceRow >= 0) {
               const onIdx = OPTS[voiceRow]!.items.indexOf("开启");
               if (onIdx >= 0)

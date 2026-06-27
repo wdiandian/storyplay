@@ -1,6 +1,6 @@
-# Contributor License Agreement — InfiPlot
+# Contributor License Agreement — StoryPlay
 
-Thank you for your interest in contributing to InfiPlot ("the Project"). This
+Thank you for your interest in contributing to StoryPlay ("the Project"). This
 Contributor License Agreement ("CLA") governs the rights you grant to the
 Project maintainers for your Contributions. **By signing this CLA, you confirm
 that you have read and agree to its terms.** A non-binding Chinese translation
@@ -16,7 +16,7 @@ This CLA is version **1.0**.
   Contribution on behalf of Your employer, the terms of Section 4 (Employer
   Authorization) also apply.
 - **"We"** (or **"the Project maintainers"**) means the maintainers of the
-  InfiPlot project — the individuals and entities authorized to administer the
+  StoryPlay project — the individuals and entities authorized to administer the
   Project, including the right to use Contributions as described in this CLA.
 - **"Contribution"** means any original work of authorship, including any
   modification or addition to the existing source code, documentation, assets,
@@ -24,7 +24,7 @@ This CLA is version **1.0**.
   For the avoidance of doubt, this includes submissions made electronically
   (via pull request, commit, issue, comment, or any other channel) as well as
   any code, text, or other content submitted for inclusion in the Project.
-- **"Project"** means the InfiPlot software and all related repositories and
+- **"Project"** means the StoryPlay software and all related repositories and
   materials maintained by Us.
 
 ## 2. Copyright License
@@ -96,7 +96,7 @@ or warranties of any kind, whether express or implied.
 ## 6. Withdrawal and Revocation
 
 You may revoke this CLA, or the patent license granted in Section 3, by giving
-Us written notice (by email to **hi@infiplot.com**). Any such revocation takes
+Us written notice (by email to **hi@StoryPlay.com**). Any such revocation takes
 effect **only as to Contributions You submit after** the date We receive Your
 notice, and does not affect any Contribution You submitted before that date or
 the rights already granted in any such Contribution.
@@ -136,7 +136,7 @@ OR YOUR CONTRIBUTIONS.
 
 ## 9. Contact
 
-If You have any questions about this CLA, contact Us at **hi@infiplot.com**.
+If You have any questions about this CLA, contact Us at **hi@StoryPlay.com**.
 
 ---
 

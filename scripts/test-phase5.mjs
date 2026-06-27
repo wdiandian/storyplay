@@ -10,7 +10,7 @@
  * - Task 23: Token 预算验证
  *
  * 使用方法：
- *   node scripts/test-phase5.mjs --task=18 --url=https://infiplot.y-9e6.workers.dev
+ *   node scripts/test-phase5.mjs --task=18 --url=https://storyplay.y-9e6.workers.dev
  */
 
 import { promises as fs } from "fs";
@@ -33,7 +33,7 @@ const args = process.argv.slice(2).reduce((acc, arg) => {
   return acc;
 }, {});
 
-const BASE_URL = args.url || "https://infiplot.y-9e6.workers.dev";
+const BASE_URL = args.url || "https://storyplay.y-9e6.workers.dev";
 const TASK = args.task || "18";
 
 console.log(`🔍 Phase 5 验证测试 - Task ${TASK}`);

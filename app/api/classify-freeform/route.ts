@@ -1,5 +1,5 @@
-import { classifyFreeform } from "@infiplot/engine";
-import type { FreeformClassifyRequest } from "@infiplot/types";
+import { classifyFreeform } from "@storyplay/engine";
+import type { FreeformClassifyRequest } from "@storyplay/types";
 import { NextResponse } from "next/server";
 import { loadEngineConfig, buildByoEngineConfig } from "@/lib/config";
 import { requireUser } from "@/lib/supabase/guard";

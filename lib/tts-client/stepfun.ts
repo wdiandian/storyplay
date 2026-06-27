@@ -1,4 +1,4 @@
-import type { CharacterVoice, TtsConfig } from "@infiplot/types";
+import type { CharacterVoice, TtsConfig } from "@storyplay/types";
 import catalogData from "./stepfun-voices.json";
 
 // Preset voice record. The 32 presets live in stepfun-voices.json (the single

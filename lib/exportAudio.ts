@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────
-//  Audio collection for the gallery / .infiplot share exports.
+//  Audio collection for the gallery / .storyplay share exports.
 //
 //  Walks every speaking beat across `session.history` and produces a
 //  Record keyed by `${sceneId}:${beatId}` whose values are inline
@@ -9,7 +9,7 @@
 //  that created them.
 //
 //  Three sources, in priority order:
-//    1. prebaked  — audio that came in through a .infiplot share file.
+//    1. prebaked  — audio that came in through a .storyplay share file.
 //                   Already a data URI, so just copied through.
 //    2. current beatAudioMap — the play page's per-beat audio for the
 //                   scene the player is on right now. Blob URLs get
@@ -22,14 +22,14 @@
 //  just plays without voice; we never block the export on a TTS hiccup.
 // ──────────────────────────────────────────────────────────────────────
 
-import { provisionVoice, synthesize } from "@infiplot/tts-client";
+import { provisionVoice, synthesize } from "@storyplay/tts-client";
 import type {
   Beat,
   Character,
   CharacterVoice,
   Session,
   TtsConfig,
-} from "@infiplot/types";
+} from "@storyplay/types";
 
 const CONCURRENCY = 4;
 
@@ -43,7 +43,7 @@ export type CollectBeatAudioOptions = {
   byoTts: TtsConfig | null;
   /** Cache of in-flight BYO voice provisions, keyed by character name. Reused across calls. */
   byoVoiceCache: Map<string, Promise<CharacterVoice>>;
-  /** Audio carried in from a `.infiplot` share file (already keyed by `sceneId:beatId`). */
+  /** Audio carried in from a `.storyplay` share file (already keyed by `sceneId:beatId`). */
   prebakedAudio?: Record<string, string>;
   /** Progress callback (done/total). Fired after every beat (success or failure). */
   onProgress?: (done: number, total: number) => void;

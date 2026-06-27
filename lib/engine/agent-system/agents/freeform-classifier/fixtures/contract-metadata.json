@@ -1,0 +1,11 @@
+{
+  "name": "contract-metadata",
+  "agentId": "freeform-classifier",
+  "expected": {
+    "kind": "llm",
+    "modelRole": "text",
+    "inputSchema": "FreeformClassifyRequest",
+    "outputSchema": "FreeformClassifyResponse"
+  }
+}
+

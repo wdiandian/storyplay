@@ -3,11 +3,11 @@
 // Provides: anonymous user ID management, save/load functions that call
 // /api/stories/* and fallback to localStorage when D1 is unavailable.
 
-import type { Session, Scene, Character, StoryState } from "@infiplot/types";
+import type { Session } from "@storyplay/types";
 import type { StorySaveInput, SceneSaveInput, CharacterSaveInput, StoryMeta, StoryLoadResult } from "@/lib/db/repositories/storyRepo";
 
-const USER_ID_KEY = "infiplot:userId";
-const SAVE_FALLBACK_KEY = "infiplot:savedStories";
+const USER_ID_KEY = "storyplay:userId";
+const SAVE_FALLBACK_KEY = "storyplay:savedStories";
 
 // ── Anonymous User ID ────────────────────────────────────────────────────
 
@@ -171,7 +171,7 @@ export async function loadStoryList(): Promise<StoryMeta[]> {
   */
 }
 
-export async function loadStory(storyId: string): Promise<StoryLoadResult | null> {
+export async function loadStory(_storyId: string): Promise<StoryLoadResult | null> {
   // TEMPORARY: localStorage-only mode — unused in current code (play page uses
   // loadFromLocalStorage directly). Returns null to maintain type compatibility.
   // Will be re-enabled when D1 is restored after auth integration.
@@ -179,7 +179,7 @@ export async function loadStory(storyId: string): Promise<StoryLoadResult | null
 
   /* DISABLED: D1 server path
   try {
-    const res = await fetch(`/api/stories/${encodeURIComponent(storyId)}`);
+    const res = await fetch(`/api/stories/${encodeURIComponent(_storyId)}`);
     if (res.ok) {
       return (await res.json()) as StoryLoadResult;
     }

@@ -64,7 +64,7 @@ export default function StoriesPage() {
           className="text-[10px] smallcaps text-clay-700 hover:text-clay-900 transition-colors flex items-center gap-2 cursor-pointer"
         >
           <i className="fa-solid fa-arrow-left text-[9px]" />
-          InfiPlot
+          storyplay
         </Link>
         <span className="text-[10px] smallcaps text-clay-500">
           我 · 的 · 剧 · 情

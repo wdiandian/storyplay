@@ -3,7 +3,7 @@ import type {
   WriterScenePlan,
   StreamRouterHandlers,
   StreamRouterResult,
-} from "@infiplot/types";
+} from "@storyplay/types";
 import { parseJsonLoose } from "../jsonParser";
 
 // ──────────────────────────────────────────────────────────────────────

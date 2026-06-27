@@ -3,7 +3,7 @@ import "server-only";
 import { eq, desc, sql, inArray } from "drizzle-orm";
 import type { DbInstance } from "../client";
 import { stories, scenes, characters } from "../schema";
-import type { Session, Scene as EngineScene, Character as EngineCharacter, StoryState } from "@infiplot/types";
+import type { Scene as EngineScene, Character as EngineCharacter, StoryState } from "@storyplay/types";
 
 // ── Type Adapters ────────────────────────────────────────────────────────
 

@@ -1,22 +1,25 @@
-import { chat, generateImage } from "@infiplot/ai-client";
+import { generateImage } from "@storyplay/ai-client";
 import {
   isStepfun,
   isValidStepfunVoiceId,
   provisionVoice,
   type ProvisionVoiceOptions,
-} from "@infiplot/tts-client";
+} from "@storyplay/tts-client";
 import type {
   Character,
   CharacterIntent,
   CharacterVoice,
   EngineConfig,
   Session,
-} from "@infiplot/types";
-import { parseJsonLoose } from "../jsonParser";
+} from "@storyplay/types";
+import {
+  characterDesignerContract,
+  runAgent,
+  runTextAgent,
+} from "../agent-system";
+import type { AgentContract } from "../agent-system";
 import { mockImageDataUri } from "../mockImage";
 import {
-  buildCharacterDesignerSystem,
-  buildCharacterDesignerUserMessage,
   buildCharacterPortraitPrompt,
 } from "../prompts";
 
@@ -58,26 +61,27 @@ async function runDesignLLM(
   charName: string,
   intent?: CharacterIntent,
 ): Promise<CharacterDesignOutput> {
-  const raw = await chat(
+  const result = await runTextAgent(
     config.text,
-    [
-      { role: "system", content: buildCharacterDesignerSystem({ stepfun: stepfunEnabled(config) }) },
+    characterDesignerContract as AgentContract<
       {
-        role: "user",
-        content: buildCharacterDesignerUserMessage(charName, session, intent),
+        session: Session;
+        charName: string;
+        intent?: CharacterIntent;
+        stepfun: boolean;
       },
-    ],
+      CharacterDesignOutput
+    >,
+    {
+      session,
+      charName,
+      intent,
+      stepfun: stepfunEnabled(config),
+    },
     { temperature: 0.7, tag: "character-designer" },
   );
-  // parseJsonLoose can throw on irreparable JSON; degrade to an empty card so
-  // designCharacterCard's fallbacks (name-inference voice, no portrait) kick in.
-  try {
-    return parseJsonLoose<CharacterDesignOutput>(raw);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[characterDesigner] design JSON parse failed for ${charName}: ${msg}`);
-    return {};
-  }
+
+  return result.output;
 }
 
 /** True when the server's TTS config points at StepFun (so the CharacterDesigner
@@ -85,6 +89,97 @@ async function runDesignLLM(
  *  Xiaomi path — keeping the Xiaomi prompt byte-identical to history. */
 function stepfunEnabled(config: EngineConfig): boolean {
   return !!config.tts && isStepfun(config.tts);
+}
+
+async function renderPortraitImage(
+  config: EngineConfig,
+  charName: string,
+  visualDescription: string,
+  styleGuide: string,
+): Promise<{ basePortraitUrl?: string; basePortraitUuid?: string }> {
+  if (config.mockImage) {
+    return { basePortraitUrl: await mockImageDataUri() };
+  }
+  const prompt = buildCharacterPortraitPrompt(
+    charName,
+    visualDescription,
+    styleGuide,
+  );
+  // Portraits get the hard timeout but are never hedged: a scene already runs
+  // several portrait paints in parallel, so hedging would multiply concurrency.
+  const { imageUrl, imageUuid } = await generateImage(config.image, prompt, {
+    timeoutMs: config.imageTimeoutMs,
+  });
+  return { basePortraitUrl: imageUrl, basePortraitUuid: imageUuid };
+}
+
+async function resolveCharacterVoice(
+  config: EngineConfig,
+  voiceDescription: string,
+  charName: string,
+  opts?: ProvisionVoiceOptions,
+): Promise<CharacterVoice | undefined> {
+  if (!config.tts) return undefined;
+  return provisionVoice(config.tts, voiceDescription, charName, opts);
+}
+
+async function runPortraitStage(
+  config: EngineConfig,
+  charName: string,
+  visualDescription: string,
+  styleGuide: string,
+): Promise<{ basePortraitUrl?: string; basePortraitUuid?: string }> {
+  const result = await runAgent(
+    {
+      ...characterDesignerContract,
+      kind: "image",
+      modelRole: "image",
+    } as AgentContract<
+      {
+        charName: string;
+        visualDescription: string;
+        styleGuide: string;
+      },
+      { basePortraitUrl?: string; basePortraitUuid?: string }
+    >,
+    { charName, visualDescription, styleGuide },
+    async () => ({
+      output: await renderPortraitImage(
+        config,
+        charName,
+        visualDescription,
+        styleGuide,
+      ),
+    }),
+  );
+  return result.output;
+}
+
+async function runVoiceResolverStage(
+  config: EngineConfig,
+  voiceDescription: string,
+  charName: string,
+  opts?: ProvisionVoiceOptions,
+): Promise<CharacterVoice | undefined> {
+  const result = await runAgent(
+    {
+      ...characterDesignerContract,
+      kind: "tts",
+      modelRole: "tts",
+    } as AgentContract<
+      {
+        voiceDescription: string;
+        charName: string;
+        opts?: ProvisionVoiceOptions;
+      },
+      CharacterVoice | undefined
+    >,
+    { voiceDescription, charName, opts },
+    async () => ({
+      output: await resolveCharacterVoice(config, voiceDescription, charName, opts),
+    }),
+  );
+  return result.output;
 }
 
 // Generate the per-character base portrait. The portrait is a "concept
@@ -99,6 +194,21 @@ function stepfunEnabled(config: EngineConfig): boolean {
 // In mock mode we return the data URI as basePortraitUrl with no UUID
 // (Painter is short-circuited anyway, so the lack of a UUID is moot).
 export async function renderCharacterPortrait(
+  config: EngineConfig,
+  charName: string,
+  visualDescription: string,
+  styleGuide: string,
+): Promise<{ basePortraitUrl?: string; basePortraitUuid?: string }> {
+  try {
+    return await runPortraitStage(config, charName, visualDescription, styleGuide);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[characterDesigner] portrait gen failed for ${charName}: ${msg}`);
+    return {};
+  }
+}
+
+async function _renderCharacterPortraitLegacy(
   config: EngineConfig,
   charName: string,
   visualDescription: string,
@@ -135,7 +245,7 @@ export async function provisionCharacterVoice(
 ): Promise<CharacterVoice | undefined> {
   if (!config.tts) return undefined;
   try {
-    return await provisionVoice(config.tts, voiceDescription, charName, opts);
+    return await runVoiceResolverStage(config, voiceDescription, charName, opts);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[characterDesigner] voice provision failed for ${charName}: ${msg}`);

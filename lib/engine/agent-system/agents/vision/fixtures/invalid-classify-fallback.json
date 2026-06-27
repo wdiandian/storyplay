@@ -1,0 +1,15 @@
+{
+  "name": "invalid-classify-fallback",
+  "rawOutput": {
+    "freeformAction": "",
+    "classify": "unknown",
+    "reasoning": ""
+  },
+  "expected": {
+    "intent": {
+      "freeformAction": "玩家点击了场景，但意图不明确。",
+      "reasoning": ""
+    },
+    "classify": "insert-beat"
+  }
+}

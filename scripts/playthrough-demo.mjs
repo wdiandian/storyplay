@@ -10,8 +10,8 @@
 
 import { writeFile } from "node:fs/promises";
 
-const BASE = "https://infiplot.y-9e6.workers.dev";
-const OUT = "G:\\infiplot\\.spec-workflow\\specs\\narrative-depth-redesign\\playthrough-demos-v2.md";
+const BASE = "https://storyplay.y-9e6.workers.dev";
+const OUT = "G:\\storyplay\\.spec-workflow\\specs\\narrative-depth-redesign\\playthrough-demos-v2.md";
 
 // 三个不同题材的开局 + 每局的「自由交互动作」脚本（模拟玩家点击/输入）
 const PLAYTHROUGHS = [
@@ -132,7 +132,7 @@ async function runPlaythrough(pt) {
     orientation: "landscape",
   });
 
-  let session = {
+  const session = {
     id: startData.sessionId,
     createdAt: Date.now(),
     worldSetting: pt.worldSetting,

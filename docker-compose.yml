@@ -1,8 +1,13 @@
 services:
-  infiplot:
-    image: ghcr.io/zonghaoyuan/infiplot:latest
+  storyplay:
+    image: ghcr.io/wdiandian/storyplay:latest
     ports:
       - "3000:3000"
     env_file:
       - .env.local
+    volumes:
+      - storyplay_data:/app/.storyplay
     restart: unless-stopped
+
+volumes:
+  storyplay_data:

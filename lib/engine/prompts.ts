@@ -6,9 +6,8 @@ import type {
   Scene,
   Session,
   StoryState,
-  WriterPlan,
-} from "@infiplot/types";
-import { formatStepfunCatalogForPrompt } from "@infiplot/tts-client";
+} from "@storyplay/types";
+import { formatStepfunCatalogForPrompt } from "@storyplay/tts-client";
 
 // ══════════════════════════════════════════════════════════════════════
 //  Output-language directive — appended to user messages so the AI's

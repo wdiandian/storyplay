@@ -1,4 +1,4 @@
-# InfiPlot Best Practices
+# StoryPlay Best Practices
 
 PR-Agent 的 `/improve` 工具读本文件作为项目级规则。违反时会被打 `Organization best practice` 标签。
 

@@ -6,10 +6,10 @@
 // no log. resolveTtsConfig() turns the stored pair into the TtsConfig shape the
 // tts-client adapter expects, mapping the chosen endpoint preset to its baseUrl.
 
-import type { TtsConfig } from "@infiplot/types";
+import type { TtsConfig } from "@storyplay/types";
 import { DEFAULT_TTS_SPEECH_MODEL, findTtsPreset } from "./ttsPresets";
 
-const STORAGE_KEY = "infiplot:tts";
+const STORAGE_KEY = "storyplay:tts";
 
 /** Exactly what we persist — endpoint choice + raw key. Resolved to a full
  *  TtsConfig (with baseUrl + model) at read time so a renamed/removed preset

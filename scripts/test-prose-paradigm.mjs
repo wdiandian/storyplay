@@ -21,8 +21,8 @@ const args = process.argv.slice(2).reduce((acc, arg) => {
   return acc;
 }, {});
 
-const BASE = args.url || "https://infiplot.y-9e6.workers.dev";
-const OUT = "G:\\infiplot\\.spec-workflow\\specs\\writer-prose-paradigm\\test-prose-paradigm-report.md";
+const BASE = args.url || "https://storyplay.y-9e6.workers.dev";
+const OUT = "G:\\storyplay\\.spec-workflow\\specs\\writer-prose-paradigm\\test-prose-paradigm-report.md";
 
 // 四个题材验证覆盖度
 const SCENARIOS = [
@@ -156,7 +156,7 @@ async function runScenario(scenario) {
     orientation: "landscape",
   });
 
-  let session = {
+  const session = {
     id: startData.sessionId,
     createdAt: Date.now(),
     worldSetting: scenario.worldSetting,

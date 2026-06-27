@@ -5,7 +5,7 @@
 // Keys never leak to server logs or persistence — they only pass through the
 // request→config construction path.
 
-const STORAGE_KEY = "infiplot:llm";
+const STORAGE_KEY = "storyplay:llm";
 
 /** Provider types matching byoProxy and ProviderProtocol */
 export type LlmProvider = "openai" | "claude" | "gemini";

@@ -60,7 +60,7 @@ export async function uploadImage(
 
     // Return public URL (assumes custom domain or R2 public bucket configured)
     // Phase 1: hardcode or read from env; Phase 2: configure in wrangler
-    const publicDomain = process.env.R2_PUBLIC_DOMAIN ?? "https://r2.infiplot.example"; // Placeholder
+    const publicDomain = process.env.R2_PUBLIC_DOMAIN ?? "https://r2.storyplay.example"; // Placeholder
     return `${publicDomain}/${key}`;
   } catch (error) {
     // Re-throw with context for caller to handle gracefully

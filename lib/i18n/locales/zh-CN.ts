@@ -5,8 +5,8 @@ export const zhCN = {
   // ========== Layout ==========
   layout: {
     metadata: {
-      title: "InfiPlot — AI 实时交互剧情游戏",
-      description: "InfiPlot 是一款用 AI 实时生成图片、语音与剧情分支的交互式剧情游戏 Demo。",
+      title: "StoryPlay - AI 互动剧情游戏",
+      description: "StoryPlay 将故事想法转化为可游玩的 AI 互动影像故事。",
     },
   },
 
@@ -156,23 +156,76 @@ export const zhCN = {
 
     // Hero section
     hero: {
-      title: "今天想体验什么故事？",
+      title: "让故事变得可玩",
       placeholder: " ",
       enterHint: "Enter 发送 · Shift+Enter 换行",
+      helpAriaLabel: "查看创作说明",
+      helpText: (params: { authEnabled?: boolean }) => {
+        const authHint = params.authEnabled ? "测试期间需要登录，当前可免费体验。" : "";
+        return `输入一个故事想法后，可以在输入框底部快速设定受众、画风、剧情风格和节奏；更完整的创作者编辑工具会在后续阶段接入。${authHint}`;
+      },
+    },
+
+    storyTaxonomy: {
+      eyebrow: "Story Categories",
+      title: "按故事类型探索",
+      all: "全部",
+      empty: "当前类型暂无故事。",
+      genres: {
+        romance: "恋爱",
+        mystery: "悬疑",
+        fantasy: "奇幻",
+        urban: "都市",
+        campus: "校园",
+        workplace: "职场",
+        sciFi: "科幻",
+        historical: "历史",
+        adventure: "冒险",
+        growth: "成长",
+      },
+      moods: {
+        sweet: "甜",
+        angsty: "虐",
+        tense: "紧张",
+        healing: "治愈",
+        flirty: "暧昧",
+        powerFantasy: "爽感",
+        dark: "暗黑",
+        romantic: "浪漫",
+        eerie: "诡异",
+      },
+      structures: {
+        linear: "单线推进",
+        branching: "多分支",
+        shortDramaTwist: "短剧反转",
+        relationship: "关系推进",
+        puzzle: "解谜",
+        progression: "养成",
+      },
+      visualStyles: {
+        cinematic: "电影感",
+        lightNovel: "轻小说",
+        anime: "二次元",
+        realistic: "写实",
+        gothic: "哥特",
+        cyberpunk: "赛博朋克",
+        chineseFantasy: "国风",
+        popArt: "波普",
+      },
     },
 
     // Usage hint
     hint: {
       text: (params: { authEnabled?: boolean }) => {
         const authHint = params.authEnabled ? '（测试期间，登录即可免费畅玩）' : '';
-        return `输入想法、配置风格，点击「开始」即可游玩${authHint}；也可以从下方精选故事集挑一篇快速体验 <em class="not-italic text-ember-500">InfiPlot</em>。点击「<span class="inline-flex items-center gap-1 text-ember-500"><i class="fa-solid fa-gear text-[10px]"></i>设置</span>」还能填入你的名字，以及你自己的文本、绘图、识图模型和配音 Key——全部只存在本地浏览器，体验更稳定。`;
+        return `输入想法、配置风格，点击「开始」即可游玩${authHint}；也可以从下方精选故事集挑一篇快速体验 <em class="not-italic text-ember-500">StoryPlay</em>。点击「<span class="inline-flex items-center gap-1 text-ember-500"><i class="fa-solid fa-gear text-[10px]"></i>设置</span>」还能填入你的名字，以及你自己的文本、绘图、识图模型和配音 Key——全部只存在本地浏览器，体验更稳定。`;
       },
       closeAriaLabel: "不再显示此提示",
     },
 
     // About section
     about: {
-      title: "InfiPlot",
+      title: "StoryPlay",
       description: "是一款用 AI 实时生成内容的交互式剧情游戏 —— 图片、语音与剧情分支都在游玩过程中即时生成。",
       team: "团 队",
       teamText: "我们来自清华大学、兰州大学等高校，希望探索多模态模型在「直接生成图片、视频」这类 oneshot 能力之外，更多的可能性。本项目目前仍处于早期阶段，我们还在招募成员，如果你也感兴趣，欢迎联系我们，期待你的加入。",
@@ -181,7 +234,7 @@ export const zhCN = {
       openSource: "开 源 地 址",
       betaUsers: "内 测 用 户 群",
       qqGroupLabel: "QQ群号：",
-      qqGroupAlt: "InfiPlot 公测交流群 QQ 群二维码（群号 575404333）",
+      qqGroupAlt: "StoryPlay 公测交流群 QQ 群二维码（群号 575404333）",
       legalNotice: (params: { analyticsOn?: boolean }) => {
         const base = `公测期间本产品可免费使用，但稳定性可能会随并发用户数量而有波动。<br />公测期间生成的内容不会在服务器上保存。如需留存，请在游玩结束后使用导出图集或分享剧情功能保存您的游玩体验。<br />AI 生成的内容不代表本团队立场。`;
         if (params.analyticsOn) {
@@ -191,7 +244,7 @@ export const zhCN = {
       },
       privacyPolicy: "隐私政策",
       terms: "服务条款",
-      copyright: "© 2026 InfiPlot. All rights reserved.",
+      copyright: "© 2026 StoryPlay. All rights reserved.",
     },
 
     // Story import errors
@@ -233,7 +286,7 @@ export const zhCN = {
       enterFullscreen: "进入全屏",
       exportGallery: "导出本局为可交互图集链接（含配音；只会保留最近两次的可交互图集链接）",
       exportGalleryLabel: "导出可交互图集",
-      shareStory: "导出本局为可继续游玩的剧情 .infiplot（含配音）",
+      shareStory: "导出本局为可继续游玩的剧情 .storyplay（含配音）",
       shareStoryLabel: "分享当前剧情",
       mute: "静音",
       unmute: "取消静音",

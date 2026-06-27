@@ -1,0 +1,12 @@
+{
+  "name": "empty-output-fallback",
+  "rawOutput": {
+    "narration": "",
+    "speaker": "",
+    "line": "",
+    "lineDelivery": ""
+  },
+  "expected": {
+    "narration": "你停下脚步，重新观察眼前的场景。"
+  }
+}

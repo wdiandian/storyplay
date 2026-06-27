@@ -82,7 +82,7 @@ async function generateScene(styleName: string, stylePrompt: string): Promise<st
       messages: [
         {
           role: "system",
-          content: `You are an expert art director for InfiPlot, an AI-powered interactive fiction platform where users create and play through visual novel stories. Each story has illustrated scenes with characters in dramatic, emotional, or atmospheric moments.
+          content: `You are an expert art director for StoryPlay, an AI-powered interactive fiction platform where users create and play through visual novel stories. Each story has illustrated scenes with characters in dramatic, emotional, or atmospheric moments.
 
 Given an art style description, output a single short scene description (1-2 sentences, in English) that would best showcase this style AS A VISUAL NOVEL SCENE. The scene should:
 - Feature 1-2 characters in a story moment (conversation, contemplation, action, emotional beat)

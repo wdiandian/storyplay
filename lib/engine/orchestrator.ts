@@ -3,7 +3,6 @@ import type {
   BeatAudioResponse,
   CharacterVoice,
   EngineConfig,
-  FreeformClassify,
   FreeformClassifyRequest,
   FreeformClassifyResponse,
   InsertBeatRequest,
@@ -16,14 +15,19 @@ import type {
   StartResponse,
   VisionRequest,
   VisionResponse,
-} from "@infiplot/types";
-import { coerceOrientation } from "@infiplot/types";
-import { chat } from "@infiplot/ai-client";
-import { isStepfun, isValidStepfunVoiceId, provisionVoice } from "@infiplot/tts-client";
+} from "@storyplay/types";
+import { coerceOrientation } from "@storyplay/types";
+import { chat } from "@storyplay/ai-client";
+import { isStepfun, isValidStepfunVoiceId, provisionVoice } from "@storyplay/tts-client";
 import { selectStyle } from "./agents/styleSelector";
 import { directInsertBeat, directScene } from "./director";
 import { STYLE_MAP } from "@/lib/options";
-import { parseJsonLoose } from "./jsonParser";
+import { freeformClassifierContract, runAgent } from "./agent-system";
+import type { AgentContract } from "./agent-system";
+import {
+  fallbackFreeformClassify,
+  parseFreeformClassifyOutput,
+} from "./agent-system/agents/freeform-classifier/parser";
 import { isValidLocale } from "@/lib/i18n/utils";
 import {
   FREEFORM_CLASSIFY_SYSTEM,
@@ -160,28 +164,31 @@ export async function classifyFreeform(
   req: FreeformClassifyRequest,
 ): Promise<FreeformClassifyResponse> {
   const current = req.session.history.at(-1)?.scene ?? null;
-  const userMsg = buildFreeformClassifyUserMessage(
-    req.freeformText,
-    current?.scenePrompt,
+  const result = await runAgent(
+    {
+      ...freeformClassifierContract,
+      fallback: fallbackFreeformClassify,
+    } as AgentContract<FreeformClassifyRequest, FreeformClassifyResponse>,
+    req,
+    async () => {
+      const userMsg = buildFreeformClassifyUserMessage(
+        req.freeformText,
+        current?.scenePrompt,
+      );
+
+      const raw = await chat(config.text, [
+        { role: "system", content: FREEFORM_CLASSIFY_SYSTEM },
+        { role: "user", content: userMsg },
+      ], { temperature: 0, tag: "freeform-classify" });
+
+      return {
+        raw,
+        output: parseFreeformClassifyOutput(raw, req),
+      };
+    },
   );
 
-  const raw = await chat(config.text, [
-    { role: "system", content: FREEFORM_CLASSIFY_SYSTEM },
-    { role: "user", content: userMsg },
-  ], { temperature: 0, tag: "freeform-classify" });
-
-  const parsed = parseJsonLoose<{
-    classify?: string;
-    freeformAction?: string;
-  }>(raw);
-
-  const classify: FreeformClassify =
-    parsed.classify === "change-scene" ? "change-scene" : "insert-beat";
-
-  return {
-    classify,
-    freeformAction: parsed.freeformAction?.trim() || req.freeformText,
-  };
+  return result.output;
 }
 
 // ──────────────────────────────────────────────────────────────────────
@@ -290,7 +297,7 @@ async function resolveVoice(
   // NOTE: this re-provision runs OUTSIDE synthesizeBeat's 15s withTimeout — a
   // hung MiMo voicedesign tail (~30-70s) could hang /api/beat-audio until the
   // platform timeout. Accepted because: (1) this path only fires on a rare
-  // cross-provider replay (.infiplot carrying a stepfun voice, opened on a
+  // cross-provider replay (.storyplay carrying a stepfun voice, opened on a
   // Xiaomi-server deploy) or a mid-session provider flip — NOT the common
   // prebaked-card + stepfun-server case, which is a pure-function provision
   // with no network; (2) it degrades to silence rather than crashing. If it

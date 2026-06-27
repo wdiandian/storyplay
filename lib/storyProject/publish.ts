@@ -1,0 +1,91 @@
+import { compileStoryProjectToStartRequest } from "@/lib/storyProject/compiler";
+import { compileOpeningPackage } from "@/lib/storyProject/openingPackage";
+import type { StoryProject } from "@/lib/storyProject/types";
+import type { StorySku, StorySkuGender } from "@/lib/storySku/manifest";
+
+export type StoryProjectPublishBuild = {
+  sku: StorySku;
+  warnings: Array<{ field: string; message: string }>;
+};
+
+function uniqueStrings(values: string[]) {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
+}
+
+function projectAudienceToSkuGender(audience: StoryProject["audience"]): StorySkuGender {
+  return audience === "female" ? "female" : "male";
+}
+
+function projectAudienceLabel(audience: StoryProject["audience"]): StorySku["audienceLabel"] {
+  return audience === "female" ? "女性向" : "男性向";
+}
+
+export function createStorySkuIdFromProject(project: StoryProject) {
+  if (project.publish.skuId.trim()) return project.publish.skuId.trim();
+  return `sp_sku_${project.id.replace(/^sp_project_?/, "")}`;
+}
+
+export function buildStorySkuFromProject(project: StoryProject): StoryProjectPublishBuild {
+  const build = compileStoryProjectToStartRequest(project);
+  const openingPackage = compileOpeningPackage(project);
+  const now = new Date().toISOString();
+  const skuId = createStorySkuIdFromProject(project);
+  const tags = uniqueStrings([...project.genres, ...project.moods, ...project.tags]);
+  const stylePrompt =
+    project.visual.stylePrompt.trim() || project.runtimePolicy.styleGuide.trim() || build.startRequest.styleGuide || "auto";
+  const cover = project.visual.cover.trim() || "/home/storyplay-creator-cover.svg";
+
+  return {
+    sku: {
+      id: skuId,
+      gender: projectAudienceToSkuGender(project.audience),
+      audienceLabel: projectAudienceLabel(project.audience),
+      title: project.title,
+      logline: project.logline || project.synopsis,
+      synopsis: project.synopsis || project.logline,
+      tags,
+      genreTagsRaw: tags.join("、"),
+      stylePrompt,
+      assets: {
+        cover,
+        firstScene: project.visual.firstScene.trim() || undefined,
+        firstScenePortrait: project.visual.firstScene.trim() || undefined,
+        portraits: [],
+        portraitsPortrait: [],
+      },
+      firstAct: {},
+      runtimeSummary: {
+        sceneKey: openingPackage?.scene.sceneKey,
+        beatsCount: openingPackage?.scene.beats.length ?? 0,
+        choicesCount: openingPackage?.scene.beats.reduce(
+          (sum, beat) => sum + (beat.next.type === "choice" ? beat.next.choices.length : 0),
+          0,
+        ) ?? 0,
+        charactersCount: project.characters.length,
+      },
+      creatorRuntime: {
+        startRequest: {
+          ...build.startRequest,
+          source: "creator-sku",
+          projectId: project.id,
+          projectTitle: project.title,
+          skuId,
+        },
+        openingPackage,
+        sourceActId: build.sourceActId,
+        sourceSceneId: build.sourceSceneId,
+        publishedAt: now,
+      },
+      publish: {
+        status: "active",
+        source: "creator",
+        sourceProjectId: project.id,
+      },
+      curation: {
+        sortOrder: -Date.now(),
+        featured: true,
+      },
+    },
+    warnings: build.warnings,
+  };
+}

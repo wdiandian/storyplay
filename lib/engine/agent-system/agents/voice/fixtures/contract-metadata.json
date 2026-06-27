@@ -1,0 +1,11 @@
+{
+  "name": "contract-metadata",
+  "agentId": "voice",
+  "expected": {
+    "kind": "tts",
+    "modelRole": "tts",
+    "inputSchema": "BeatAudioRequest",
+    "outputSchema": "BeatAudioResponse"
+  }
+}
+

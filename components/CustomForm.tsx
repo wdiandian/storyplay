@@ -24,7 +24,7 @@ export function CustomForm() {
     if (!canSubmit) return;
     setSubmitting(true);
     sessionStorage.setItem(
-      "infiplot:custom",
+      "storyplay:custom",
       JSON.stringify({ worldSetting, styleGuide }),
     );
     track("game_start", { source: "custom" });

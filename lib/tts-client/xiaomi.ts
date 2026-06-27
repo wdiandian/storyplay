@@ -1,4 +1,4 @@
-import type { CharacterVoice, TtsConfig } from "@infiplot/types";
+import type { CharacterVoice, TtsConfig } from "@storyplay/types";
 
 // Xiaomi MiMo currently outputs wav / pcm16 only (mp3 not supported for output).
 // The reference clip we persist is therefore wav. Kept as a single switch so we

@@ -8,8 +8,6 @@ const WEB_ROOT = resolve(__dirname, "..");
 const ENV_FILE = resolve(WEB_ROOT, ".env.local");
 const OUT_DIR = resolve(WEB_ROOT, "public", "home");
 
-const FORCE = process.argv.includes("--force");
-
 /* ---------- env loading ---------- */
 function loadEnv(path) {
   const txt = readFileSync(path, "utf8");

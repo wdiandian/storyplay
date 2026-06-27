@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { ChatStreamResult, ChatStreamUsage, ProviderConfig } from "@infiplot/types";
+import type { ChatStreamResult, ChatStreamUsage, ProviderConfig } from "@storyplay/types";
 import { normalizeBaseUrl } from "./normalizeUrl";
 
 export type ChatMessage = {

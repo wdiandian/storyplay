@@ -1,0 +1,15 @@
+{
+  "name": "pov-line-delivery",
+  "rawOutput": {
+    "narration": "You step closer to the desk.",
+    "speaker": "player",
+    "line": "Is anyone here?",
+    "lineDelivery": "whispering"
+  },
+  "expected": {
+    "narration": "You step closer to the desk.",
+    "speaker": "你",
+    "line": "Is anyone here?",
+    "lineDelivery": null
+  }
+}

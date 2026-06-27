@@ -1,7 +1,7 @@
-import type { TtsProviderResponse } from "@infiplot/types";
-import { inferTtsProvider } from "@infiplot/tts-client";
+import type { TtsProviderResponse } from "@storyplay/types";
+import { inferTtsProvider } from "@storyplay/tts-client";
 import { NextResponse } from "next/server";
-import { loadEngineConfig } from "@/lib/config";
+import { loadTtsConfig } from "@/lib/config";
 import { requireUser } from "@/lib/supabase/guard";
 
 export const runtime = "nodejs";
@@ -17,8 +17,8 @@ export async function GET() {
   const auth = await requireUser();
   if (auth instanceof NextResponse) return auth;
 
-  const cfg = loadEngineConfig();
-  const provider = cfg.tts ? inferTtsProvider(cfg.tts) : null;
+  const tts = loadTtsConfig();
+  const provider = tts ? inferTtsProvider(tts) : null;
 
   const body: TtsProviderResponse = { provider };
   return NextResponse.json(body);

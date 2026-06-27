@@ -1,0 +1,22 @@
+{
+  "name": "plan-missing-fields",
+  "rawPlan": {
+    "sceneSummary": "",
+    "sceneKey": "Old Classroom!! Night",
+    "entryBeatId": "",
+    "cast": ["Alice", "Alice", "player", ""],
+    "entryActiveCharacters": [
+      {
+        "name": "Alice",
+        "pose": "turning back"
+      }
+    ],
+    "entrySpeaker": "player"
+  },
+  "expected": {
+    "sceneSummary": "未指定的场景概要",
+    "sceneKey": "old-classroom-night",
+    "entryBeatId": "b1",
+    "cast": ["Alice"]
+  }
+}

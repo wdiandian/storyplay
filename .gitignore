@@ -13,6 +13,7 @@ out
 .vercel
 .turbo
 .claude
+.storyplay
 
 .open-next
 .wrangler

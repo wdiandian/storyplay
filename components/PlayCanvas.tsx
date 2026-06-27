@@ -5,7 +5,7 @@ import {
   DialogueHistoryModal,
   type DialogueHistoryItem,
 } from "@/components/DialogueHistoryModal";
-import type { Beat, BeatChoice, Orientation } from "@infiplot/types";
+import type { Beat, BeatChoice, Orientation } from "@storyplay/types";
 import { useI18n } from "@/lib/i18n/client";
 
 export type Phase =
@@ -42,8 +42,7 @@ function useTypewriter(
   },
 ): { shown: string; done: boolean; skip: () => void } {
   const { targetDurationMs, waitForAudio } = opts;
-  const [displayed, setDisplayed] = useState("");
-  const [prevKey, setPrevKey] = useState(resetKey);
+  const [state, setState] = useState({ key: resetKey, displayed: "" });
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   // Sticky once the player has skipped this beat: prevents a late-arriving
   // audio metadata event from re-triggering the effect and replaying the text.
@@ -51,11 +50,13 @@ function useTypewriter(
 
   // Render-phase reset (React "adjust state on prop change" pattern): when the
   // beat changes, drop the old progress before this render commits.
-  if (resetKey !== prevKey) {
-    setPrevKey(resetKey);
-    setDisplayed("");
-    skippedRef.current = false;
+  if (resetKey !== state.key) {
+    setState({ key: resetKey, displayed: "" });
   }
+
+  useEffect(() => {
+    skippedRef.current = false;
+  }, [resetKey]);
 
   useEffect(() => {
     if (!text) return;
@@ -66,7 +67,7 @@ function useTypewriter(
     // If the player skipped, settle on the full text and don't restart even
     // when audio metadata arrives late and re-triggers this effect.
     if (skippedRef.current) {
-      setDisplayed(text);
+      setState((prev) => ({ ...prev, displayed: text }));
       return;
     }
 
@@ -78,7 +79,7 @@ function useTypewriter(
     let i = 0;
     timer.current = setInterval(() => {
       i += 1;
-      setDisplayed(text.slice(0, i));
+      setState((prev) => ({ ...prev, displayed: text.slice(0, i) }));
       if (i >= text.length && timer.current) {
         clearInterval(timer.current);
         timer.current = null;
@@ -96,12 +97,12 @@ function useTypewriter(
       timer.current = null;
     }
     skippedRef.current = true;
-    setDisplayed(text);
+    setState((prev) => ({ ...prev, displayed: text }));
   }, [text]);
 
   // During the throwaway render where the beat just changed, `displayed` still
   // holds the previous beat's text — coerce it to empty so nothing stale shows.
-  const shown = resetKey === prevKey ? displayed : "";
+  const shown = resetKey === state.key ? state.displayed : "";
   const done = text.length === 0 || shown.length >= text.length;
   return { shown, done, skip };
 }
@@ -229,9 +230,15 @@ export function PlayCanvas({
   const freeformInputRef = useRef<HTMLInputElement>(null);
   const displaySpeaker = (s: string | undefined) =>
     s === "你" && playerName ? playerName : s;
-  const [audioDurationMs, setAudioDurationMs] = useState<number | undefined>(
-    undefined,
-  );
+  const [audioDurationState, setAudioDurationState] = useState<{
+    audioSrc: string | null;
+    durationMs: number | undefined;
+  }>({ audioSrc, durationMs: undefined });
+  if (audioSrc !== audioDurationState.audioSrc) {
+    setAudioDurationState({ audioSrc, durationMs: undefined });
+  }
+  const audioDurationMs =
+    audioSrc === audioDurationState.audioSrc ? audioDurationState.durationMs : undefined;
 
   const isChoiceBeat = beat?.next.type === "choice";
   const choices: BeatChoice[] = isChoiceBeat
@@ -250,10 +257,13 @@ export function PlayCanvas({
   // Reset duration when audio source changes; if loading takes too long,
   // unblock the typewriter via timeout so text doesn't stall.
   useEffect(() => {
-    setAudioDurationMs(undefined);
     if (!audioSrc) return;
     const timer = setTimeout(() => {
-      setAudioDurationMs((prev) => prev ?? 0);
+      setAudioDurationState((prev) =>
+        prev.audioSrc === audioSrc
+          ? { ...prev, durationMs: prev.durationMs ?? 0 }
+          : prev,
+      );
     }, AUDIO_WAIT_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, [audioSrc]);
@@ -292,7 +302,9 @@ export function PlayCanvas({
     const el = audioRef.current;
     if (!el) return;
     const ms = Number.isFinite(el.duration) ? el.duration * 1000 : 0;
-    setAudioDurationMs(ms > 0 ? ms : 0);
+    setAudioDurationState((prev) =>
+      prev.audioSrc === audioSrc ? { ...prev, durationMs: ms > 0 ? ms : 0 } : prev,
+    );
     if (!muted && !audioLateRef.current) {
       el.play().catch(() => {
         // autoplay blocked
@@ -302,7 +314,9 @@ export function PlayCanvas({
 
   function handleAudioError() {
     // Treat as zero duration so the typewriter runs at default speed.
-    setAudioDurationMs(0);
+    setAudioDurationState((prev) =>
+      prev.audioSrc === audioSrc ? { ...prev, durationMs: 0 } : prev,
+    );
   }
 
   function handleImageClick(e: React.MouseEvent<HTMLImageElement>) {
@@ -741,7 +755,7 @@ export function PlayCanvas({
                   width: 30,
                   height: 30,
                   animation:
-                    "infiplot-ripple 1.6s cubic-bezier(0.16,1,0.3,1) infinite",
+                    "storyplay-ripple 1.6s cubic-bezier(0.16,1,0.3,1) infinite",
                 }}
               />
               <div

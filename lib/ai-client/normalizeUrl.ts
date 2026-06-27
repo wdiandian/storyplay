@@ -1,4 +1,4 @@
-import type { ProviderProtocol } from "@infiplot/types";
+import type { ProviderProtocol } from "@storyplay/types";
 
 // ──────────────────────────────────────────────────────────────────────
 //  Base-URL normalization — tolerate whatever shape the user pastes.

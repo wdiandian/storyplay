@@ -1,0 +1,22 @@
+{
+  "name": "empty-output-fallback",
+  "rawOutput": {
+    "shotType": "",
+    "integratedPrompt": ""
+  },
+  "input": {
+    "sceneSummary": "Rainy old school corridor, the lead girl turns back at the far end.",
+    "styleGuide": "cinematic anime",
+    "entryBeatActive": [
+      {
+        "name": "Xia Hai",
+        "pose": "turning back toward camera"
+      }
+    ]
+  },
+  "expected": {
+    "shotType": "medium shot",
+    "integratedPromptIncludes": "Rainy old school corridor"
+  }
+}
+

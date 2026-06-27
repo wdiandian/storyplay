@@ -11,7 +11,6 @@ import {
 import type { Locale } from "./config";
 import {
   DEFAULT_LOCALE,
-  LOCALE_STORAGE_KEY,
   getInitialLocale,
   setLocale as saveLocale,
 } from "./config";

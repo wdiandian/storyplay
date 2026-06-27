@@ -1,0 +1,46 @@
+{
+  "name": "reference-priority",
+  "characters": [
+    {
+      "name": "Xia Hai",
+      "voiceDescription": "female voice",
+      "basePortraitUrl": "https://cdn.example/xiahai.png",
+      "basePortraitUuid": "uuid-xiahai"
+    },
+    {
+      "name": "Ming",
+      "voiceDescription": "male voice",
+      "basePortraitUuid": "uuid-ming"
+    },
+    {
+      "name": "Rin",
+      "voiceDescription": "female voice",
+      "basePortraitUrl": "https://cdn.example/rin.png"
+    }
+  ],
+  "beat": {
+    "id": "b1",
+    "speaker": "Xia Hai",
+    "activeCharacters": [
+      {
+        "name": "Ming"
+      },
+      {
+        "name": "Rin"
+      }
+    ],
+    "next": {
+      "type": "continue",
+      "nextBeatId": "b1"
+    }
+  },
+  "priorSceneImage": "prior-scene-ref",
+  "styleReferenceImage": "style-ref",
+  "expectedRefs": [
+    "style-ref",
+    "prior-scene-ref",
+    "https://cdn.example/xiahai.png",
+    "uuid-ming"
+  ]
+}
+

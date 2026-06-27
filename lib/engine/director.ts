@@ -1,5 +1,5 @@
-import { chat } from "@infiplot/ai-client";
-import { coerceOrientation } from "@infiplot/types";
+import { chat } from "@storyplay/ai-client";
+import { coerceOrientation } from "@storyplay/types";
 import type {
   Beat,
   BeatChoice,
@@ -14,7 +14,7 @@ import type {
   StoryState,
   StoryStatePatch,
   WriterScenePlan,
-} from "@infiplot/types";
+} from "@storyplay/types";
 import type { CharacterCard } from "./agents/characterDesigner";
 import {
   designCharacterCard,
@@ -28,46 +28,37 @@ import type { WriterBeatsOutput } from "./agents/writer";
 import {
   coercePlanFromRaw,
   isPovName,
-  normalizeSpeakerName,
-  POV_DISPLAY_NAME,
+  minimalFallbackPlan,
   runWriterStream,
 } from "./agents/writer";
 import { routeTaggedStream } from "./stream";
 import { splitProseToBeats } from "./stream/proseSplitter";
-import { parseJsonLoose } from "./jsonParser";
 import { INSERT_BEAT_SYSTEM, buildInsertBeatUserMessage } from "./prompts";
+import { insertBeatContract, runAgent } from "./agent-system";
+import type { AgentContract } from "./agent-system";
+import {
+  fallbackInsertBeatPartial,
+  parseInsertBeatOutput,
+} from "./agent-system/agents/insert-beat/parser";
 
-// ══════════════════════════════════════════════════════════════════════
-//  director.ts — multi-agent orchestrator for one full Scene generation.
+// director.ts orchestrates one full scene generation.
 //
-//  Critical path (per Scene call):
+// Critical path per scene call:
 //
-//    Writer PHASE A — plan LLM (scene skeleton only, serial)
-//      │
-//      ├──────────────────────────┬───────────────────────────────────────┐
-//      ▼                           ▼                                       │
-//    Writer PHASE B            image pipeline (concurrent):                 │
-//    beats LLM                   CharacterCard LLM × N ∥ Cinematographer    │
-//    (full dialogue,             → entry-beat portraits (block Painter)     │
-//     overlapped)                → Painter (generateImage w/ refs)          │
-//      │                         → await overlapped: rest portraits+voices  │
-//      └──────────────────────────► await Phase B ◄────────────────────────┘
-//      ▼
-//    assemble Scene → { scene, sceneImageUrl, characters, storyState }
+// Writer plan stream unlocks character design, cinematography, and painting.
+// The story text continues streaming while the image pipeline runs, then the
+// director assembles { scene, sceneImageUrl, characters, storyState }.
 //
-//  Why split the Writer (the latency win): the image pipeline only needs the
-//  scene SUMMARY + entry roster + cast (Phase A) — NOT the dialogue (Phase B).
-//  Writing beats used to sit serially in FRONT of the image; now it overlaps
-//  it, so the floor is max(beats, image) instead of beats + image.
+// The latency win: image work only needs the scene summary, entry roster, and
+// cast, not the final dialogue. Writing now overlaps painting.
 //
 //  The decouplings that unlock the rest of the parallelism:
 //   1. The Cinematographer only POSITIONS named characters, so it needs no
 //      visualDescription and runs alongside the card LLMs.
 //   2. The Painter only needs visualDescription TEXT (all on-stage) + the
 //      entry-beat characters' PORTRAITS (its referenceImages). Voices are
-//      never needed to paint, and non-entry portraits are never referenced —
+//      never needed to paint, and non-entry portraits are never referenced,
 //      so both overlap the (longest) paint call instead of blocking it.
-// ══════════════════════════════════════════════════════════════════════
 
 function newSceneId(): string {
   return `scene_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -115,13 +106,13 @@ export function mergeCharacters(
 }
 
 // Pick a reference to the prior scene image when sceneKey matches a prior
-// scene — used by the Painter as one of the `referenceImages` (NOT as a
+// scene -used by the Painter as one of the `referenceImages` (NOT as a
 // seedImage, because FLUX.2 [klein] 9B KV does not support seedImage).
 //
 // Prefer URL over UUID for the same reason painter.collectReferenceImages
 // does: the UUID returned by `imageInference` isn't always recognized by
 // Runware's `referenceImages` pipeline, surfacing as `failedToTransferImage`.
-// The URL is Runware's own CDN link — they can always fetch it. UUID is kept
+// The URL is Runware's own CDN link -they can always fetch it. UUID is kept
 // as a backstop. Returns undefined when no prior scene shares the sceneKey.
 function pickPriorSceneReference(
   session: Session,
@@ -162,6 +153,13 @@ function applyStoryStatePatch(
   };
 }
 
+export function buildFallbackVoiceDescription(
+  name: string,
+  session: Pick<Session, "worldSetting">,
+): string {
+  return `请根据角色名「${name}」推断其性别、年龄与气质。所属世界观：${session.worldSetting}`;
+}
+
 export type SceneResult = {
   scene: Scene;
   sceneImageUrl: string;
@@ -169,23 +167,9 @@ export type SceneResult = {
   storyState: StoryState;
 };
 
-// Absolute-worst-case plan when the stream produced no usable <plan> at all
-// (StreamRouter degraded with no extractable plan). Keeps the pipeline alive.
-function minimalFallbackPlan(): WriterScenePlan {
-  return {
-    sceneSummary: "未指定场景概要",
-    sceneKey: undefined,
-    entryBeatId: "b1",
-    cast: [],
-    entryActiveCharacters: [],
-    entrySpeaker: undefined,
-  };
-}
 
-// ──────────────────────────────────────────────────────────────────────
-//  directScene — the multi-agent pipeline. Used by orchestrator's
+//  directScene -the multi-agent pipeline. Used by orchestrator's
 //  startSession and requestScene.
-// ──────────────────────────────────────────────────────────────────────
 
 export async function directScene(
   config: EngineConfig,
@@ -194,21 +178,18 @@ export async function directScene(
 ): Promise<SceneResult> {
   const tTotal = Date.now();
 
-  // ══════════════════════════════════════════════════════════════════════
-  //  Paradigm D — single Writer stream + StreamRouter dispatch
+  //  Paradigm D -single Writer stream + StreamRouter dispatch
   //
-  //  One LLM call produces <plan> → <story> → <choices>. StreamRouter
+  //  One LLM call produces <plan> -><story> -><choices>. StreamRouter
   //  cuts the tags; </plan> closure resolves the plan deferred, unlocking
   //  the downstream image pipeline IN PARALLEL with the still-streaming
   //  <story>. Prose is split into Beat[] after routing completes.
-  // ══════════════════════════════════════════════════════════════════════
 
-  // ── Step 1 — kick off the Writer stream + routing ─────────────────
   const tStream = Date.now();
   const writerResult = runWriterStream(config.text, session);
 
   // Deferred that settles when onPlan fires (or when routing completes
-  // without a plan — degraded fallback).
+  // without a plan -degraded fallback).
   let planSettled = false;
   let resolvePlan!: (p: WriterScenePlan) => void;
   const planPromise = new Promise<WriterScenePlan>((res) => {
@@ -216,7 +197,7 @@ export async function directScene(
   });
 
   // Closure-captured coerced plan so onStoryComplete can split+emit beats
-  // DURING streaming (before painter finishes → text-first progressive play).
+  // DURING streaming (before painter finishes ->text-first progressive play).
   let coercedPlanRef: WriterScenePlan | undefined;
   let earlyBeatsOut: WriterBeatsOutput | undefined;
   // Opening-scene story bible from the Writer's <plan> (replaces the old
@@ -245,7 +226,7 @@ export async function directScene(
         earlyBeatsOut = out;
         for (const b of out.beats) emit?.({ type: "beat", beat: b });
       } catch {
-        // split failure → Step 6 re-splits from rawStorySegment
+        // split failure ->Step 6 re-splits from rawStorySegment
       }
     },
   }).then((result) => {
@@ -261,9 +242,8 @@ export async function directScene(
     return result;
   });
 
-  // ── Step 2 — await plan (settles at </plan> close — EARLY) ────────
   const plan = await planPromise;
-  tlog("[directScene] plan (stream → </plan>)", tStream);
+  tlog("[directScene] plan (stream -></plan>)", tStream);
 
   // From here the pipeline is structurally identical to the old Phase A
   // flow: plan drives character design + cinematographer + painter, all
@@ -287,7 +267,6 @@ export async function directScene(
     plan.sceneKey,
   );
 
-  // ── Step 3 — character cards (LLM) ∥ Cinematographer (parallel) ───
   // CharacterDesigner now receives the Writer's intent for each character
   // (paradigm D: media translator, not inventor).
   const tParallel = Date.now();
@@ -302,7 +281,7 @@ export async function directScene(
         console.error(`[directScene] designCharacterCard(${name}) failed: ${msg}`);
         return {
           name,
-          voiceDescription: `请根据角色名「${name}」推断其性别、年龄与气质。所属世界观：${session.worldSetting}`,
+          voiceDescription: buildFallbackVoiceDescription(name, session),
         };
       },
     ),
@@ -332,7 +311,6 @@ export async function directScene(
     })),
   );
 
-  // ── Step 4 — portraits + voices, scheduled around Painter ─────────
   const tProvision = Date.now();
 
   const entryNames = new Set<string>();
@@ -364,7 +342,7 @@ export async function directScene(
 
   // Kick off voice provisioning for every NEW char (never on the paint path).
   // On the StepFun path, thread the LLM-selected stepfunVoiceId from the card
-  // into provision — it lets stepfunProvision honor the catalog pick instead
+  // into provision -it lets stepfunProvision honor the catalog pick instead
   // of falling back to the keyword scorer (same network cost: still zero).
   const voicePromises = cards.map((card) =>
     provisionCharacterVoice(config, card.voiceDescription, card.name, {
@@ -395,7 +373,6 @@ export async function directScene(
   );
   tlog("[directScene] entry-beat portraits", tProvision);
 
-  // ── Step 5 — Painter ──────────────────────────────────────────────
   const onStageCharacters = characters.filter((c) => plan.cast.includes(c.name));
   const orientation = coerceOrientation(session.orientation);
 
@@ -414,7 +391,7 @@ export async function directScene(
   );
   tlog("[directScene] Painter", tPainter);
 
-  // Emit background as soon as it's painted — the client can swap the
+  // Emit background as soon as it's painted -the client can swap the
   // placeholder for the real scene image while beats/voices are still settling.
   emit?.({ type: "background", imageUrl: painted.imageUrl, sceneKey: plan.sceneKey });
 
@@ -436,7 +413,6 @@ export async function directScene(
   characters = mergeCharacters(characters, voicedChars);
   tlog("[directScene] overlapped portraits+voices", tOverlap);
 
-  // ── Step 6 — await routing completion + split prose into beats ────
   // routeTaggedStream ran concurrently with the entire image pipeline.
   // onStoryComplete likely already fired (splitting + emitting beats for
   // progressive playback); this await retrieves the final result + rawStorySegment.
@@ -449,7 +425,7 @@ export async function directScene(
   let beats = beatsOut.beats;
 
   // If earlyBeatsOut was missed but rawStorySegment is available, emit beats
-  // now (late but still before done — the client gets them for rendering).
+  // now (late but still before done -the client gets them for rendering).
   if (!earlyBeatsOut && beats.length > 0) {
     for (const b of beats) emit?.({ type: "beat", beat: b });
   }
@@ -459,13 +435,12 @@ export async function directScene(
     emit?.({ type: "choices", choices: streamResult.choices });
   }
 
-  // ── C1-ext: merge <choices> segment into the last beat's `next` ────
   // The Writer's <choices> segment produces scene-level exits that are NOT
   // embedded in the beats graph. Attach them to the final beat so the player
   // can actually pick them.
   //
   // IMPORTANT: Only change-scene exits are valid here. The prose paradigm
-  // assigns beat ids automatically (b1, b2, ...) in proseSplitter — the LLM
+  // assigns beat ids automatically (b1, b2, ...) in proseSplitter -the LLM
   // has no knowledge of these ids, so any advance-beat targetBeatId it emits
   // in <choices> will point at the wrong beat, causing a loop.
   if (streamResult.choices?.length && beats.length > 0) {
@@ -504,14 +479,14 @@ export async function directScene(
   }
 
   if (streamResult.degraded) {
-    console.warn("[directScene] Writer stream was degraded — beats may be fallback");
+    console.warn("[directScene] Writer stream was degraded -beats may be fallback");
   }
 
   const entryBeatId = beats.some((b) => b.id === plan.entryBeatId)
     ? plan.entryBeatId
     : beats[0]!.id;
 
-  // Orphan-speaker voices (defensive net — should be rare).
+  // Orphan-speaker voices (defensive net -should be rare).
   const orphanSpeakers = [
     ...new Set(beats.map((b) => b.speaker).filter((n): n is string => Boolean(n))),
   ].filter((n) => !isPovName(n) && !characters.some((c) => c.name === n));
@@ -561,46 +536,38 @@ export async function directScene(
   return { scene, sceneImageUrl: painted.imageUrl, characters, storyState };
 }
 
-// ──────────────────────────────────────────────────────────────────────
-//  directInsertBeat — single-agent path for vision-driven in-scene
+//  directInsertBeat -single-agent path for vision-driven in-scene
 //  exploration. Generates ONE transient beat with NO new image, NO new
 //  characters. Multi-agent pipeline doesn't apply here (no rendering, no
 //  character introduction allowed by the prompt).
-// ──────────────────────────────────────────────────────────────────────
 
 export async function directInsertBeat(
   config: ProviderConfig,
   session: Session,
   freeformAction: string,
 ): Promise<InsertBeatPartial> {
-  const raw = await chat(
-    config,
-    [
-      { role: "system", content: INSERT_BEAT_SYSTEM },
-      {
-        role: "user",
-        content: buildInsertBeatUserMessage(session, freeformAction),
-      },
-    ],
-    { temperature: 0.9, tag: "insert-beat" },
+  const result = await runAgent(
+    {
+      ...insertBeatContract,
+      fallback: fallbackInsertBeatPartial,
+    } as AgentContract<{ session: Session; freeformAction: string }, InsertBeatPartial>,
+    { session, freeformAction },
+    async () => {
+      const raw = await chat(
+        config,
+        [
+          { role: "system", content: INSERT_BEAT_SYSTEM },
+          {
+            role: "user",
+            content: buildInsertBeatUserMessage(session, freeformAction),
+          },
+        ],
+        { temperature: 0.9, tag: "insert-beat" },
+      );
+
+      return { raw, output: parseInsertBeatOutput(raw) };
+    },
   );
 
-  const parsed = parseJsonLoose<InsertBeatPartial>(raw);
-
-  const narration = parsed.narration?.trim() || undefined;
-  const rawSpeaker = parsed.speaker?.trim() || undefined;
-  // Pattern B (mirrors Writer): normalize POV variants → "你"; NPCs pass through.
-  const speaker = rawSpeaker ? normalizeSpeakerName(rawSpeaker) : undefined;
-  const line = parsed.line?.trim() || undefined;
-  // lineDelivery is only meaningful for NPC speakers (TTS). For POV ("你")
-  // TTS is intentionally skipped on the client, so lineDelivery is dropped.
-  const lineDelivery =
-    line && speaker !== POV_DISPLAY_NAME
-      ? parsed.lineDelivery?.trim() || undefined
-      : undefined;
-
-  if (!narration && !speaker && !line) {
-    return { narration: "（你停下脚步，环视片刻。）" };
-  }
-  return { narration, speaker, line, lineDelivery };
+  return result.output;
 }

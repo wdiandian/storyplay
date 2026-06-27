@@ -1,5 +1,5 @@
-import { visionDecide } from "@infiplot/engine";
-import type { VisionRequest } from "@infiplot/types";
+import { visionDecide } from "@storyplay/engine";
+import type { VisionRequest } from "@storyplay/types";
 import { NextResponse } from "next/server";
 import { loadEngineConfig, buildByoEngineConfig } from "@/lib/config";
 import { requireUser } from "@/lib/supabase/guard";

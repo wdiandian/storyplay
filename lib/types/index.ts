@@ -543,6 +543,11 @@ export type StartRequest = {
   orientation?: Orientation;
   /** Optional player display name — see Session.playerName. */
   playerName?: string;
+  /** Optional creator/discovery source metadata for published StoryProject SKUs. */
+  source?: "story-project" | "creator-sku" | "prompt" | "preset";
+  projectId?: string;
+  projectTitle?: string;
+  skuId?: string;
   /** Active UI locale — see Session.language. Drives the engine's language
    *  directive so AI output is generated in the player's chosen language. */
   language?: string;

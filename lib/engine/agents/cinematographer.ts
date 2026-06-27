@@ -1,10 +1,9 @@
-import { chat } from "@infiplot/ai-client";
-import type { BeatActiveCharacter, ProviderConfig } from "@infiplot/types";
-import { parseJsonLoose } from "../jsonParser";
+import type { BeatActiveCharacter, ProviderConfig } from "@storyplay/types";
 import {
-  CINEMATOGRAPHER_SYSTEM,
-  buildCinematographerUserMessage,
-} from "../prompts";
+  cinematographerContract,
+  runTextAgent,
+} from "../agent-system";
+import type { AgentContract } from "../agent-system";
 
 // ──────────────────────────────────────────────────────────────────────
 //  Cinematographer agent — translates the Writer's narrative scene
@@ -29,11 +28,6 @@ export type CinematographerOutput = {
   integratedPrompt: string;
 };
 
-type RawCinematographerOutput = {
-  shotType?: string;
-  integratedPrompt?: string;
-};
-
 export type CinematographerInput = {
   sceneSummary: string;
   styleGuide: string;
@@ -51,36 +45,15 @@ export async function runCinematographer(
   config: ProviderConfig,
   input: CinematographerInput,
 ): Promise<CinematographerOutput> {
-  const raw = await chat(
+  const result = await runTextAgent(
     config,
-    [
-      { role: "system", content: CINEMATOGRAPHER_SYSTEM },
-      {
-        role: "user",
-        content: buildCinematographerUserMessage(
-          input.sceneSummary,
-          input.styleGuide,
-          input.entryBeatActive,
-          input.entryBeatSpeaker,
-          input.priorSceneKey,
-          input.currentSceneKey,
-        ),
-      },
-    ],
+    cinematographerContract as AgentContract<
+      CinematographerInput,
+      CinematographerOutput
+    >,
+    input,
     { temperature: 0.6, tag: "cinematographer" },
   );
 
-  const parsed = parseJsonLoose<RawCinematographerOutput>(raw);
-
-  // Fallback: if the LLM produced nothing usable, synthesize a minimal
-  // integratedPrompt from the Writer's sceneSummary so the Painter has
-  // SOMETHING to work with rather than blowing up the whole pipeline.
-  const integratedPrompt =
-    parsed.integratedPrompt?.trim() ||
-    `A cinematic illustration depicting: ${input.sceneSummary}. Wide establishing shot, natural lighting, atmospheric mood.`;
-
-  return {
-    shotType: parsed.shotType?.trim() || "medium shot",
-    integratedPrompt,
-  };
+  return result.output;
 }

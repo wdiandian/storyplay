@@ -5,8 +5,8 @@ export const en = {
   // ========== Layout ==========
   layout: {
     metadata: {
-      title: "InfiPlot — AI Real-time Interactive Story Game",
-      description: "InfiPlot is an interactive story game demo that uses AI to generate images, voice, and story branches in real-time.",
+      title: "StoryPlay - AI interactive story game",
+      description: "StoryPlay turns a story idea into a playable AI interactive visual story.",
     },
   },
 
@@ -143,21 +143,74 @@ Dreamy watercolor style with soft tones and nostalgic atmosphere
     },
 
     hero: {
-      title: "What story do you want to experience today?",
+      title: "Stories Made Playable",
       placeholder: " ",
       enterHint: "Enter to send · Shift+Enter for newline",
+      helpAriaLabel: "Show creation help",
+      helpText: (params: { authEnabled?: boolean }) => {
+        const authHint = params.authEnabled ? " Login is required during beta, and play is free." : "";
+        return `Describe a story idea, then use the bottom controls to set audience, art style, plot style, and pacing. A fuller creator editor will be connected in a later phase.${authHint}`;
+      },
+    },
+
+    storyTaxonomy: {
+      eyebrow: "Story Categories",
+      title: "Explore by Story Type",
+      all: "All",
+      empty: "No stories in this type yet.",
+      genres: {
+        romance: "Romance",
+        mystery: "Mystery",
+        fantasy: "Fantasy",
+        urban: "Urban",
+        campus: "Campus",
+        workplace: "Workplace",
+        sciFi: "Sci-Fi",
+        historical: "Historical",
+        adventure: "Adventure",
+        growth: "Growth",
+      },
+      moods: {
+        sweet: "Sweet",
+        angsty: "Angsty",
+        tense: "Tense",
+        healing: "Healing",
+        flirty: "Flirty",
+        powerFantasy: "Power Fantasy",
+        dark: "Dark",
+        romantic: "Romantic",
+        eerie: "Eerie",
+      },
+      structures: {
+        linear: "Linear",
+        branching: "Branching",
+        shortDramaTwist: "Short Drama Twist",
+        relationship: "Relationship",
+        puzzle: "Puzzle",
+        progression: "Progression",
+      },
+      visualStyles: {
+        cinematic: "Cinematic",
+        lightNovel: "Light Novel",
+        anime: "Anime",
+        realistic: "Realistic",
+        gothic: "Gothic",
+        cyberpunk: "Cyberpunk",
+        chineseFantasy: "Chinese Fantasy",
+        popArt: "Pop Art",
+      },
     },
 
     hint: {
       text: (params: { authEnabled?: boolean }) => {
         const authHint = params.authEnabled ? ' (login required during beta, free to play)' : '';
-        return `Enter your ideas, configure styles, and click "Start" to play${authHint}. You can also pick a curated story from below to quickly experience <em class="not-italic text-ember-500">InfiPlot</em>. Click "<span class="inline-flex items-center gap-1 text-ember-500"><i class="fa-solid fa-gear text-[10px]"></i>Settings</span>" to enter your name and configure your own text, image, vision models and TTS keys—all stored locally in your browser for a more stable experience.`;
+        return `Enter your ideas, configure styles, and click "Start" to play${authHint}. You can also pick a curated story from below to quickly experience <em class="not-italic text-ember-500">StoryPlay</em>. Click "<span class="inline-flex items-center gap-1 text-ember-500"><i class="fa-solid fa-gear text-[10px]"></i>Settings</span>" to enter your name and configure your own text, image, vision models and TTS keys-all stored locally in your browser for a more stable experience.`;
       },
       closeAriaLabel: "Don't show this hint again",
     },
 
     about: {
-      title: "InfiPlot",
+      title: "StoryPlay",
       description: "is an interactive story game that uses AI to generate content in real-time — images, voice, and story branches are all generated during gameplay.",
       team: "TEAM",
       teamText: "We are from universities including Tsinghua University and Lanzhou University, hoping to explore more possibilities of multimodal models beyond oneshot capabilities like direct image and video generation. This project is still in its early stages, and we are recruiting. If you're interested, please contact us—we look forward to your joining.",
@@ -166,7 +219,7 @@ Dreamy watercolor style with soft tones and nostalgic atmosphere
       openSource: "OPEN SOURCE",
       betaUsers: "BETA USERS",
       qqGroupLabel: "QQ Group: ",
-      qqGroupAlt: "InfiPlot Public Beta Group QR Code (Group ID: 575404333)",
+      qqGroupAlt: "StoryPlay public beta group QR code (Group ID: 575404333)",
       legalNotice: (params: { analyticsOn?: boolean }) => {
         const base = "During public beta, this product is free to use but stability may vary with concurrent user load.<br />Content generated during public beta is not saved on servers. To preserve your experience, use the export gallery or story sharing features after playing.<br />AI-generated content does not represent our team's stance.";
         if (params.analyticsOn) {
@@ -176,7 +229,7 @@ Dreamy watercolor style with soft tones and nostalgic atmosphere
       },
       privacyPolicy: "Privacy Policy",
       terms: "Terms of Service",
-      copyright: "© 2026 InfiPlot. All rights reserved.",
+      copyright: "© 2026 StoryPlay. All rights reserved.",
     },
 
     errors: {
@@ -215,7 +268,7 @@ Dreamy watercolor style with soft tones and nostalgic atmosphere
       enterFullscreen: "Enter Fullscreen",
       exportGallery: "Export current session as interactive gallery link (with voice; keeps only the 2 most recent gallery links)",
       exportGalleryLabel: "Export Interactive Gallery",
-      shareStory: "Export current session as playable .infiplot story file (with voice)",
+      shareStory: "Export current session as playable .storyplay story file (with voice)",
       shareStoryLabel: "Share Current Story",
       mute: "Mute",
       unmute: "Unmute",

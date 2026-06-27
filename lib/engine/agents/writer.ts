@@ -1,4 +1,4 @@
-import { chatStream } from "@infiplot/ai-client";
+import { chatStream } from "@storyplay/ai-client";
 import type {
   Beat,
   BeatActiveCharacter,
@@ -11,31 +11,26 @@ import type {
   StoryStatePatch,
   WriterPlan,
   WriterScenePlan,
-} from "@infiplot/types";
-import { parseJsonLoose } from "../jsonParser";
-import { buildWriterStreamMessages } from "../prompts";
+} from "@storyplay/types";
+import { writerContract } from "../agent-system";
+import type { AgentContract } from "../agent-system";
 
-// ──────────────────────────────────────────────────────────────────────
-//  Writer agent — owns the narrative half of scene generation, in TWO phases.
+// Writer agent owns the narrative half of scene generation.
 //
-//  Phase A — runWriterPlan: the scene skeleton (WriterPlan) the image pipeline
-//    needs (sceneSummary + sceneKey + entry roster + full cast). No dialogue,
-//    so it returns fast and unblocks the Cinematographer + character design.
-//  Phase B — runWriterBeats: the full beats[] graph + storyStatePatch, written
-//    to honor the plan and overlapped with the (longer) image pipeline.
+// Phase A produces the scene skeleton the image pipeline needs.
+// Phase B produces the full beats[] graph and storyStatePatch.
 //
-//  Character DESIGN (visual + voice) is NOT this agent's job — it only NAMES
-//  characters (Phase A's cast); the CharacterDesigner picks up unknown names.
-// ──────────────────────────────────────────────────────────────────────
+// Character design is not this agent's job. It only names characters; the
+// CharacterDesigner picks up unknown names.
 
 export type WriterBeatsOutput = {
   beats: Beat[];
-  /** Rewritten volatile story memory — merged onto the carried StoryState by
+  /** Rewritten volatile story memory, merged onto the carried StoryState by
    *  the director. Absent when the model omitted it (rare; bible just stales). */
   storyStatePatch?: StoryStatePatch;
 };
 
-// Raw shapes — what the LLM produces before validation / coercion.
+// Raw shapes before validation / coercion.
 type RawActiveCharacter = {
   name?: string;
   pose?: string;
@@ -70,34 +65,20 @@ type RawStoryStatePatch = {
   relationships?: unknown;
   nextHook?: unknown;
 };
-// Phase A raw shape (skeleton only — no beats).
-type RawPlan = {
-  sceneSummary?: string;
-  sceneKey?: string;
-  entryBeatId?: string;
-  cast?: unknown;
-  entrySpeaker?: string;
-  entryActiveCharacters?: RawActiveCharacter[];
-};
-// Phase B raw shape (beats + memory only — plan fields come from runWriterPlan).
-type RawBeats = {
-  beats?: RawBeat[];
-  storyStatePatch?: RawStoryStatePatch;
-};
+// Phase A raw shape is skeleton only, no beats.
+// Phase B raw shape is beats + memory only; plan fields come from runWriterPlan.
 
-// ──────────────────────────────────────────────────────────────────────
-//  POV (player viewpoint) handling — Pattern B (galgame standard):
-//    - speaker = "你"      → ALLOWED (renders as dialog box, never TTS'd)
-//    - any other POV term  → normalized to "你" (LLM slip-up safety net)
-//    - activeCharacters    → POV is NEVER allowed (player has no body in-scene)
-//    - CharacterDesigner   → never invoked for "你" or POV variants
-// ──────────────────────────────────────────────────────────────────────
+// POV handling:
+// - speaker = "你" is allowed for dialog rendering, but never TTS'd.
+// - POV variants normalize to "你" as an LLM slip-up safety net.
+// - activeCharacters never includes POV, because the player has no body in-scene.
+// - CharacterDesigner is never invoked for "你" or POV variants.
 
-const POV_DISPLAY_NAME = "你";
+const POV_DISPLAY_NAME = "\u4f60";
 const POV_VARIANTS = new Set([
-  "玩家",
-  "我",
-  "主角",
+  "\u73a9\u5bb6",
+  "\u6211",
+  "\u4e3b\u89d2",
   "protagonist",
   "Protagonist",
   "player",
@@ -162,7 +143,7 @@ function coerceActiveCharacters(
     .map((c): BeatActiveCharacter | null => {
       const name = c.name?.trim();
       if (!name) return null;
-      // POV is never IN the picture — strip the LLM's slip-up silently so
+      // POV is never in the picture. Strip the LLM slip-up silently so
       // CharacterDesigner doesn't end up generating a portrait for the player.
       if (isPovName(name)) return null;
       const pose = c.pose?.trim();
@@ -184,8 +165,7 @@ function coerceBeat(raw: RawBeat, idx: number, totalBeats: number): Beat {
   // Normalize any POV variant (玩家/我/主角/protagonist/...) to "你".
   // NPC names pass through unchanged. This means the LLM can slip and
   // write "玩家" or "I" and we still render the dialog box correctly with
-  // speaker="你" — and TTS is automatically skipped because no Character
-  // record exists for "你".
+  // speaker="你". TTS is skipped because no Character record exists for "你".
   const speaker = rawSpeaker ? normalizeSpeakerName(rawSpeaker) : undefined;
 
   const line = raw.line?.trim() || undefined;
@@ -307,7 +287,7 @@ function repairBeats(beats: Beat[]): Beat[] {
 
 // Choice ids are keys the front-end uses to cache + consume prefetched
 // scenes. Two beats both defaulting to c1/c2 would make a transition reuse
-// the WRONG prefetched scene — so force every choice id to be unique within
+// the wrong prefetched scene, so force every choice id to be unique within
 // the scene.
 function ensureUniqueChoiceIds(beats: Beat[]): Beat[] {
   const seen = new Set<string>();
@@ -326,7 +306,7 @@ function ensureUniqueChoiceIds(beats: Beat[]): Beat[] {
 }
 
 // Normalize sceneKey to a safe lowercase-with-dashes English slug. If the
-// model returns something weird (中文 / spaces / mixed case), best-effort
+// model returns something weird (Chinese / spaces / mixed case), best-effort
 // fix; if it ends up empty, return undefined (the scene just won't be
 // considered for img2img reuse).
 function normalizeSceneKey(raw: string | undefined): string | undefined {
@@ -368,7 +348,7 @@ export function coerceStoryStatePatch(
   return Object.keys(patch).length > 0 ? patch : undefined;
 }
 
-// Phase A — dedupe + clean the planned cast. Drops the POV player (never
+// Phase A: dedupe + clean the planned cast. Drops the POV player (never
 // designed) and any blank/duplicate name. Order is preserved.
 function coerceCast(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
@@ -407,7 +387,7 @@ function renameBeatId(beats: Beat[], from: string, to: string): Beat[] {
   });
 }
 
-// Fallback — when the Writer stream fails to yield usable beats, keep the scene
+// Fallback: when the Writer stream fails to yield usable beats, keep the scene
 // playable with a single entry beat synthesized from the plan: narrate the
 // planned summary and offer one change-scene exit so the player can advance.
 export function synthesizeFallbackBeats(plan: WriterPlan): Beat[] {
@@ -425,12 +405,21 @@ export function synthesizeFallbackBeats(plan: WriterPlan): Beat[] {
   ];
 }
 
+export function minimalFallbackPlan(): WriterScenePlan {
+  return {
+    sceneSummary: "未指定的场景概要",
+    sceneKey: undefined,
+    entryBeatId: "b1",
+    cast: [],
+    entryActiveCharacters: [],
+    entrySpeaker: undefined,
+  };
+}
+
 // Re-export POV constants for downstream filters (director's orphan voices).
 export { POV_DISPLAY_NAME, POV_VARIANTS, isPovName, normalizeSpeakerName };
 
-// ──────────────────────────────────────────────────────────────────────
-//  Paradigm D — single-pass streaming Writer
-// ──────────────────────────────────────────────────────────────────────
+// Paradigm D: single-pass streaming Writer.
 
 /**
  * Streaming Writer: single LLM call producing `<plan>/<story>/<choices>`
@@ -444,9 +433,10 @@ export function runWriterStream(
   config: ProviderConfig,
   session: Session,
 ): ChatStreamResult {
+  const contract = writerContract as AgentContract<Session, unknown>;
   return chatStream(
     config,
-    buildWriterStreamMessages(session),
+    contract.buildMessages!(session),
     { temperature: 0.9, tag: "writer-stream" },
   );
 }
@@ -493,7 +483,7 @@ export function coercePlanFromRaw(raw: Record<string, unknown>): WriterScenePlan
         }))
     : undefined;
 
-  // Story bible — first scene only. The Writer's <plan> includes a storyBible
+  // Story bible: first scene only. The Writer's <plan> includes a storyBible
   // sub-object on the opening scene (replacing the old Architect call). Absent
   // on subsequent scenes (the carried StoryState stays authoritative).
   const rawBible = raw.storyBible as Record<string, unknown> | undefined;
@@ -514,8 +504,8 @@ export function coercePlanFromRaw(raw: Record<string, unknown>): WriterScenePlan
   return {
     sceneSummary:
       typeof raw.sceneSummary === "string"
-        ? raw.sceneSummary.trim() || "未指定场景概要"
-        : "未指定场景概要",
+        ? raw.sceneSummary.trim() || "未指定的场景概要"
+        : "未指定的场景概要",
     sceneKey: normalizeSceneKey(
       typeof raw.sceneKey === "string" ? raw.sceneKey : undefined,
     ),
@@ -533,9 +523,9 @@ export function coercePlanFromRaw(raw: Record<string, unknown>): WriterScenePlan
 
 /**
  * Coerce raw beats into clean Beat[] + optional StoryStatePatch. Called by
- * proseSplitter (散文→RawBeat[]) and as fallback for degraded streams.
- * Reuses the full pipeline: coerceBeat → ensureUniqueBeatIds → repairBeats →
- * ensureUniqueChoiceIds → entry-id pinning.
+ * proseSplitter (prose -> RawBeat[]) and as fallback for degraded streams.
+ * Reuses the full pipeline: coerceBeat -> ensureUniqueBeatIds -> repairBeats ->
+ * ensureUniqueChoiceIds -> entry-id pinning.
  */
 export function coerceBeatsFromRaw(
   raw: unknown,

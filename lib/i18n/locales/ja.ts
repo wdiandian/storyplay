@@ -5,8 +5,8 @@ export const ja = {
   // ========== Layout ==========
   layout: {
     metadata: {
-      title: "InfiPlot — AIリアルタイムインタラクティブストーリーゲーム",
-      description: "InfiPlotは、AIを用いて画像、音声、ストーリー分岐をリアルタイムに生成するインタラクティブ・ストーリーゲームのデモです。",
+      title: "StoryPlay - AIインタラクティブストーリーゲーム",
+      description: "StoryPlayは、物語のアイデアをAIインタラクティブ映像ストーリーに変えるサービスです。",
     },
   },
 
@@ -156,23 +156,76 @@ export const ja = {
 
     // Hero section
     hero: {
-      title: "今日はどんな物語を体験したいですか？",
+      title: "物語をプレイできる体験へ",
       placeholder: " ",
       enterHint: "Enterで送信 Shift+Enterで改行",
+      helpAriaLabel: "作成ヘルプを表示",
+      helpText: (params: { authEnabled?: boolean }) => {
+        const authHint = params.authEnabled ? " ベータ期間中はログインが必要で、無料でプレイできます。" : "";
+        return `物語のアイデアを入力し、下部の設定で対象、画風、シナリオスタイル、テンポをすばやく調整できます。より本格的なクリエイター編集ツールは後続フェーズで接続します。${authHint}`;
+      },
+    },
+
+    storyTaxonomy: {
+      eyebrow: "Story Categories",
+      title: "物語タイプから探す",
+      all: "すべて",
+      empty: "このタイプの物語はまだありません。",
+      genres: {
+        romance: "恋愛",
+        mystery: "ミステリー",
+        fantasy: "ファンタジー",
+        urban: "都市",
+        campus: "学園",
+        workplace: "職場",
+        sciFi: "SF",
+        historical: "歴史",
+        adventure: "冒険",
+        growth: "成長",
+      },
+      moods: {
+        sweet: "甘い",
+        angsty: "切ない",
+        tense: "緊張感",
+        healing: "癒やし",
+        flirty: "曖昧",
+        powerFantasy: "爽快",
+        dark: "ダーク",
+        romantic: "ロマンチック",
+        eerie: "不穏",
+      },
+      structures: {
+        linear: "一本道",
+        branching: "分岐",
+        shortDramaTwist: "短劇反転",
+        relationship: "関係進行",
+        puzzle: "謎解き",
+        progression: "育成",
+      },
+      visualStyles: {
+        cinematic: "映画的",
+        lightNovel: "ライトノベル",
+        anime: "アニメ",
+        realistic: "写実",
+        gothic: "ゴシック",
+        cyberpunk: "サイバーパンク",
+        chineseFantasy: "中華風",
+        popArt: "ポップアート",
+      },
     },
 
     // Usage hint
     hint: {
       text: (params: { authEnabled?: boolean }) => {
         const authHint = params.authEnabled ? '（テスト期間中、ログインするだけで無料でプレイできます）' : '';
-        return `アイデアを入力し、スタイルを設定して、「開始」をクリックするだけでプレイできます${authHint}。また、下の厳選ストーリー集から1つ選んで、すぐに <em class="not-italic text-ember-500">InfiPlot</em> を体験することもできます。「<span class="inline-flex items-center gap-1 text-ember-500"><i class="fa-solid fa-gear text-[10px]"></i>設定</span>」をクリックすると、あなたの名前や、ご自身のテキスト、画像生成、画像認識モデル、そしてボイス Key を入力することもできます。これらはすべてローカルブラウザにのみ保存されるため、より安定して体験できます。`;
+        return `アイデアを入力し、スタイルを設定して、「開始」をクリックするだけでプレイできます${authHint}。また、下の厳選ストーリー集から1つ選んで、すぐに <em class="not-italic text-ember-500">StoryPlay</em> を体験することもできます。「<span class="inline-flex items-center gap-1 text-ember-500"><i class="fa-solid fa-gear text-[10px]"></i>設定</span>」をクリックすると、あなたの名前や、ご自身のテキスト、画像生成、画像認識モデル、そしてボイス Key を入力することもできます。これらはすべてローカルブラウザにのみ保存されるため、より安定して体験できます。`;
       },
       closeAriaLabel: "今後このメッセージを表示しない",
     },
 
     // About section
     about: {
-      title: "InfiPlot",
+      title: "StoryPlay",
       description: "AIでコンテンツをリアルタイムに生成するインタラクティブ・ストーリーゲームです——画像、音声、ストーリーの分岐がプレイ中にその場で生成されます。",
       team: "チーム",
       teamText: "私たちは清華大学や蘭州大学などの大学の出身で、マルチモーダルモデルにおける「画像や動画の直接生成」といったoneshot機能の枠を超えた、さらなる可能性を模索しています。本プロジェクトは現在まだ初期段階にあり、メンバーを募集中です。もしご興味がございましたら、ぜひご連絡ください。皆様のご参加を心よりお待ちしております。",
@@ -181,7 +234,7 @@ export const ja = {
       openSource: "ソースコード",
       betaUsers: "クローズドβユーザーグループ",
       qqGroupLabel: "QQグループ番号：",
-      qqGroupAlt: "InfiPlot オープンβ交流QQグループ QRコード（グループ番号 575404333）",
+      qqGroupAlt: "StoryPlay オープンβ交流QQグループ QRコード（グループ番号 575404333）",
       legalNotice: (params: { analyticsOn?: boolean }) => {
         const base = `公開テスト期間中、本製品は無料でご利用いただけますが、同時接続ユーザー数によって動作の安定性が変動する場合があります。<br />公開テスト期間中に生成されたコンテンツはサーバーに保存されません。保存が必要な場合は、プレイ終了後に図集のエクスポートまたはストーリー共有機能を使用して、プレイ体験を保存してください。<br />AIによって生成されたコンテンツは、当チームの立場を代表するものではありません。`;
         if (params.analyticsOn) {
@@ -191,7 +244,7 @@ export const ja = {
       },
       privacyPolicy: "プライバシーポリシー",
       terms: "利用規約",
-      copyright: "© 2026 InfiPlot. All rights reserved.",
+      copyright: "© 2026 StoryPlay. All rights reserved.",
     },
 
     // Story import errors
@@ -233,7 +286,7 @@ export const ja = {
       enterFullscreen: "全画面表示",
       exportGallery: "このプレイをインタラクティブギャラリーのリンクとしてエクスポート（ボイス付き。直近2回分のリンクのみが保持されます）",
       exportGalleryLabel: "インタラクティブな図表をエクスポート",
-      shareStory: "このプレイを続きからプレイ可能なシナリオ .infiplot（ボイス付き）としてエクスポート",
+      shareStory: "このプレイを続きからプレイ可能なシナリオ .storyplay（ボイス付き）としてエクスポート",
       shareStoryLabel: "現在のストーリーをシェア",
       mute: "ミュート",
       unmute: "ミュート解除",

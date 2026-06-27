@@ -34,7 +34,7 @@ export function LanguageSwitcher({ className = "", variant = "full" }: LanguageS
     // because that triggers a re-render with isLoading=true before the
     // browser navigates away, flashing translation keys for one frame.
     saveLocalePreference(newLocale);
-    window.location.href = newPath;
+    window.location.assign(newPath);
   }
 
   return (
@@ -44,8 +44,8 @@ export function LanguageSwitcher({ className = "", variant = "full" }: LanguageS
         onClick={() => setIsOpen(!isOpen)}
         className={
           variant === "compact"
-            ? "inline-flex items-center gap-1.5 text-base text-clay-500 hover:text-ember-500 transition-colors"
-            : "flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-clay-100 transition-colors text-clay-700"
+            ? "inline-flex items-center gap-1.5 rounded-full border border-sp-border bg-sp-surface/82 px-3 py-2 text-sm text-sp-subdued shadow-sm shadow-black/[0.04] outline-none backdrop-blur transition-colors hover:border-sp-accent hover:text-sp-accent focus-visible:ring-2 focus-visible:ring-sp-focus/40"
+            : "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sp-text transition-colors hover:bg-sp-muted"
         }
         aria-label={t("language.select")}
         title={t("language.select")}
@@ -69,15 +69,15 @@ export function LanguageSwitcher({ className = "", variant = "full" }: LanguageS
             onClick={() => setIsOpen(false)}
             aria-hidden="true"
           />
-          <div className="absolute right-0 top-full mt-1 w-44 overflow-hidden rounded-sm border border-clay-900/15 bg-cream-50 shadow-xl shadow-clay-900/10 z-20">
+          <div className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-xl border border-sp-border bg-sp-surface shadow-xl shadow-black/10">
             <div className="py-1">
               {LOCALES.map((loc) => (
                 <button
                   key={loc}
                   type="button"
                   onClick={() => switchTo(loc)}
-                  className={`flex w-full items-center justify-between px-3 py-1.5 text-sm font-serif transition-colors hover:bg-cream-100 ${
-                    locale === loc ? "text-ember-500" : "text-clay-700"
+                  className={`flex w-full items-center justify-between px-3 py-2 text-sm font-serif transition-colors hover:bg-sp-muted ${
+                    locale === loc ? "text-sp-accent" : "text-sp-text"
                   }`}
                 >
                   {LOCALE_NAMES[loc]}

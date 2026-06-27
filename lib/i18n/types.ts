@@ -1,5 +1,3 @@
-import type { Locale } from "./config";
-
 // Translation value type - can be a string or a function that takes parameters
 export type TranslationValue = string | ((params: Record<string, string | number>) => string);
 

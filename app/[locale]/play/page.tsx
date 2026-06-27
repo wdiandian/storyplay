@@ -29,7 +29,7 @@ import {
   parseStoryShareDoc,
   storyShareFilename,
 } from "@/lib/storyShare";
-import { provisionVoice, synthesize } from "@infiplot/tts-client";
+import { provisionVoice, synthesize } from "@storyplay/tts-client";
 import {
   startSession,
   requestScene,
@@ -52,7 +52,8 @@ import type {
   StartResponse,
   TtsConfig,
   TtsProvider,
-} from "@infiplot/types";
+} from "@storyplay/types";
+import type { PublishedOpeningPackage } from "@/lib/storyProject/openingPackage";
 import { track } from "@/lib/analytics";
 import { AUTH_ENABLED } from "@/lib/supabase/config";
 import { writeResumeSnapshot, consumeResumeSnapshot } from "@/lib/authResume";
@@ -61,14 +62,14 @@ import { UserChip } from "@/components/UserChip";
 import { useI18n } from "@/lib/i18n/client";
 import { useLocalePath } from "@/lib/i18n/hooks";
 
-const MUTED_STORAGE_KEY = "infiplot:muted";
+const MUTED_STORAGE_KEY = "storyplay:muted";
 // One-shot snapshot of in-progress game state, written just before an OAuth
 // full-page redirect (Google/GitHub) so the play page can resume the exact
 // scene/beat after the round-trip. The redirect unmounts the app and destroys
 // the in-memory Session (the server is stateless), so without this the play
 // page re-bootstraps from `?card=…` and restarts the story. OTP login keeps
 // state in-memory (no redirect) and never writes this. Consumed once on mount.
-const PLAY_RESUME_KEY = "infiplot:play-resume";
+const PLAY_RESUME_KEY = "storyplay:play-resume";
 
 // Serializable form of the action intercepted by a 401. `persistPlayResume`
 // stashes whichever one is pending into sessionStorage; the deferred-replay
@@ -77,6 +78,16 @@ type PendingResumeAction =
   | { kind: "choice"; choice: BeatChoice }
   | { kind: "freeform"; text: string }
   | { kind: "background-click"; x: number; y: number };
+
+function openingPackageToStartResponse(openingPackage: PublishedOpeningPackage): StartResponse {
+  return {
+    sessionId: `s_opening_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    scene: openingPackage.scene,
+    imageUrl: openingPackage.imageUrl,
+    characters: openingPackage.characters,
+    storyState: openingPackage.storyState,
+  };
+}
 
 // Shape written to sessionStorage[PLAY_RESUME_KEY]. `imageOriginalUrl` is the
 // remote CDN URL (never the blob: URL — those are revoked on unmount and won't
@@ -614,14 +625,14 @@ function PlayInner() {
   const [currentBeatId, setCurrentBeatId] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [beatAudioMap, setBeatAudioMap] = useState<Record<string, string>>({});
-  // Lazy-initialize 优先级：本局选择(homepage 的「语音配音」存到 sessionStorage:infiplot:custom)
-  // > 上次会话的粘性偏好(localStorage:infiplot:muted) > 默认非静音。
+  // Lazy-initialize 优先级：本局选择(homepage 的「语音配音」存到 sessionStorage:storyplay:custom)
+  // > 上次会话的粘性偏好(localStorage:storyplay:muted) > 默认非静音。
   // 这样首页选了「关闭」开始游戏，进来就是静音；选「开启」就不是静音；进入 play 页后用户自己
   // 切换 静音/有声 时再用 localStorage 持久化，下一局开新游戏 sessionStorage 选择会再覆盖。
   const [muted, setMuted] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
-      const stored = window.sessionStorage.getItem("infiplot:custom");
+      const stored = window.sessionStorage.getItem("storyplay:custom");
       if (stored) {
         const parsed = JSON.parse(stored) as { audioEnabled?: boolean };
         if (typeof parsed.audioEnabled === "boolean") {
@@ -651,7 +662,7 @@ function PlayInner() {
   // Once the player dismisses the silence nudge, keep it gone for this session.
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [visionClickEnabled, setVisionClickEnabled] = useState(true);
+  const [visionClickEnabled, setVisionClickEnabled] = useState(() => readStoredVisionClick());
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const authResolveRef = useRef<(() => void) | null>(null);
   // Serializable description of the action that hit the 401 (choice / freeform
@@ -867,10 +878,6 @@ function PlayInner() {
   useEffect(() => {
     serverTtsProviderRef.current = serverTtsProvider;
   }, [serverTtsProvider]);
-  useEffect(() => {
-    setVisionClickEnabled(readStoredVisionClick());
-  }, []);
-
   // Probe the server's TTS provider ONCE at mount. Non-BYO users need this so
   // fetchBeatAudio can skip the ~220KB Xiaomi reference audio when the server
   // runs StepFun. BYO users never read this ref (byoTtsRef takes precedence),
@@ -971,7 +978,7 @@ function PlayInner() {
       // 「首页选关闭」也走这条路：bootstrap 时 muted 已被初始化为 true。
       if (!beat.speaker || !beat.line) return;
 
-      // Reuse pre-baked audio from a `.infiplot` import before any synth —
+      // Reuse pre-baked audio from a `.storyplay` import before any synth —
       // free, instant, and identical to what the original player heard.
       const curSceneId = currentSceneRef.current?.id;
       if (curSceneId) {
@@ -1115,10 +1122,19 @@ function PlayInner() {
     [],
   );
 
-  function cancelBeatAudioFetches(): void {
+  const cancelBeatAudioFetches = useCallback((): void => {
     for (const c of beatAudioAbortRef.current.values()) c.abort();
     beatAudioAbortRef.current.clear();
-  }
+  }, []);
+
+  const clearBeatAudioMap = useCallback(() => {
+    setBeatAudioMap((prev) => {
+      for (const url of Object.values(prev)) {
+        if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+      }
+      return {};
+    });
+  }, []);
 
   // Fire one /api/beat-audio request per speaking beat in the current scene.
   // Reads refs (not props) so it stays closure-stable and can be re-run on
@@ -1137,14 +1153,12 @@ function PlayInner() {
   // scenes) so a late arrival would land under the wrong beat otherwise.
   useEffect(() => {
     cancelBeatAudioFetches();
-    setBeatAudioMap((prev) => {
-      for (const url of Object.values(prev)) {
-        if (url.startsWith("blob:")) URL.revokeObjectURL(url);
-      }
-      return {};
+    const frame = requestAnimationFrame(() => {
+      clearBeatAudioMap();
+      prefetchSceneAudio();
     });
-    prefetchSceneAudio();
-  }, [currentScene?.id, prefetchSceneAudio]);
+    return () => cancelAnimationFrame(frame);
+  }, [cancelBeatAudioFetches, clearBeatAudioMap, currentScene?.id, prefetchSceneAudio]);
 
   // ── Mute persistence (read is via the useState lazy initializer above) ─
   const toggleMuted = useCallback(() => {
@@ -1177,14 +1191,12 @@ function PlayInner() {
     if (prev === muted) return;
     cancelBeatAudioFetches();
     if (muted) return;
-    setBeatAudioMap((prev) => {
-      for (const url of Object.values(prev)) {
-        if (url.startsWith("blob:")) URL.revokeObjectURL(url);
-      }
-      return {};
+    const frame = requestAnimationFrame(() => {
+      clearBeatAudioMap();
+      prefetchSceneAudio();
     });
-    prefetchSceneAudio();
-  }, [muted, prefetchSceneAudio]);
+    return () => cancelAnimationFrame(frame);
+  }, [cancelBeatAudioFetches, clearBeatAudioMap, muted, prefetchSceneAudio]);
 
   const handleSettingsSaved = useCallback(
     (settings: { playerName: string; visionClickEnabled: boolean; ttsConfigured: boolean }) => {
@@ -1200,16 +1212,11 @@ function PlayInner() {
         // re-synth the current scene with the user's own key.
         setSilenceStrikes(0);
         cancelBeatAudioFetches();
-        setBeatAudioMap((prev) => {
-          for (const url of Object.values(prev)) {
-            if (url.startsWith("blob:")) URL.revokeObjectURL(url);
-          }
-          return {};
-        });
+        clearBeatAudioMap();
         prefetchSceneAudio();
       }
     },
-    [prefetchSceneAudio],
+    [cancelBeatAudioFetches, clearBeatAudioMap, prefetchSceneAudio],
   );
 
   function detachRecordedReplay(): void {
@@ -1226,13 +1233,13 @@ function PlayInner() {
   // once write completes). Corrupt entries (un-parseable / no createdAt) sort
   // last and get evicted first.
   //
-  // Audio lives in a sidecar key `infiplot:gallery:<id>:audio` so the main
+  // Audio lives in a sidecar key `storyplay:gallery:<id>:audio` so the main
   // doc JSON.parse on gallery load doesn't block the main thread with several
   // MB of base64. The sidecar key inherits its doc's age — paired by id, not
   // its own createdAt (it never has one) — and is evicted alongside its doc.
   const trimGalleryExports = useCallback((keepCount: number) => {
     try {
-      const prefix = "infiplot:gallery:";
+      const prefix = "storyplay:gallery:";
       const audioSuffix = ":audio";
       const docs: Map<string, { key: string; createdAt: number }> = new Map();
       const sidecars: Map<string, string> = new Map();
@@ -1394,7 +1401,7 @@ function PlayInner() {
     trimGalleryExports(1);
     const docStr = JSON.stringify(doc);
     try {
-      window.localStorage.setItem(`infiplot:gallery:${id}`, docStr);
+      window.localStorage.setItem(`storyplay:gallery:${id}`, docStr);
     } catch {
       // localStorage full or disabled — silently bail; the player keeps playing.
       exportingGalleryRef.current = false;
@@ -1404,7 +1411,7 @@ function PlayInner() {
     if (audioCount > 0) {
       try {
         window.localStorage.setItem(
-          `infiplot:gallery:${id}:audio`,
+          `storyplay:gallery:${id}:audio`,
           JSON.stringify(audioByBeatId),
         );
       } catch {
@@ -1663,13 +1670,21 @@ function PlayInner() {
       orientation?: Orientation;
       playerName?: string;
       language?: string;
+      openingPackage?: PublishedOpeningPackage;
+    } | null = null;
+    let storyProjectPlaytest: {
+      projectId: string;
+      playtestId: string;
+      projectTitle?: string;
+      sourceActId?: string;
+      sourceSceneId?: string;
     } | null = null;
     if (!cardName) {
       if (presetId) {
         const p = PRESETS.find((x) => x.id === presetId);
         if (p) livePayload = { worldSetting: p.worldSetting, styleGuide: p.styleGuide, playerName: readStoredPlayerName() || undefined, language: locale };
       } else if (isCustom) {
-        const stored = sessionStorage.getItem("infiplot:custom");
+        const stored = sessionStorage.getItem("storyplay:custom");
         if (stored) {
           try {
             const parsed = JSON.parse(stored) as {
@@ -1678,6 +1693,14 @@ function PlayInner() {
               audioEnabled?: boolean;
               styleReferenceImage?: string;
               playerName?: string;
+              source?: "story-project" | "creator-sku" | "prompt" | "preset";
+              projectId?: string;
+              projectTitle?: string;
+              skuId?: string;
+              playtestId?: string;
+              sourceActId?: string;
+              sourceSceneId?: string;
+              openingPackage?: PublishedOpeningPackage;
             };
             livePayload = {
               worldSetting: parsed.worldSetting,
@@ -1685,7 +1708,17 @@ function PlayInner() {
               styleReferenceImage: parsed.styleReferenceImage || undefined,
               playerName: parsed.playerName || undefined,
               language: locale,
+              openingPackage: parsed.openingPackage,
             };
+            if (parsed.projectId && parsed.playtestId) {
+              storyProjectPlaytest = {
+                projectId: parsed.projectId,
+                playtestId: parsed.playtestId,
+                projectTitle: parsed.projectTitle,
+                sourceActId: parsed.sourceActId,
+                sourceSceneId: parsed.sourceSceneId,
+              };
+            }
             // audioEnabled 已在 useState 初始化时反向投射到 muted；这里无需再额外存。
           } catch {
             livePayload = null;
@@ -1790,6 +1823,15 @@ function PlayInner() {
           },
         )
       : (async () => {
+          if (livePayload!.openingPackage) {
+            const data = openingPackageToStartResponse(livePayload!.openingPackage);
+            return {
+              ...data,
+              worldSetting: livePayload!.worldSetting || livePayload!.openingPackage.worldSetting,
+              styleGuide: livePayload!.styleGuide || livePayload!.openingPackage.styleGuide,
+              styleReferenceImage: livePayload!.styleReferenceImage,
+            };
+          }
           const data = await startSession({
             ...livePayload!,
             clientTts: !!byoTtsRef.current,
@@ -1829,6 +1871,29 @@ function PlayInner() {
           playerName: livePayload?.playerName || readStoredPlayerName() || undefined,
           language: sessionLanguage,
         };
+        if (storyProjectPlaytest) {
+          const { projectId, playtestId, projectTitle } = storyProjectPlaytest;
+          void fetch(
+            `/api/studio/projects/${encodeURIComponent(projectId)}/playtests/${encodeURIComponent(playtestId)}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                status: "started",
+                sessionId: initial.id,
+                summary: data.storyState?.synopsis || data.scene.scenePrompt || projectTitle || "",
+                firstSceneId: data.scene.id,
+                firstSceneKey: data.scene.sceneKey || "",
+                firstSceneImageUrl: data.imageUrl,
+                sceneCount: initial.history.length,
+                characterCount: data.characters.length,
+                notes: "首场景生成成功，已进入试玩。",
+              }),
+            },
+          ).catch((error) => {
+            console.warn("[playtest] failed to write back playtest result", error);
+          });
+        }
         visitedBeatsRef.current = [data.scene.entryBeatId];
         setSession(initial);
         setCurrentScene(data.scene);
@@ -1856,14 +1921,17 @@ function PlayInner() {
     if (!pendingReplayAction) return;
     if (phase !== "ready" || !session || !currentScene) return;
     const action = pendingReplayAction;
-    setPendingReplayAction(null);
-    if (action.kind === "choice") {
-      onSelectChoice(action.choice);
-    } else if (action.kind === "freeform") {
-      void onFreeformInput(action.text);
-    } else {
-      void onBackgroundClick({ x: action.x, y: action.y });
-    }
+    const frame = requestAnimationFrame(() => {
+      setPendingReplayAction(null);
+      if (action.kind === "choice") {
+        onSelectChoice(action.choice);
+      } else if (action.kind === "freeform") {
+        void onFreeformInput(action.text);
+      } else {
+        void onBackgroundClick({ x: action.x, y: action.y });
+      }
+    });
+    return () => cancelAnimationFrame(frame);
     // onSelectChoice/onFreeformInput/onBackgroundClick are stable inner
     // functions keyed off the restored state; listing them would re-fire on
     // every render, so we intentionally scope deps to the readiness gate.

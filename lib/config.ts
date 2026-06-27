@@ -6,7 +6,7 @@ import type {
   ProviderConfig,
   ProviderProtocol,
   TtsConfig,
-} from "@infiplot/types";
+} from "@storyplay/types";
 import { validateUpstreamUrl, normalizeBaseUrl } from "./byoProxy";
 
 const VALID_PROTOCOLS = [
@@ -56,7 +56,7 @@ function readProvider(name: string): ProviderProtocol | undefined {
   );
 }
 
-function loadTtsConfig(): TtsConfig | undefined {
+export function loadTtsConfig(): TtsConfig | undefined {
   const baseUrl = readOptionalVar("TTS_BASE_URL");
   const apiKey = readOptionalVar("TTS_API_KEY");
   const speechModel = readOptionalVar("TTS_SPEECH_MODEL");

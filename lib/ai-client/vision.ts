@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { ProviderConfig } from "@infiplot/types";
+import type { ProviderConfig } from "@storyplay/types";
 import { normalizeBaseUrl } from "./normalizeUrl";
 
 const VISION_TIMEOUT_MS = 60_000;

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * One-off generator: produces the InfiPlot homepage story cards via Runware
+ * One-off generator: produces the StoryPlay homepage story cards via Runware
  * FLUX.2 and writes them as PNGs under public/home/.
  *
  * Flat per-gender layout: 32 male-oriented (m0..m31) + 32 female-oriented

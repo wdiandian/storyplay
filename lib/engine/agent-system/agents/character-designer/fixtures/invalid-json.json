@@ -1,0 +1,17 @@
+{
+  "name": "invalid-json",
+  "rawOutput": "not json",
+  "input": {
+    "charName": "Xia Hai",
+    "session": {
+      "id": "s1",
+      "worldSetting": "rainy school mystery",
+      "styleGuide": "cinematic anime",
+      "characters": [],
+      "history": []
+    },
+    "stepfun": false
+  },
+  "expected": {}
+}
+

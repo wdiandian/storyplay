@@ -1,14 +1,15 @@
-import { generateImage } from "@infiplot/ai-client";
-import type { GenerateImageOptions, GenerateImageResult } from "@infiplot/ai-client";
+import { generateImage } from "@storyplay/ai-client";
+import type { GenerateImageOptions, GenerateImageResult } from "@storyplay/ai-client";
 import type {
   Beat,
   Character,
   EngineConfig,
   Orientation,
   ProviderConfig,
-} from "@infiplot/types";
+} from "@storyplay/types";
+import { painterContract, runAgent } from "../agent-system";
+import type { AgentContract } from "../agent-system";
 import { mockImageDataUri } from "../mockImage";
-import { buildPainterPrompt } from "../prompts";
 
 // ──────────────────────────────────────────────────────────────────────
 //  Painter — final image generation with multi-reference anchoring.
@@ -232,16 +233,20 @@ export async function runPainter(
   input: PainterInput,
   entryBeat: Beat | undefined,
 ): Promise<PainterResult> {
+  const result = await runAgent(
+    painterContract as AgentContract<PainterInput, PainterResult>,
+    input,
+    async () => {
   if (config.mockImage) {
-    return { kind: "mock", imageUrl: await mockImageDataUri(input.orientation) };
+    return {
+      output: {
+        kind: "mock" as const,
+        imageUrl: await mockImageDataUri(input.orientation),
+      },
+    };
   }
 
-  const prompt = buildPainterPrompt(
-    input.integratedPrompt,
-    input.styleGuide,
-    input.onStageCharacters,
-    input.orientation,
-  );
+  const prompt = painterContract.buildPrompt!(input);
 
   const refs = collectReferenceImages(
     input.onStageCharacters,
@@ -271,7 +276,15 @@ export async function runPainter(
             config.imageHedgeMs,
           )
         : await tryGenerate(config.image, prompt, tierAOptions, label);
-    if (r) return { kind: "real", imageUrl: r.imageUrl, imageUuid: r.imageUuid };
+    if (r) {
+      return {
+        output: {
+          kind: "real" as const,
+          imageUrl: r.imageUrl,
+          imageUuid: r.imageUuid,
+        },
+      };
+    }
   }
 
   // Tier B — pure text-to-image. Last resort, used when Tier A failed OR
@@ -281,5 +294,15 @@ export async function runPainter(
     orientation: input.orientation,
     timeoutMs: config.imageTimeoutMs,
   });
-  return { kind: "real", imageUrl: r.imageUrl, imageUuid: r.imageUuid };
+  return {
+    output: {
+      kind: "real" as const,
+      imageUrl: r.imageUrl,
+      imageUuid: r.imageUuid,
+    },
+  };
+    },
+  );
+
+  return result.output;
 }

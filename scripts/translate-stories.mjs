@@ -171,7 +171,7 @@ function buildStoriesObject(translated, stories) {
   return result;
 }
 
-function injectIntoLocaleFile(localePath, storiesData) {
+function _injectIntoLocaleFile(localePath, storiesData) {
   let content = readFileSync(localePath, "utf8");
 
   // Build the stories object as a TS string
@@ -212,7 +212,7 @@ async function main() {
     { code: "ja", lang: "Japanese (日本語)", file: "ja.ts" },
   ];
 
-  for (const { code, lang, file } of locales) {
+  for (const { code, lang } of locales) {
     const translated = await translateStories(stories, code, lang);
     const storiesData = buildStoriesObject(translated, stories);
 

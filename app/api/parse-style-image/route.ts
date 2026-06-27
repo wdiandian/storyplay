@@ -1,8 +1,8 @@
-import { analyzeImageDataUrl } from "@infiplot/ai-client";
+import { analyzeImageDataUrl } from "@storyplay/ai-client";
 import type {
   ParseStyleImageRequest,
   ParseStyleImageResponse,
-} from "@infiplot/types";
+} from "@storyplay/types";
 import { NextResponse } from "next/server";
 import { loadEngineConfig } from "@/lib/config";
 import { requireUser } from "@/lib/supabase/guard";

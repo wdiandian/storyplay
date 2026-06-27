@@ -31,7 +31,7 @@ export const DEFAULT_TTS_SPEECH_MODEL = "mimo-v2.5-tts";
  * page's silence nudge, and the README.
  */
 export const TTS_KEY_DOC_URL =
-  "https://github.com/zonghaoyuan/infiplot/blob/main/docs/xiaomi-tts-key.md";
+  "https://github.com/zonghaoyuan/storyplay/blob/main/docs/xiaomi-tts-key.md";
 
 export const TTS_PRESETS: TtsPreset[] = [
   {

@@ -1,6 +1,6 @@
 /**
  * Extend the global CloudflareEnv interface (declared by @opennextjs/cloudflare)
- * with infiplot's D1/R2/KV bindings.
+ * with storyplay's D1/R2/KV bindings.
  * See wrangler.jsonc for the binding configuration.
  */
 

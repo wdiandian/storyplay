@@ -1,5 +1,5 @@
 import OpenAI, { toFile, type Uploadable } from "openai";
-import type { Orientation, ProviderConfig, ProviderProtocol } from "@infiplot/types";
+import type { Orientation, ProviderConfig, ProviderProtocol } from "@storyplay/types";
 import { fetchWithRetry } from "./fetchWithRetry";
 import { normalizeBaseUrl } from "./normalizeUrl";
 

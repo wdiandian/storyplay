@@ -1,4 +1,4 @@
-import type { Session } from "@infiplot/types";
+import type { Session } from "@storyplay/types";
 
 /**
  * Prompt 段落类型枚举

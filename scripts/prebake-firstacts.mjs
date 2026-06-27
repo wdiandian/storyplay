@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * One-off generator: produces the InfiPlot homepage "instant-play" first-act
+ * One-off generator: produces the StoryPlay homepage "instant-play" first-act
  * JSONs by driving each curated card through the live engine (POST /api/start)
  * and saving the full StartResponse under apps/web/public/home/firstact/.
  *
@@ -183,19 +183,17 @@ console.log(`[prebake] ${CARDS.length} cards → ${OUT_DIR} (concurrency=${CONCU
 
 let cursor = 0;
 let done = 0;
-let skipped = 0;
 let failed = 0;
 
-async function worker(id) {
+async function worker(_id) {
   while (true) {
     const i = cursor++;
     if (i >= CARDS.length) return;
     const card = CARDS[i];
     const label = `[${i + 1}/${CARDS.length}] ${card.name}`;
     try {
-      const r = await bakeOne(card);
+      await bakeOne(card);
       done++;
-      skipped++; // mark as skipped since we didn't run live build
       console.log(`${label} mapped`);
     } catch (e) {
       failed++;

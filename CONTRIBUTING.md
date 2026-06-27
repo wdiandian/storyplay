@@ -1,9 +1,9 @@
-# Contributing to InfiPlot
+# Contributing to StoryPlay
 
-Thanks for your interest in contributing to InfiPlot! 🎉 We welcome bug
+Thanks for your interest in contributing to StoryPlay! 🎉 We welcome bug
 reports, feature ideas, code, docs, and everything in between.
 
-[English](#contributing-to-infiplot) · [中文](#贡献指南)
+[English](#contributing-to-StoryPlay) · [中文](#贡献指南)
 
 ---
 
@@ -11,7 +11,7 @@ reports, feature ideas, code, docs, and everything in between.
 
 ### Sign the CLA
 
-InfiPlot is open-sourced under
+StoryPlay is open-sourced under
 [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html). To let us use external
 contributions alongside the project's other (including closed-source)
 licensing, **every external contributor must sign our Contributor License
@@ -38,8 +38,8 @@ update the PR status. Project maintainers and bots are exempt automatically.
 You'll need **Node.js ≥ 22** and **pnpm**.
 
 ```bash
-git clone https://github.com/<your-fork>/infiplot.git
-cd infiplot
+git clone https://github.com/<your-fork>/StoryPlay.git
+cd StoryPlay
 pnpm install
 cp .env.example .env.local   # fill in your provider keys
 pnpm dev                      # http://localhost:3000
@@ -88,12 +88,12 @@ Common scopes: `web`, `play`, `engine`, `api`, `image`, `tts`, `docs`.
 
 ### Reporting bugs & ideas
 
-Open an [issue](https://github.com/zonghaoyuan/infiplot/issues). Include
+Open an [issue](https://github.com/zonghaoyuan/StoryPlay/issues). Include
 reproduction steps, what you expected, and what you saw.
 
 ### Contact
 
-hi@infiplot.com
+hi@StoryPlay.com
 
 ---
 
@@ -101,7 +101,7 @@ hi@infiplot.com
 
 ### 签署 CLA
 
-InfiPlot 以
+StoryPlay 以
 [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html) 协议开源。为了让我们
 可以将外部贡献同时用于项目的其他（含闭源）授权，**每位外部贡献者在 PR 合并
 前都必须签署《贡献者许可协议》（CLA）**：
@@ -125,8 +125,8 @@ bot 账户会自动豁免。
 需要 **Node.js ≥ 22** 和 **pnpm**。
 
 ```bash
-git clone https://github.com/<你的 fork>/infiplot.git
-cd infiplot
+git clone https://github.com/<你的 fork>/StoryPlay.git
+cd StoryPlay
 pnpm install
 cp .env.example .env.local   # 填入你的供应商密钥
 pnpm dev                      # http://localhost:3000
@@ -173,9 +173,9 @@ docs(readme): 补充供应商配置说明
 
 ### 反馈 Bug 与想法
 
-欢迎开 [issue](https://github.com/zonghaoyuan/infiplot/issues)，请附复现
+欢迎开 [issue](https://github.com/zonghaoyuan/StoryPlay/issues)，请附复现
 步骤、期望行为与实际现象。
 
 ### 联系方式
 
-hi@infiplot.com
+hi@StoryPlay.com

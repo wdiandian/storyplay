@@ -1,4 +1,4 @@
-import type { CharacterVoice, TtsConfig, TtsProvider } from "@infiplot/types";
+import type { CharacterVoice, TtsConfig, TtsProvider } from "@storyplay/types";
 import {
   formatStepfunCatalogForPrompt,
   isStepfun,

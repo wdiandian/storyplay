@@ -6,13 +6,13 @@ import type {
   SceneExit,
   Session,
   StoryState,
-} from "@infiplot/types";
+} from "@storyplay/types";
 
-export const STORY_SHARE_STORAGE_KEY = "infiplot:story-import";
+export const STORY_SHARE_STORAGE_KEY = "storyplay:story-import";
 
 export type StoryShareDoc = {
   v: 1 | 2;
-  kind: "infiplot-story";
+  kind: "StoryPlay-story";
   exportedAt: number;
   current: {
     sceneIndex: number;
@@ -143,7 +143,7 @@ export function createStoryShareDoc(
   const hasAudio = !!audioByBeatId && Object.keys(audioByBeatId).length > 0;
   return {
     v: hasAudio ? 2 : 1,
-    kind: "infiplot-story",
+    kind: "StoryPlay-story",
     exportedAt: Date.now(),
     current,
     session: sanitizeSessionForShare(session),
@@ -152,12 +152,12 @@ export function createStoryShareDoc(
 }
 
 export function storyShareFilename(doc: StoryShareDoc): string {
-  return `infiplot-story-${doc.exportedAt.toString(36)}.infiplot`;
+  return `StoryPlay-story-${doc.exportedAt.toString(36)}.storyplay`;
 }
 
 export function parseStoryShareDoc(value: unknown): StoryShareDoc {
   if (!isRecord(value)) throw new Error("这不是有效的剧情分享文件");
-  if (value.kind !== "infiplot-story" || (value.v !== 1 && value.v !== 2)) {
+  if (value.kind !== "StoryPlay-story" || (value.v !== 1 && value.v !== 2)) {
     throw new Error("剧情分享文件格式不支持");
   }
   if (typeof value.exportedAt !== "number" || !Number.isFinite(value.exportedAt)) {

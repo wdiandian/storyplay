@@ -1,7 +1,7 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
-import type { ProviderProtocol } from "@infiplot/types";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
+import type { ProviderProtocol } from "@storyplay/types";
 import {
   clearStoredModelConfig,
   readStoredModelConfig,
@@ -20,8 +20,8 @@ import {
 } from "@/lib/ttsPresets";
 import { useI18n } from "@/lib/i18n/client";
 
-const PLAYER_NAME_STORAGE_KEY = "infiplot:playerName";
-const VISION_CLICK_STORAGE_KEY = "infiplot:visionClick";
+const PLAYER_NAME_STORAGE_KEY = "storyplay:playerName";
+const VISION_CLICK_STORAGE_KEY = "storyplay:visionClick";
 
 export function readStoredPlayerName(): string {
   try {
@@ -149,18 +149,18 @@ export function SettingsModal({
     return () => cancelAnimationFrame(id);
   }, []);
 
+  const close = useCallback(() => {
+    setShown(false);
+    setTimeout(onClose, 280);
+  }, [onClose]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
-
-  const close = () => {
-    setShown(false);
-    setTimeout(onClose, 280);
-  };
+  }, [close]);
 
   // ── General actions ──
   const saveGeneral = () => {

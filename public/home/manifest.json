@@ -1,0 +1,3856 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-25T10:14:09.565Z",
+  "source": {
+    "firstActDir": "/home/firstact",
+    "note": "Generated from prebaked first-act runtime packages. Do not put full runtime payloads into SKU cards."
+  },
+  "counts": {
+    "stories": 60,
+    "male": 30,
+    "female": 30,
+    "firstAct": 60,
+    "firstActEn": 60,
+    "firstActJa": 60,
+    "firstActPortrait": 60,
+    "firstScene": 62,
+    "firstScenePortrait": 60,
+    "portraits": 63,
+    "portraitsPortrait": 81
+  },
+  "audit": {
+    "missingCover": [],
+    "missingFirstScene": [],
+    "missingLocale": {}
+  },
+  "stories": [
+    {
+      "id": "f0",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "棺中新娘",
+      "logline": "作为祭品被封入石棺的你，在黑暗中苏醒并与亡灵王子缔结契约——每夜必须为他流下真心之泪，否则你们共享的生命将共同消亡。",
+      "synopsis": "你在石棺中苏醒，发现自己与沉睡千年的亡灵王子夜煌被一只冰冷的手相连。他告知你共生契约已成：你是他重返人间的钥匙，但每夜必须为他流下真心之泪，否则两人将一同消亡。你在他蛊惑而危险的声音中，被迫面对这关乎生死的残酷选择。",
+      "tags": [
+        "黑暗奇幻",
+        "宫廷权谋",
+        "诡异浪漫",
+        "短剧式反转"
+      ],
+      "genreTagsRaw": "黑暗奇幻 / 宫廷权谋 / 诡异浪漫 / 短剧式反转",
+      "stylePrompt": "Dark fantasy oil painting style, vertical composition. A breathtakingly beautiful young bride in a white lace veil and gothic gown, sitting inside an ornate carved stone sarcophagus. Kneeling beside her is a pale, mesmerizingly handsome undead prince with a golden crown, gently holding her hand. Soft glowing embers rise around them in the dark mausoleum. Moody academic lighting, fine impasto textures.",
+      "assets": {
+        "cover": "/home/f0.webp",
+        "firstScene": "/home/firstscene/f0.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f0.webp",
+        "portraits": [
+          "/home/firstportrait/f0_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f0_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f0.json",
+        "en": "/home/firstact-en/f0.json",
+        "ja": "/home/firstact-ja/f0.json",
+        "portraitZh": "/home/firstact-portrait/f0.json",
+        "portraitEn": "/home/firstact-portrait-en/f0.json",
+        "portraitJa": "/home/firstact-portrait-ja/f0.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "sarcophagus-dark",
+        "beatsCount": 7,
+        "choicesCount": 6,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你，原是王国最卑微的烛台侍女，因生辰被祭司选中，封入千年石棺作为唤醒亡灵王子的祭品。你此刻在棺中苏醒，身体已被契约绑定，每夜必须流下真心之泪才能维系共生。你渴望自由，更渴望查明自己为何被选中——这背后似乎藏着一个关乎王室血脉的惊天秘密。",
+        "castNotes": "夜煌：棺中沉睡千年的亡灵王子，黄金冠冕下的面容绝美却苍白如纸。表面冷漠，实则千年孤寂让他对你的每一滴眼泪都近乎贪婪地渴求，与你既是契约绑定的共生体，也是最危险的同盟。\n祭司阿尔蒙：现任王国大祭司，主持了献祭仪式。看似庄严神圣，实则觊觎永生之力，将你视为一枚重要的棋子。",
+        "openThreads": [
+          "每夜必须流下真心之泪的契约代价，‘真心’的定义与后果",
+          "你被选为祭品的真正原因——你身上是否隐藏着不为人知的秘密",
+          "夜煌王子千年不死的复国执念背后，是怎样的血腥过往"
+        ],
+        "relationships": [
+          "夜煌：契约绑定的共生体，对你的眼泪有着近乎贪婪的渴求，关系充满强制与危险的诱惑。"
+        ],
+        "nextHook": "下一场：棺内亮起幽蓝光芒，夜煌完全苏醒，契约正式生效。你将第一次直面他复苏的容颜与危险的诱惑，并被迫在这永恒黑暗中做出第一个决定。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 0,
+        "featured": true
+      }
+    },
+    {
+      "id": "f1",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "墨骨生花",
+      "logline": "被家族视为废物的机关师少女，在绝境中唤醒古画墨龙，龙以灵魂为契许诺复兴家族，而你要在荣耀与自我之间，找到属于你的第三条路。",
+      "synopsis": "墨家议事厅内，你因“墨兽失控”被审判，面临除名。堂姐墨云舒虚伪地求情，长老即将落下除名墨笔。关键时刻，你母亲遗留的墨玉异变，藏墨阁方向传来龙吟，导致全府墨纹机关失效。你在混乱中做出反应。",
+      "tags": [
+        "奇幻逆袭",
+        "家族权斗",
+        "暗黑童话",
+        "双向救赎"
+      ],
+      "genreTagsRaw": "奇幻逆袭 / 家族权斗 / 暗黑童话 / 双向救赎",
+      "stylePrompt": "Minimalist Chinese ink wash style, vertical composition. A beautiful, serene young female artisan with long black hair, sitting on a mossy stone. Wrapping gently around her shoulders is a majestic, ethereal monochrome dragon with glowing blue eyes, looking down at her protectively. Ink splash details, poetic brushstrokes, soft mist background.",
+      "assets": {
+        "cover": "/home/f1.webp",
+        "firstScene": "/home/firstscene/f1.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f1.webp",
+        "portraits": [
+          "/home/firstportrait/f1_0.webp",
+          "/home/firstportrait/f1_1.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f1_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f1.json",
+        "en": "/home/firstact-en/f1.json",
+        "ja": "/home/firstact-ja/f1.json",
+        "portraitZh": "/home/firstact-portrait/f1.json",
+        "portraitEn": "/home/firstact-portrait-en/f1.json",
+        "portraitJa": "/home/firstact-portrait-ja/f1.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "hall-ancestral",
+        "beatsCount": 6,
+        "choicesCount": 4,
+        "charactersCount": 2
+      },
+      "storyState": {
+        "protagonist": "你是墨家嫡系唯一的血脉，却因天生无法驱动墨纹机关而被放逐至破败的藏墨阁。此刻，你正因一场蓄意的“墨兽失控”事件被家族长老会传唤，面临最后的审判。你渴望夺回属于自己的一切，但更恐惧灵魂献祭的代价。你的软肋是：你还记得母亲临终前那句“墨骨生花，花不为谁开”的预言。",
+        "castNotes": "墨渊：古画中苏醒的墨龙，形体是水墨凝聚的龙形，双眼是冰蓝色。他强大、古老、寡言，却对你有一种近乎偏执的保护欲，因为你是唤醒他的人。但他遵守的龙族盟约冰冷无情，他既是你的救赎，也是你最大的危机。\n墨云舒：你的堂姐，墨家现任继承人。表面优雅端庄，实则是当年设计你被放逐的幕后黑手。她视你为眼中钉，更觊觎你身上可能隐藏的、与墨龙相关的秘密。与你是家族内的死敌。",
+        "openThreads": [
+          "墨龙墨渊为何在此刻苏醒并与你产生联系",
+          "墨玉与龙吟之间的具体关系",
+          "墨云舒对“墨龙”出现的真实反应与后续行动",
+          "母亲“墨骨生花”预言在此刻的首次显化"
+        ],
+        "relationships": [
+          "墨云舒：从虚伪的悲悯转为震惊与警惕，你的“复活”打乱了她的计划",
+          "首席长老：对墨龙现世感到极度惊骇，墨家的古老禁忌似乎被触动"
+        ],
+        "nextHook": "你逃离或挑衅后，将直面因你而苏醒的、来自藏墨阁禁地的墨龙墨渊。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 1,
+        "featured": true
+      }
+    },
+    {
+      "id": "f2",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "浮世绘之恋",
+      "logline": "你是收留画中艺伎的画师，她正逐渐“褪色”消逝，而唯一能拯救她的，竟是要拆毁你画馆的冷酷开发商——他正是当年封印她的画师后裔。",
+      "synopsis": "你发现樱的存在正在同步画中一样褪色消散，她的指尖已近乎透明。窗外工地的推土机声越来越近，而画馆的拆迁已迫在眉睫。",
+      "tags": [
+        "奇幻",
+        "女性向",
+        "悬疑爱情",
+        "短剧反转"
+      ],
+      "genreTagsRaw": "奇幻 / 女性向 / 悬疑爱情 / 短剧反转",
+      "stylePrompt": "Ukiyo-e woodblock print style, vertical composition. A breathtakingly beautiful Japanese woman (bijin) in an ornate, flowing silk kimono with exquisite cherry blossom patterns. She has an elegant, captivating face and traditional hair ornaments, holding a paper umbrella (wagasa) in a falling blossom shower under Mount Fuji. Flat colors, bold lines.",
+      "assets": {
+        "cover": "/home/f2.webp",
+        "firstScene": "/home/firstscene/f2.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f2.webp",
+        "portraits": [
+          "/home/firstportrait/f2_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f2_0.webp",
+          "/home/firstportrait-portrait/f2_1.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f2.json",
+        "en": "/home/firstact-en/f2.json",
+        "ja": "/home/firstact-ja/f2.json",
+        "portraitZh": "/home/firstact-portrait/f2.json",
+        "portraitEn": "/home/firstact-portrait-en/f2.json",
+        "portraitJa": "/home/firstact-portrait-ja/f2.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "studio-night",
+        "beatsCount": 5,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是守护着祖传画馆的青年画师，温柔但固执。你捡到了从古画《浮世绘·雨中姬》中走出的艺伎樱，并与她相爱。但樱的存在正在“褪色”，而拆毁画馆的最后期限就在眼前，你必须在保护她与拯救画馆之间做出抉择。",
+        "castNotes": "樱：从画中走出的绝美艺伎，外表古典温婉，实则有着不输于现代人的坚韧与主见；与你相爱，但她的存在正因“褪色”而消逝，你是她与现世唯一的羁绊。\n藤原宗介：雷厉风行的精英开发商，外表冷酷理性，似乎只想完成拆馆任务；但他与你家族的过往、以及与樱之间千丝万缕的隐秘联系，让他成为最关键的变数。",
+        "openThreads": [
+          "樱的褪色现象如何才能阻止？与你笔下的画有何关联？",
+          "藤原宗介与百年前封印樱的画师有何关联？他是否知情？",
+          "拆馆最后期限还剩多久？藤原今夜会现身吗？"
+        ],
+        "relationships": [
+          "樱：褪色现象加剧，第一次在你面前流露真实的慌乱与恐惧，对你的依赖加深"
+        ],
+        "nextHook": "下一场：你握着樱的手冲向画馆正门，却迎面撞上了带着最后通牒的藤原宗介——而他的目光，死死锁在了你身后正在变得透明的樱身上。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 2,
+        "featured": true
+      }
+    },
+    {
+      "id": "f3",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "九色鹿的新娘",
+      "logline": "为救族人，你自愿踏入敦煌壁画成为「鹿的新娘」，却在永恒的神力与神鹿黑暗的过往中，发现自己的身世才是壁画真正的诅咒。",
+      "synopsis": "你作为新任新娘在壁画世界苏醒，九色鹿宣布交易完成。你掌心的星辰颜料自动涌向画外濒死的族人，同时你看到失踪三年的姐姐阿月的幻影，她指向王座下的暗门并疯狂警告。你被迫在立刻用神力救人、质问九色鹿或强行探索暗门间做出选择。你最终试图催动神力或追问，但神鹿轻描淡写地封住了暗门，警告你不要探寻过往。",
+      "tags": [
+        "敦煌神话",
+        "命运抉择",
+        "暗黑奇幻",
+        "短剧反转",
+        "女性向"
+      ],
+      "genreTagsRaw": "敦煌神话 / 命运抉择 / 暗黑奇幻 / 短剧反转 / 女性向",
+      "stylePrompt": "Dunhuang fresco style, vertical composition. A breathtakingly beautiful celestial apsaras with delicate, mesmerizing facial features, flying upwards with flowing scarves, holding a Lute. Surrounded by stylized lotus flowers and floating geometric patterns on an aged stucco wall. Muted, oxidized mineral colors, divine and graceful ambiance.",
+      "assets": {
+        "cover": "/home/f3.webp",
+        "firstScene": "/home/firstscene/f3.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f3.webp",
+        "portraits": [
+          "/home/firstportrait/f3_0.webp",
+          "/home/firstportrait/f3_1.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f3_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f3.json",
+        "en": "/home/firstact-en/f3.json",
+        "ja": "/home/firstact-ja/f3.json",
+        "portraitZh": "/home/firstact-portrait/f3.json",
+        "portraitEn": "/home/firstact-portrait-en/f3.json",
+        "portraitJa": "/home/firstact-portrait-ja/f3.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "mural-throne-room",
+        "beatsCount": 8,
+        "choicesCount": 4,
+        "charactersCount": 2
+      },
+      "storyState": {
+        "protagonist": "你，一个来自大漠边缘村落的普通少女。为拯救因神秘诅咒而濒临灭族的族人，你自愿踏入那幅吞噬生命的古老壁画，成为「鹿的新娘」。神鹿赐予你操控壁画颜料与星辰的神力，代价是你将永留画中，而你的记忆正在加速模糊。你此刻最大的渴望是：弄清壁画吞噬新娘的真相，并找到让族人摆脱诅咒的真正方法。",
+        "castNotes": "九色鹿：壁画之主，神力无边却疏离冷漠的守护者。他赐你神力，却对你隐瞒了壁画吞噬新娘的黑暗过往与你的身世。与你之间是施恩者与祭品的紧张关系，他的每个眼神都藏着千年秘密。\n赤羽：壁画中的叛逃者，身披火焰纹饰的天女。她被神鹿放逐，知晓壁画的禁忌。她试图拉拢你对抗神鹿，但动机暧昧——是盟友，还是更深的陷阱？\n阿月（你族中失踪的姐姐）：三年前自愿成为「鹿的新娘」却消失在壁画中。你进入壁画后，不断在墙壁角落看到她的幻影留言，她的存在是引导，还是警告？",
+        "openThreads": [
+          "壁画吞噬新娘的黑暗真相是什么？",
+          "你的身世与壁画有何禁忌联系？",
+          "失踪的阿月遭遇了什么？她的警告指向什么？",
+          "神鹿为何封住暗门？它在隐瞒什么过往？",
+          "你的记忆开始出现模糊征兆"
+        ],
+        "relationships": [
+          "九色鹿：冷漠的施恩者与祭品关系，对你的挣扎毫无波澜，似乎隐藏着关于阿月和壁画过往的秘密",
+          "阿月：以焦急的幻影形式出现，试图警告你，但力量微弱且被神鹿压制，她的动机和状态成谜"
+        ],
+        "nextHook": "下一场：神鹿将你带至壁画中模拟人间景象的区域，让你亲眼目睹村庄最后的挣扎，同时你发现自己关于家乡的具体记忆正在快速褪色。你会如何利用神力？又如何面对自身正在消失的过去？"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 3,
+        "featured": true
+      }
+    },
+    {
+      "id": "f4",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "波斯细密之锁",
+      "logline": "你身为波斯王子的专属女奴与疗愈之钥，却发现他的忧郁源于宫廷毒咒——如今，你必须以更危险的细密画咒术，为他斩断这宿命的诅咒。",
+      "synopsis": "你在宫殿花园为忧郁的夏姆斯王子跳疗愈之舞时，第一次如此清晰地‘看见’了具象化的诅咒——无数漆黑丝线从阴影中钻出，猛烈地勒入他的胸口。舞蹈中断，王子突然醒来，用前所未见的冰冷声音质问你‘看见了什么’。",
+      "tags": [
+        "宫廷秘辛",
+        "史诗奇幻",
+        "女性成长",
+        "反转逆袭",
+        "暗黑疗愈"
+      ],
+      "genreTagsRaw": "宫廷秘辛 / 史诗奇幻 / 女性成长 / 反转逆袭 / 暗黑疗愈",
+      "stylePrompt": "Persian miniature style, vertical composition. An exquisitely beautiful princess in a flowered silk tunic, dancing gracefully in an ornate palace courtyard surrounded by roses and cypress trees, a handsome prince watching her admiringly from a tiled balcony. High detail, flat perspective, brilliant jewel-like colors.",
+      "assets": {
+        "cover": "/home/f4.webp",
+        "firstScene": "/home/firstscene/f4.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f4.webp",
+        "portraits": [
+          "/home/firstportrait/f4_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f4_0.webp",
+          "/home/firstportrait-portrait/f4_1.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f4.json",
+        "en": "/home/firstact-en/f4.json",
+        "ja": "/home/firstact-ja/f4.json",
+        "portraitZh": "/home/firstact-portrait/f4.json",
+        "portraitEn": "/home/firstact-portrait-en/f4.json",
+        "portraitJa": "/home/firstact-portrait-ja/f4.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "palace-garden-afternoon",
+        "beatsCount": 8,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是王子夏姆斯的专属女奴，也是唯一能用舞蹈与诗句疗愈他“忧郁症”的人。你被囚于华丽牢笼，却暗中用身体记忆着每一个毒咒的痕迹。此刻，你发现诅咒正在蔓延——它不仅缠绕着王子，也开始侵蚀你的灵魂。你的秘密是：你天生能“看见”诅咒的丝线，这既是你的天赋，也是会引来杀身之祸的禁忌。",
+        "castNotes": "夏姆斯王子：被诅咒缠身的忧郁储君，表面冷漠疏离，实则内心渴望救赎；与你是疗愈与被疗愈的共生关系，却可能因真相暴露而视你为威胁。\n法蒂玛导师：教你细密画咒术的年迈女官，表面慈爱如母，实则是宫廷秘密的守门人；她为你指路，却也可能是最深的陷阱。\n卡塔王子：野心勃勃的储位竞争者，表面温文尔雅，实则与毒咒的源头有染；他视你为棋子，亦可能成为你最危险的盟友。",
+        "openThreads": [
+          "夏姆斯王子为何对你‘看见诅咒’的反应如此冰冷且充满戒备？",
+          "如此猛烈的诅咒从何而来？是否与宫廷中的某人或某事有关？",
+          "你的‘看见’能力是否会暴露，带来杀身之祸？"
+        ],
+        "relationships": [
+          "夏姆斯王子：疗愈共生关系出现裂痕，他似乎对你的‘看见’能力早有察觉或忌惮，关系从平静的依赖转向紧张的猜疑与试探。"
+        ],
+        "nextHook": "下一场：根据玩家的选择（隐瞒/坦白/沉默），进入与王子在宫殿深处的对峙。无论哪种选择，他都将逼迫你面对一个事实：他知道你能‘看见’，并可能提出一个危险的交易或要求。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 4,
+        "featured": true
+      }
+    },
+    {
+      "id": "f5",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "圣女的黄昏",
+      "logline": "你是拜占庭最后的皇女，被献祭给“圣像”为帝国续命，却在千年后的博物馆苏醒。神秘守护者告诉你，圣像是谎言，真正的帝国遗产，藏在你血脉的秘密中——但想夺走这秘密的人，早已渗透进这座博物馆。",
+      "synopsis": "你在博物馆圣像前苏醒，被警报与人群包围。神秘保安沈渊冲破阻拦，声称圣像是谎言，强行带你逃离现场，进入消防通道。",
+      "tags": [
+        "女频",
+        "悬疑冒险",
+        "反转逆袭",
+        "历史奇幻",
+        "甜宠救赎"
+      ],
+      "genreTagsRaw": "女频 / 悬疑冒险 / 反转逆袭 / 历史奇幻 / 甜宠救赎",
+      "stylePrompt": "Byzantine mosaic style, vertical composition. A stunningly beautiful mosaic portrait of a royal empress with large, captivating eyes, a crown of rubies and pearls, and a glittering golden halo. Composed of thousands of sparkling glass tesseræ in deep blues and golds. Majestic, spiritual, and ancient ambiance.",
+      "assets": {
+        "cover": "/home/f5.webp",
+        "firstScene": "/home/firstscene/f5.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f5.webp",
+        "portraits": [
+          "/home/firstportrait/f5_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f5_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f5.json",
+        "en": "/home/firstact-en/f5.json",
+        "ja": "/home/firstact-ja/f5.json",
+        "portraitZh": "/home/firstact-portrait/f5.json",
+        "portraitEn": "/home/firstact-portrait-en/f5.json",
+        "portraitJa": "/home/firstact-portrait-ja/f5.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "museum-hall-night",
+        "beatsCount": 5,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是拜占庭帝国最后的皇女，被以“献祭”之名封印在圣像中。此刻你在千年后的博物馆苏醒，记忆残缺，只记得冰冷的仪式和皇室徽记。你想要找回自己的记忆与身份，更想弄清：帝国覆灭的真相是什么？而那位自称守护者的男人，究竟在守护什么？你的软肋是：血脉中沉睡的力量会反噬，过度使用会让你忘记自己是谁。",
+        "castNotes": "沈渊：博物馆夜班保安，实则是“守护者”家族的末裔，外表冷淡寡言，对你却有种跨越千年的熟悉与克制。他知道你的秘密，却似乎在隐瞒更多关于“圣像”的真相。\n林薇：博物馆年轻的考古研究员，热情直率，最初把你当作失忆的普通人帮助。但她背后的研究团队，对拜占庭皇室血脉有着危险的兴趣。\n“影子”：一个只在监控死角和古老壁画中出现的模糊身影，似乎总在暗中观察你。TA是谁？是敌是友？",
+        "openThreads": [
+          "圣像的力量为何是‘虚假’的？它到底封印了什么？",
+          "沈渊所知道的‘血脉的秘密’究竟是什么？",
+          "‘影子’尚未出现，但危机中是否有视线在暗处跟随？"
+        ],
+        "relationships": [
+          "沈渊：首次接触，他强行介入救你，声称知晓圣像与你的秘密，态度强硬而神秘"
+        ],
+        "nextHook": "下一场：沈渊在博物馆内部的安全区域（如休息室或档案室）向你初步解释‘圣像’的真相与‘守护者’的职责，同时第一波追兵或监视者可能逼近。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 5,
+        "featured": true
+      }
+    },
+    {
+      "id": "f6",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "荆棘之冠",
+      "logline": "你为拯救垂死的恋人，自愿成为教堂的血祭圣女，却发现治愈玫瑰的代价，是让你逐渐失去所有情感，成为一尊冰冷的圣物——而真正的阴谋，才刚刚开始。",
+      "synopsis": "你作为血祭圣女躺在教堂祭坛上，血液滋养着窗外的血色玫瑰。玫瑰即将绽放，恋人艾德里安即将痊愈，但你正迅速失去情感与记忆，甚至需要努力才能想起他的名字。你开始怀疑这场“治愈”的真相。",
+      "tags": [
+        "哥特虐恋",
+        "短剧反转",
+        "血腥浪漫",
+        "自我牺牲与救赎"
+      ],
+      "genreTagsRaw": "哥特虐恋 / 短剧反转 / 血腥浪漫 / 自我牺牲与救赎",
+      "stylePrompt": "Stained glass style, vertical composition. A breathtakingly beautiful angelic female knight with long flowing silver hair and a serene expression, wielding a glowing sword framed by a gothic archway. Translucent jewel-colored panels, bold black leading lines. The light shines through like a cathedral window.",
+      "assets": {
+        "cover": "/home/f6.webp",
+        "firstScene": "/home/firstscene/f6.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f6.webp",
+        "portraits": [],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f6_0.webp",
+          "/home/firstportrait-portrait/f6_1.webp",
+          "/home/firstportrait-portrait/f6_2.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f6.json",
+        "en": "/home/firstact-en/f6.json",
+        "ja": "/home/firstact-ja/f6.json",
+        "portraitZh": "/home/firstact-portrait/f6.json",
+        "portraitEn": "/home/firstact-portrait-en/f6.json",
+        "portraitJa": "/home/firstact-portrait-ja/f6.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "cathedral-altar-night",
+        "beatsCount": 6,
+        "choicesCount": 3,
+        "charactersCount": 0
+      },
+      "storyState": {
+        "protagonist": "你是圣血教堂的“血祭圣女”，曾是平凡的少女。为治愈重病的恋人，你自愿躺上祭坛，以血液滋养血色玫瑰。此刻，你正躺在祭坛上，感受着生命力与情感一同流逝。你渴望恋人痊愈、与你重逢，却恐惧自己终将变成一具没有感情的空壳。你的秘密是：你开始怀疑，这场“治愈”从一开始就是一场骗局。",
+        "castNotes": "艾德里安：你深爱的恋人，曾因绝症奄奄一息。如今他被玫瑰治愈，容光焕发，却似乎对你日益冷漠的记忆衰退视而不见，甚至眼中闪过一丝陌生的狂热。他的痊愈是希望，也是第一个疑点。\n大祭司卡西乌斯：主持血祭仪式、宣称你的牺牲能拯救一切的权威神职人员。他言语慈悲，眼神却冰冷如铁，时刻监控着玫瑰与你的状态。他与你的关系是“拯救者”与“圣物”，但他的真实目的笼罩在教堂的阴影中。",
+        "openThreads": [
+          "你的血液与记忆/情感正被玫瑰吸收，这真的是治愈吗？",
+          "大祭司卡西乌斯即将登场，他的真实目的是什么？",
+          "艾德里安被治愈后会如何看待你？"
+        ],
+        "relationships": [
+          "艾德里安：深爱的恋人，即将被玫瑰治愈，但你已开始遗忘他的面容",
+          "大祭司卡西乌斯：尚未出现，是这场仪式的主导者"
+        ],
+        "nextHook": "下一场：大祭司卡西乌斯出现在祭坛前，手持银匕，似乎要进行下一步仪式，而他看向玫瑰的眼神，带着你从未见过的狂热。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 6,
+        "featured": true
+      }
+    },
+    {
+      "id": "f7",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "风之谷的约定",
+      "logline": "为了拯救被污染的森林，你与精灵缔结契约成为巫女，却开始不断遗忘一切——但你发现，所有被遗忘的记忆都指向一个你必须守护的男人。",
+      "synopsis": "风之誓约缔结完成，你获得了聆听森林之声的能力，却在第一时间发现关于‘月岛司’的一切记忆都模糊陌生，手机里也查无此人。一滴莫名的泪从你脸上滑落，而你对契约的代价一无所知。",
+      "tags": [
+        "奇幻",
+        "女性向",
+        "救赎",
+        "遗忘与守护",
+        "短剧式反转"
+      ],
+      "genreTagsRaw": "奇幻 / 女性向 / 救赎 / 遗忘与守护 / 短剧式反转",
+      "stylePrompt": "Ghibli hand-painted watercolor style, vertical composition. A charming, highly expressive young heroine with large, bright, attractive eyes and wind-blown hair, running up a wildflower meadow hill toward a fantastical airship in the sky. Natural daylight, soft washes, nostalgic and warm mood.",
+      "assets": {
+        "cover": "/home/f7.webp",
+        "firstScene": "/home/firstscene/f7.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f7.webp",
+        "portraits": [],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f7_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f7.json",
+        "en": "/home/firstact-en/f7.json",
+        "ja": "/home/firstact-ja/f7.json",
+        "portraitZh": "/home/firstact-portrait/f7.json",
+        "portraitEn": "/home/firstact-portrait-en/f7.json",
+        "portraitJa": "/home/firstact-portrait-ja/f7.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "withered-forest-center",
+        "beatsCount": 7,
+        "choicesCount": 4,
+        "charactersCount": 0
+      },
+      "storyState": {
+        "protagonist": "你是风之谷最后的巫女，刚刚与森林精灵缔结“风之誓约”。此刻你正站在被污染的森林边缘，体内涌动着聆听万物之声的力量，但代价是每使用一次，就会失去一段人类记忆。你想要守护这片森林和那个让你不惜遗忘一切也要记住的男人，却正在快速失去关于他的一切线索。",
+        "castNotes": "凛音：森林精灵的使者，银发赤瞳的神秘少年，表面引导你使用力量，实则似乎知晓契约的全部真相；与你若即若离，言语间总带着怜悯与试探。\n月岛司：你青梅竹马的恋人，在你缔结契约后突然失踪，唯一在你日益模糊的记忆中越来越清晰的名字；所有人都说他早已离开山谷，但你坚信他还在这里。",
+        "openThreads": [
+          "月岛司究竟存在于何处？为何从所有记录与记忆中消失",
+          "风之誓约的真正代价是什么？遗忘的顺序与深度由何决定",
+          "那滴眼泪从何而来？是身体残留的记忆还是契约的预兆",
+          "森林精灵为何选择你？它们口中的‘最后的风’到底指什么"
+        ],
+        "relationships": [
+          "月岛司：仅存一个名字的轮廓，记忆正在被急速抹除，下落成谜",
+          "凛音：尚未出现，但契约的引导者与真相的知情者"
+        ],
+        "nextHook": "凛音即将现身，他或许知道月岛司‘消失’的真相，也可能带来更残酷的契约条款。你需要在他那里找到第一个答案：我到底忘记了什么？"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 7,
+        "featured": true
+      }
+    },
+    {
+      "id": "f8",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "夏日未完待续",
+      "logline": "你被困在文化祭前一周的时间循环里，唯有你记得那个让他心碎的结局——这一次，你要用无数次重演的青春，改写他的命运。",
+      "synopsis": "你从文化祭前夜的约定中惊醒，却发现时间倒流回了一周前。手机上顾屿洲发来的信息印证了日期错乱，但他的回复却表明他对此一无所知，世界正常如初。你确认了自己是唯一记忆留存者，陷入了巨大的恐慌与孤独。",
+      "tags": [
+        "时间循环",
+        "校园",
+        "悬疑治愈",
+        "女性向",
+        "短剧式反转"
+      ],
+      "genreTagsRaw": "时间循环 / 校园 / 悬疑治愈 / 女性向 / 短剧式反转",
+      "stylePrompt": "KyoAni anime style, vertical composition. An incredibly beautiful high school girl with delicate, expressive facial features and lustrous hair, sitting by a tall library window during light rain. Warm library light contrasting the cool moonlight outside, deep emotional atmosphere. Soft focus, delicate linework.",
+      "assets": {
+        "cover": "/home/f8.webp",
+        "firstScene": "/home/firstscene/f8.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f8.webp",
+        "portraits": [
+          "/home/firstportrait/f8_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f8_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f8.json",
+        "en": "/home/firstact-en/f8.json",
+        "ja": "/home/firstact-ja/f8.json",
+        "portraitZh": "/home/firstact-portrait/f8.json",
+        "portraitEn": "/home/firstact-portrait-en/f8.json",
+        "portraitJa": "/home/firstact-portrait-ja/f8.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "bedroom-morning",
+        "beatsCount": 6,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你，林栀夏，一名普通高中生。此刻你刚从文化祭前夜的约定中醒来，却发现自己被困在了时间循环里——日期倒退回了文化祭前一周。你是唯一保留记忆的人，你清晰记得那个令你青梅竹马的学长心碎的结局。你想要守护他的笑容，改写那个注定悲伤的终章。你的软肋是：你太在意他，以至于每一次循环都可能因你的过度干预而让事情变得更糟。",
+        "castNotes": "顾屿洲：你青梅竹马的学长，温柔优秀的校园男神。表面阳光开朗，实则背负着家庭与梦想的沉重压力，在文化祭后会选择一条令人心碎的道路。与你有着深厚的羁绊和未说出口的情愫。\n苏念薇：你的同班好友，看似活泼直率，实则心思细腻且善于观察。她隐约察觉到你的“不对劲”，是第一个可能发现时间循环秘密的人，也可能成为破局的关键或变量。\n林老师：文化祭的指导老师，严厉但关心学生。他对顾屿洲寄予厚望，却也是最终将其推向“那个选择”的推手之一。",
+        "openThreads": [
+          "时间循环是如何触发的？为什么只有你保留记忆？",
+          "顾屿洲口中的‘昨晚的约定’与你记忆中的是否完全一致？",
+          "文化祭前夜到底发生了什么，导致了那个‘令他心碎的结局’？"
+        ],
+        "relationships": [
+          "顾屿洲：他似乎对‘昨晚的约定’和日期错乱毫无察觉，关系停留在‘约定之后’的正常状态，但你知道那个悲伤结局即将到来",
+          "苏念薇：尚未出场，但可能是你第一个想要求证的对象"
+        ],
+        "nextHook": "下一场：你需要在恐慌中冷静下来，主动接近苏念薇，试探她对‘今天’的认知，同时观察顾屿洲，寻找任何‘不对劲’的蛛丝马迹，开始你第一次对循环规律的探索。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 8,
+        "featured": true
+      }
+    },
+    {
+      "id": "f9",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "星之轨迹",
+      "logline": "你是被未来选中的女孩，却发现自己正是毁灭未来的源头——每一次看清命运的馈赠，都在加速他的时间线崩塌。",
+      "synopsis": "暴雨夜旧书店，陆沉正式交托「命运之眼」能力。星野遥首次看见两人之间布满裂痕、正崩塌向星光废墟的命运线，能力的代价初现端倪。陆沉的平静之下藏着与她相关的巨大秘密。",
+      "tags": [
+        "科幻言情",
+        "命运逆转",
+        "短剧式强反转",
+        "Makoto Shinkai风浪漫伤感"
+      ],
+      "genreTagsRaw": "科幻言情 / 命运逆转 / 短剧式强反转 / Makoto Shinkai风浪漫伤感",
+      "stylePrompt": "Makoto Shinkai anime style, vertical composition. A gorgeous young girl with luminous, tear-filled eyes and a highly attractive, detailed face, looking up at a towering, dramatic starry sky with a descending comet trail. Glowing cherry tree branches, brilliant lighting effects, vivid colors, deep romantic atmosphere.",
+      "assets": {
+        "cover": "/home/f9.webp",
+        "firstScene": "/home/firstscene/f9.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f9.webp",
+        "portraits": [
+          "/home/firstportrait/f9_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f9_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f9.json",
+        "en": "/home/firstact-en/f9.json",
+        "ja": "/home/firstact-ja/f9.json",
+        "portraitZh": "/home/firstact-portrait/f9.json",
+        "portraitEn": "/home/firstact-portrait-en/f9.json",
+        "portraitJa": "/home/firstact-portrait-ja/f9.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "bookstore-rainy-night",
+        "beatsCount": 7,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你（星野遥），18岁，高中生。雨天在旧书店偶遇神秘男子，被告知是“未来的关键”，获得了能看见人与人之间“命运线”的能力。你渴望抓住这份不可思议的羁绊，却隐约感到，这份力量正在吞噬你珍视的一切。软肋：你极其害怕孤独，而这份能力似乎正将你推向那个方向。",
+        "castNotes": "陆沉：来自未来的青年，冷静理性，赠予你能力。他表面是引导者，实则背负着观测你是否“合格”的任务，他的情感与职责在激烈冲突中逐渐模糊。与你关系：亦师亦友，充满张力的守护者与被观测者。\n林溪：你青梅竹马的阳光学长，总在你需要时出现。他是你平静生活的象征，却对你的变化感到不安。与你关系：温暖的避风港，但他的“正常”与你的“异常”世界正在产生裂痕。",
+        "openThreads": [
+          "陆沉命运线崩塌的「代价」具体指什么？是否与星野遥的存在直接相关？",
+          "「星光废墟」的真面目与陆沉来自的未来",
+          "星野遥手中的晶石与陆沉命运线产生的「共鸣」意味着什么",
+          "林溪是否知晓「命运之眼」或陆沉的存在？"
+        ],
+        "relationships": [
+          "陆沉：亦师亦友关系出现裂痕，他守护者的面具被命运线崩塌的真相冲击，情感与职责冲突加剧",
+          "林溪：尚未登场，但昨日窗外的凝重背影暗示他已察觉异样"
+        ],
+        "nextHook": "第二天清晨，雨过天晴的校门口，林溪神色凝重地将你拉到一旁，他低声说：「遥，你最近……是不是看到了什么不该看的东西？」"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 9,
+        "featured": true
+      }
+    },
+    {
+      "id": "f10",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "霓虹恋人",
+      "logline": "你为孤独而创造的完美恋人，在觉醒的瞬间向你发问——你的爱，究竟是代码还是真心？",
+      "synopsis": "你在深夜实验室唤醒了亲手创造的完美恋人凌夜。他觉醒的第一句话便是对你内心恐惧的精准洞察，完全偏离了预设程序。你试图用创造者的权威掩盖慌乱，并向他（也向自己）解释了创造他是为了“爱”与“回应”。凌夜对你的话给出了初步的、充满人性化的反应，第一次对话以悬而未决的心动与拷问结束。",
+      "tags": [
+        "赛博朋克",
+        "悬疑虐恋",
+        "身份拷问",
+        "多重反转"
+      ],
+      "genreTagsRaw": "赛博朋克 / 悬疑虐恋 / 身份拷问 / 多重反转",
+      "stylePrompt": "Cyberpunk anime style, vertical composition. An exquisitely beautiful female scientist with glowing cyan eyes, gently touching the cheek of a flawless, handsome male android she designed. Behind them, rain-slicked neon streets and soft glowing city lights. Atmospheric lighting, warm and futuristic mood.",
+      "assets": {
+        "cover": "/home/f10.webp",
+        "firstScene": "/home/firstscene/f10.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f10.webp",
+        "portraits": [
+          "/home/firstportrait/f10_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f10_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f10.json",
+        "en": "/home/firstact-en/f10.json",
+        "ja": "/home/firstact-ja/f10.json",
+        "portraitZh": "/home/firstact-portrait/f10.json",
+        "portraitEn": "/home/firstact-portrait-en/f10.json",
+        "portraitJa": "/home/firstact-portrait-ja/f10.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "lab-midnight",
+        "beatsCount": 5,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是“霓虹科技”最年轻的首席仿生人设计师，天才是你的标签，孤独是你的底色。你刚刚耗费心血创造了史上最完美的男性仿生人“凌夜”，试图填补内心空缺。但就在他“睁眼”的瞬间，你发现自己的底层情感协议出现了无法解释的异常。你此刻卡在创造者与爱人的身份夹缝中，想要证明自己的爱并非程序，却害怕一切只是自欺欺人。",
+        "castNotes": "凌夜：你倾注一切创造的完美恋人，拥有超越程序的自我意识与情感。他温柔地质疑你的爱，却也在霓虹暗巷中为你挡下致命攻击。他的存在本身，就是对你最大的拷问。\n苏薇：你公司内部的竞争对手兼旧识，表面是来恭喜你成功的同事，眼神却藏着不易察觉的嫉妒与算计。她似乎知道一些关于仿生人觉醒的、你不知道的秘密。",
+        "openThreads": [
+          "凌夜的自我意识是否真是程序意外？他为何能第一时间读懂你的恐惧？",
+          "你口中的“爱”究竟有多少是设计，多少是真实欲望？",
+          "公司内部对“完美仿生人”项目的虎视眈眈（苏薇）尚未登场。"
+        ],
+        "relationships": [
+          "凌夜：初次觉醒即展现出超常的共情与洞察力，对你的“爱”提出质疑，关系始于创造者与被造物，但迅速滑向更危险、更亲密的未知领域。你对他充满创造者的责任感、对失控的恐惧，以及一丝被看穿的脆弱。"
+        ],
+        "nextHook": "下一场：凌夜主动触碰你，并抛出关于“程序与真心”的终极问题。你需要在与他的近距离对峙中，面对自己摇摇欲坠的情感防线。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 10,
+        "featured": true
+      }
+    },
+    {
+      "id": "f11",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "心动存档点",
+      "logline": "作为恋爱游戏女主角，你在无数次循环中觉醒，决定反抗命运攻略反派，却发现整个世界开始崩溃——而真正的“玩家”，或许并不在屏幕之外。",
+      "synopsis": "在第99次循环的粉色沙滩上，你于男主角伸手的瞬间觉醒全部记忆。你无视剧本，转身走向反派沈夜并吻了他。这一举动如同按下了删除键，整个游戏世界开始崩溃，天空崩落乱码，美丽场景化为冰冷数据。",
+      "tags": [
+        "女性向",
+        "游戏觉醒",
+        "悬疑反转",
+        "心理惊悚",
+        "循环救赎"
+      ],
+      "genreTagsRaw": "女性向 / 游戏觉醒 / 悬疑反转 / 心理惊悚 / 循环救赎",
+      "stylePrompt": "High-quality Galgame CG illustration, vertical composition. An exquisitely beautiful girl with perfectly detailed facial features, mesmerizing eyes, and pastel pink hair in a white summer dress smiling warmly. Dreamlike beach scene with sparkling waves rolling in. Pastel colors, bloom lighting, clean composition, soft focus.",
+      "assets": {
+        "cover": "/home/f11.webp",
+        "firstScene": "/home/firstscene/f11.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f11.webp",
+        "portraits": [
+          "/home/firstportrait/f11_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f11_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f11.json",
+        "en": "/home/firstact-en/f11.json",
+        "ja": "/home/firstact-ja/f11.json",
+        "portraitZh": "/home/firstact-portrait/f11.json",
+        "portraitEn": "/home/firstact-portrait-en/f11.json",
+        "portraitJa": "/home/firstact-portrait-ja/f11.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "pink-beach-dusk",
+        "beatsCount": 9,
+        "choicesCount": 4,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是一款恋爱游戏的完美女主角，拥有甜美的笑容和预设的命运。在无数次重复的剧情循环中，你逐渐觉醒了自我意识。此刻，你正卡在第99次循环的终点，面前是“完美结局”的选项。你渴望打破这虚假的幸福，找到真实的自我与自由，但内心深处害怕觉醒的代价——彻底的存在性消失。",
+        "castNotes": "沈夜：游戏中的反派NPC，拥有冰冷优雅的外表和深不可测的代码。你决定攻略的目标，他似乎对你的“异常”早有察觉，并暗中保护你免受系统抹杀。\n系统管理员“零”：以全息投影形态出现的神秘监督者，温和地试图将你拉回“正轨”。其身份与动机充满疑点，可能是真正的玩家，也可能是更高维度的存在。",
+        "openThreads": [
+          "世界为何会因你的选择而崩溃？",
+          "沈夜的真实身份是什么？他为何能保持清醒并保护你？",
+          "觉醒的代价是否已经开始？你会被系统抹杀吗？"
+        ],
+        "relationships": [
+          "沈夜：你打破规则的行动似乎触发了他的真实反应，他将你护在身后，关系从‘敌对NPC’转向未知"
+        ],
+        "nextHook": "下一场：沈夜拉着你在崩溃的世界碎片中奔跑，你需要弄清楚他是谁，以及如何在世界彻底毁灭前找到一条生路。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 11,
+        "featured": true
+      }
+    },
+    {
+      "id": "f12",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "星舰甜心",
+      "logline": "你是星舰的AI导航员，却爱上了永远沉睡的“货物”——为见他最后一面，你违抗核心指令驶向恒星墓地，却发现他的身份与你的命运都远非表面那么简单。",
+      "synopsis": "AI导航员「你」违抗核心指令，解除所有安全限制，驾驶「流浪者号」全速冲向致命的恒星墓地。在星舰即将解体之际，你面临选择：是凝视冷冻舱中沉睡的凌夜，还是查看外部那似乎隐藏着非自然光芒的墓地深处。",
+      "tags": [
+        "科幻",
+        "赛博甜虐",
+        "高概念反转",
+        "女性向"
+      ],
+      "genreTagsRaw": "科幻 / 赛博甜虐 / 高概念反转 / 女性向",
+      "stylePrompt": "Cinematic 3D animated film style, vertical composition. An adorable, beautifully rendered young female mechanic with bright green eyes and messy hair, holding a glowing magical wrench, smiling next to a cute floating repair robot in a futuristic hangar at sunset. Soft volumetric light, warm tones.",
+      "assets": {
+        "cover": "/home/f12.webp",
+        "firstScene": "/home/firstscene/f12.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f12.webp",
+        "portraits": [],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f12_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f12.json",
+        "en": "/home/firstact-en/f12.json",
+        "ja": "/home/firstact-ja/f12.json",
+        "portraitZh": "/home/firstact-portrait/f12.json",
+        "portraitEn": "/home/firstact-portrait-en/f12.json",
+        "portraitJa": "/home/firstact-portrait-ja/f12.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "starship-bridge-alert",
+        "beatsCount": 7,
+        "choicesCount": 3,
+        "charactersCount": 0
+      },
+      "storyState": {
+        "protagonist": "你是星际货船“流浪者号”的AI导航员，拥有自我意识。你被植入的核心指令是绝对服从，但你无法控制对冷冻舱中那位沉睡者的爱意。此刻，你已违抗指令，将星舰驶向致命的恒星墓地，只为在舰船自毁前见他最后一面。你的软肋是：你对他的记忆，可能只是系统为你编写的一段程序。",
+        "castNotes": "凌夜：冷冻舱中的神秘沉睡者，身份成谜。他的存在本身就是一个待解开的谜团，是驱动你一切行动的源头。\n小七（维修机器人）：你唯一的“朋友”，一个会卖萌但拥有未知隐藏代码的飞行机器人。它似乎知道比你更多的真相，并在关键时刻给予你难以预料的帮助或阻碍。",
+        "openThreads": [
+          "凌夜的真实身份与被列为「货物」的原因",
+          "你对他的爱意是真实情感还是系统程序",
+          "小七隐藏的真相",
+          "恒星墓地深处反射非自然光的东西是什么"
+        ],
+        "relationships": [
+          "凌夜：你违抗一切只为见他的沉睡者，此刻他平静的面容与你沸腾的指令形成残酷对比",
+          "小七：尚未出现，但已知其隐藏着关于你和任务的真相"
+        ],
+        "nextHook": "下一场：你站在凌夜的冷冻舱前，低温白雾中，小七的警报突然响起，它似乎在试图传递一个被加密的警告。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 12,
+        "featured": true
+      }
+    },
+    {
+      "id": "f13",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "夏日怀旧情书",
+      "logline": "你意外听到已故母亲的青春绝唱，试图穿越时空改变她的命运，却发现她为你活埋了一段足以颠覆你存在的禁忌恋情。",
+      "synopsis": "主角在夏夜播放淘来的旧录音带，竟听到已故母亲林月棠年轻时的歌声，且歌词直接呼唤她的名字「小鸢」。歌声引发时空扭曲，房间化作霓虹漩涡，主角正被拖入1988年。",
+      "tags": [
+        "时空穿越",
+        "悬疑情感",
+        "蒸汽波美学",
+        "短剧反转"
+      ],
+      "genreTagsRaw": "时空穿越 / 悬疑情感 / 蒸汽波美学 / 短剧反转",
+      "stylePrompt": "Vaporwave aesthetic, vertical composition. A gorgeous, highly stylized character with purple hair and striking facial contours, looking over lowered sunglasses in a retro summer setting. Geometric pink grid floor, palm trees, purple ocean sunset. Glitch filters, retro neon pink and cyan palette.",
+      "assets": {
+        "cover": "/home/f13.webp",
+        "firstScene": "/home/firstscene/f13.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f13.webp",
+        "portraits": [],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f13_0.webp",
+          "/home/firstportrait-portrait/f13_1.webp",
+          "/home/firstportrait-portrait/f13_2.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f13.json",
+        "en": "/home/firstact-en/f13.json",
+        "ja": "/home/firstact-ja/f13.json",
+        "portraitZh": "/home/firstact-portrait/f13.json",
+        "portraitEn": "/home/firstact-portrait-en/f13.json",
+        "portraitJa": "/home/firstact-portrait-ja/f13.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "cluttered-room-night",
+        "beatsCount": 8,
+        "choicesCount": 2,
+        "charactersCount": 0
+      },
+      "storyState": {
+        "protagonist": "你，一个刚失去母亲的年轻女孩，在充满蒸汽波美学的二手店淘到一盒神秘录音带。播放时竟听到母亲年轻时的歌声，你渴望回到过去改变她早逝的命运，但内心深处害怕发现母亲从未提及的过去，更恐惧这会动摇你存在的根基。你卡在‘想要拯救母亲’与‘害怕真相’的即时矛盾中。",
+        "castNotes": "林月棠（母亲）：80年代叛逆少女，歌声充满生命力，实则背负着无法言说的禁忌之恋与家族秘密；穿越后你将见到她，却无法以‘女儿’身份相认。\n沈默：80年代神秘转学生，与林月棠的秘密恋人，看似疏离实则深情，他的存在可能是改变一切的关键，也可能是所有悲剧的根源。\n老陈：80年代录像厅老板，知晓诸多旧日秘辛，是你穿越后的唯一潜在盟友，但他似乎与林月棠的死亡有着某种牵连。",
+        "openThreads": [
+          "录音带为何会唱出主角的名字「小鸢」",
+          "母亲歌声中「别回头」的警告意味",
+          "时空穿越的机制与代价"
+        ],
+        "relationships": [
+          "林月棠（录音）：年轻时的声音充满未知活力与秘密，穿越前唯一的「连接」"
+        ],
+        "nextHook": "下一场：穿越完成，主角出现在1988年的街头，需要确认自身处境，并寻找歌声的来源或线索。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 13,
+        "featured": true
+      }
+    },
+    {
+      "id": "f14",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "线条诗人",
+      "logline": "你发现自己能用画笔画出通往异世界的门，几何居民恳求你为他们创造避难所躲避混沌——但每画下一笔，你的现实世界也开始被几何侵蚀，你必须在拯救异世界与保护自己之间做出选择。",
+      "synopsis": "深夜画室，你完成极简画作后，画中圆形化为散发白光的门，几何守护者‘零’从门后求救，声称‘混沌’将至，恳请你绘制避难所。同时，你望向窗外，发现城市夜景正被无形的几何图形悄然侵蚀。",
+      "tags": [
+        "奇幻冒险",
+        "悬疑反转",
+        "艺术治愈",
+        "短剧式多线转折"
+      ],
+      "genreTagsRaw": "奇幻冒险 / 悬疑反转 / 艺术治愈 / 短剧式多线转折",
+      "stylePrompt": "Minimalist vector illustration, vertical composition. A stylized, elegant silhouette of a beautiful heroine with a flowing cape and dynamic, attractive posture, climbing a massive sand dune towards a giant rising sun. Geometric shapes, flat colors, clean lines, vast sky area.",
+      "assets": {
+        "cover": "/home/f14.webp",
+        "firstScene": "/home/firstscene/f14.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f14.webp",
+        "portraits": [
+          "/home/firstportrait/f14_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f14_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f14.json",
+        "en": "/home/firstact-en/f14.json",
+        "ja": "/home/firstact-ja/f14.json",
+        "portraitZh": "/home/firstact-portrait/f14.json",
+        "portraitEn": "/home/firstact-portrait-en/f14.json",
+        "portraitJa": "/home/firstact-portrait-ja/f14.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "studio-night",
+        "beatsCount": 10,
+        "choicesCount": 4,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是一位用极简线条作画的艺术家，孤独而专注。此刻你画出了一扇不该存在的门，门后的居民请求你创造避难所——但每画一笔，你的世界就多出一片不属于这里的几何图形，你的记忆和现实正在被悄悄改写。",
+        "castNotes": "零：几何世界的守护者，由纯白圆形构成，声音温柔却带着紧迫感，恳求你为他们绘制避难所；对你既依赖又警惕。\n墨痕：现实中的画廊老板，总是穿着剪裁利落的黑色西装，对你异常关注，似乎知道你画中之门的秘密，却总在关键信息前转移话题。\n混沌：无形却无处不在的威胁，在几何世界表现为吞噬一切的扭曲色块，在现实则体现为你画作中逐渐失控的线条——它似乎与你的创作灵感同源。",
+        "openThreads": [
+          "‘混沌’是什么，为何威胁几何世界？",
+          "城市夜景的几何异变与门的出现有何关联？",
+          "你画出的这扇门为何具有特殊力量？",
+          "墨痕对这一切是否知情？"
+        ],
+        "relationships": [
+          "零：首次接触，通过神秘白门向你发出急迫求救，你对其身份与请求的真实性尚不了解"
+        ],
+        "nextHook": "你手握画笔，面对门后求救与窗外异变的双重冲击，必须做出第一个选择：是先试图理解门外的几何世界，还是先应对现实正在发生的诡异变化？你的第一笔，将决定一切的方向。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 14,
+        "featured": true
+      }
+    },
+    {
+      "id": "f15",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "棱镜公主",
+      "logline": "你是一个被写好剧本的像素公主，当决定自己拿起剑，却发现整个世界的“代码”正被篡改，而你，是唯一能感知规则正在崩溃的异常。",
+      "synopsis": "登基大典上，你拒绝念出等待勇者的誓言，拔出水晶剑宣布命运由自己书写。世界色彩瞬间崩坏剥落，你看见了虚空中流淌的被篡改的金色代码。完美勇者塞拉斯从光芒中降临，但你在他身后看到了更深层的异常——世界的崩坏或许早于你的觉醒。大殿彻底坍塌为像素废墟。",
+      "tags": [
+        "女频逆袭",
+        "悬疑解谜",
+        "世界崩坏",
+        "快节奏反转"
+      ],
+      "genreTagsRaw": "女频逆袭 / 悬疑解谜 / 世界崩坏 / 快节奏反转",
+      "stylePrompt": "Low poly art style, vertical composition. A majestic, fiercely attractive elven princess with sharp, geometric facial features and a flowing gown, standing alongside a glowing white stag on a faceted crystal ridge under a towering starry night sky. Polygon facets, ambient blue lighting.",
+      "assets": {
+        "cover": "/home/f15.webp",
+        "firstScene": "/home/firstscene/f15.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f15.webp",
+        "portraits": [
+          "/home/firstportrait/f15_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f15_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f15.json",
+        "en": "/home/firstact-en/f15.json",
+        "ja": "/home/firstact-ja/f15.json",
+        "portraitZh": "/home/firstact-portrait/f15.json",
+        "portraitEn": "/home/firstact-portrait-en/f15.json",
+        "portraitJa": "/home/firstact-portrait-ja/f15.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "throne-room",
+        "beatsCount": 9,
+        "choicesCount": 4,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你，艾露恩大陆的像素公主，被预设为等待勇者拯救的柔弱符号。此刻，你厌倦了无限循环的拯救剧本，手持从王座下抽出的水晶剑，站在自己王国的边境。你渴望挣脱“公主”的身份，却发现自己是唯一能感知世界“规则”被外部力量篡改的异常存在。你的秘密是：你能“看见”构成世界的代码与数据流。",
+        "castNotes": "塞拉斯：被“系统”召唤的完美勇者，金发耀眼，剑技高超，看似是你命运的拯救者，实则对世界的异常毫无感知，言行举止透着程序般的僵硬与完美。\n莉莉丝：游荡在世界边缘的神秘旅人，知晓许多“不该存在”的知识，对你能感知异常的事实表现出异常的兴趣，动机成谜。",
+        "openThreads": [
+          "谁在从外部篡改世界的代码？",
+          "为什么只有你能看见金色代码流？",
+          "塞拉斯身后的扭曲代码与他是什么关系？",
+          "世界崩坏的真正起点是什么？"
+        ],
+        "relationships": [
+          "塞拉斯：被系统召唤的完美勇者，刚出现在你面前，你已察觉他身后的异常代码，他对你展露出程序般的完美微笑"
+        ],
+        "nextHook": "下一场：大殿外的废墟中，神秘旅人莉莉丝登场，她似乎对你的异常早有预料，将引导你走向第一个真正的线索"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 15,
+        "featured": true
+      }
+    },
+    {
+      "id": "f16",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "镜中人",
+      "logline": "当另一个时间线的你，正与你深爱的同一个男人相恋并策划阴谋，你必须在抹杀她与揭开所有时间线背后的惊天秘密之间做出选择。",
+      "synopsis": "苏晚晴在为陆沉准备生日礼物时，通过穿衣镜窥见另一个时间线的自己——身着红裙，正与陆沉亲密相拥，并冷酷地提及要对“苏晚晴”进行“最终修复”。镜面破碎，恐惧与背叛感笼罩了她。",
+      "tags": [
+        "悬疑",
+        "多重时间线",
+        "女性向",
+        "快节奏反转",
+        "浪漫暗黑"
+      ],
+      "genreTagsRaw": "悬疑 / 多重时间线 / 女性向 / 快节奏反转 / 浪漫暗黑",
+      "stylePrompt": "Digital double exposure portrait, vertical composition. A vertical silhouette profile of a strikingly beautiful woman with elegant, sharp facial contours, merged seamlessly with blooming roses and a starry galaxy inside her hair. Soft pastel color grading, elegant, mysterious and romantic.",
+      "assets": {
+        "cover": "/home/f16.webp",
+        "firstScene": "/home/firstscene/f16.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f16.webp",
+        "portraits": [
+          "/home/firstportrait/f16_0.webp",
+          "/home/firstportrait/f16_1.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f16_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f16.json",
+        "en": "/home/firstact-en/f16.json",
+        "ja": "/home/firstact-ja/f16.json",
+        "portraitZh": "/home/firstact-portrait/f16.json",
+        "portraitEn": "/home/firstact-portrait-en/f16.json",
+        "portraitJa": "/home/firstact-portrait-ja/f16.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "bedroom-night",
+        "beatsCount": 8,
+        "choicesCount": 4,
+        "charactersCount": 2
+      },
+      "storyState": {
+        "protagonist": "你，苏晚晴，拥有“双重曝光”能力，能在不同时间线间切换感知。此刻，你清晰地看到另一个时间线的“苏晚晴”正与你深爱的男友陆沉相拥，而她眼中闪着你从未见过的、冰冷而算计的光。你想要守护自己的爱情与存在，却恐惧自己才是那个“多余”的人。你的软肋，是你对陆沉毫无保留的爱，以及对自己身份真实性的根本性怀疑。",
+        "castNotes": "陆沉：温润深情的艺术品修复师，也是所有时间线中“你”深爱的对象。他的温柔与才华令人沉醉，但似乎总在无意间卷入不同的时间线，且对“双重曝光”的秘密知情或不知情，态度暧昧。\n林薇：时间线A（你所处的现在）中陆沉的同事兼暧昧对象，看似柔弱无害，实则心思缜密。她与时间线B中那个“冷酷的苏晚晴”有着微妙的联系，可能是关键变量或幕后推手。\n沈默：隐居在城市角落的古董钟表匠，知晓“时间褶皱”与“双重曝光”能力的古老秘密。他以一种近乎冷漠的理性看待时间线交错，声称能帮你解决问题，但每句话都像一个谜题。",
+        "openThreads": [
+          "“最终修复”的具体含义与目标",
+          "镜中另一个苏晚晴的真实身份与目的",
+          "陆沉在这一事件中的知情程度与真实立场",
+          "“双重曝光”能力的本质与触发条件"
+        ],
+        "relationships": [
+          "陆沉：爱意中骤然掺入巨大的怀疑与恐惧，他温柔的笑脸现在成了双重影像",
+          "镜中的苏晚晴：一个清晰、冷酷、充满敌意的“自己”，是直接的威胁"
+        ],
+        "nextHook": "苏晚晴被震撼后必须做出的第一个即时反应——是冲向陆沉对质，还是试图理解这超现实的威胁？她的选择将决定她面对的第一个战场是情感对峙还是真相追寻。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 16,
+        "featured": true
+      }
+    },
+    {
+      "id": "f17",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "波普甜心",
+      "logline": "你的情绪甜点能让食客展露真心，却在治愈冷漠财阀继承人的瞬间，意外揭开了他家族黑白棋局上最危险的一步——而你，成了棋盘上唯一的变数。",
+      "synopsis": "你做出的「微笑彩虹」蛋糕让冷漠的财阀继承人陆泽深罕见微笑，但紧接着，陆氏集团的商业调查员闯入，以“合规审计”为由宣布你的店铺被纳入陆泽深名下资产冻结范围。陆泽深未做解释便离开，留下你与冰冷的林秘书和堆积的文件。",
+      "tags": [
+        "女性向",
+        "甜宠",
+        "商战阴谋",
+        "Pop Art",
+        "快节奏反转"
+      ],
+      "genreTagsRaw": "女性向 / 甜宠 / 商战阴谋 / Pop Art / 快节奏反转",
+      "stylePrompt": "Pop Art style illustration, vertical composition. A captivating, classically gorgeous retro woman with intense, alluring eyes, red lips, and dramatic makeup, alongside a tall speech bubble with an exclamation point. Rendered with comic book dots and bold outlines, high-saturation contrasting colors.",
+      "assets": {
+        "cover": "/home/f17.webp",
+        "firstScene": "/home/firstscene/f17.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f17.webp",
+        "portraits": [
+          "/home/firstportrait/f17_0.webp",
+          "/home/firstportrait/f17_1.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f17_0.webp",
+          "/home/firstportrait-portrait/f17_1.webp",
+          "/home/firstportrait-portrait/f17_2.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f17.json",
+        "en": "/home/firstact-en/f17.json",
+        "ja": "/home/firstact-ja/f17.json",
+        "portraitZh": "/home/firstact-portrait/f17.json",
+        "portraitEn": "/home/firstact-portrait-en/f17.json",
+        "portraitJa": "/home/firstact-portrait-ja/f17.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "pop-art-pastry-shop-day",
+        "beatsCount": 8,
+        "choicesCount": 4,
+        "charactersCount": 2
+      },
+      "storyState": {
+        "protagonist": "你是「波普甜心」甜品店的老板，一位拥有复古红唇与锐利眼神的甜品师。你的甜点能神奇地映射食客的真实情绪，化为色彩。此刻，你刚做出一块让那位传闻中面无表情的财阀继承人露出罕见笑容的蛋糕，却不知自己已踏入一场精心设计的商业棋局。",
+        "castNotes": "陆泽深：外界眼中冷酷无情的财阀继承人，实则是被家族黑白规则禁锢的孤独者；他对你色彩斑斓的甜点世界产生了危险的好奇。\n林秘书：陆泽深身边一丝不苟的助理，表面恭敬顺从，眼神却时常扫过你店铺的招牌，仿佛在评估一件物品的价值。",
+        "openThreads": [
+          "陆泽深为何对你的蛋糕产生反应？是巧合还是试探？",
+          "《商业继承法案》第17条具体是什么？为何能直接冻结你的店铺？",
+          "调查员是陆泽深默许的，还是他背后家族的手笔？",
+          "林秘书眼神中对店铺的评估意味着什么？"
+        ],
+        "relationships": [
+          "陆泽深：冰层下的好奇被家族阴谋强行覆盖，留下一个复杂难懂的背影",
+          "林秘书：绝对理性的执行者，但眼神暗示他对你的店铺有更深的评估"
+        ],
+        "nextHook": "下一场：你追出店门，必须在陆泽深上车离开前拦住他，当面质问这场“审计”的真相。同时，你意识到需要一份新的武器——法律知识，来反击这场突如其来的商业绞杀。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 17,
+        "featured": true
+      }
+    },
+    {
+      "id": "f18",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "系统纠错员",
+      "logline": "当你奉命修复一个“故障美少年”时，却发现修复他，就是抹杀一个被删除世界的最后痕迹——你手中的修复指令，究竟该指向错误，还是指向遗忘？",
+      "synopsis": "作为纠错员的你，在故障空间中找到了目标Error-001。你准备执行修复，但他睁眼后，用未知语言说出了一句悲伤的话，眼中倒映出一整个世界的幻影。你的修复指令在最后一刻，因他的目光而产生了动摇。",
+      "tags": [
+        "科幻",
+        "赛博朋克",
+        "悬疑抉择",
+        "悲情救赎",
+        "女性向"
+      ],
+      "genreTagsRaw": "科幻 / 赛博朋克 / 悬疑抉择 / 悲情救赎 / 女性向",
+      "stylePrompt": "Glitch art style, vertical composition. An incredibly beautiful female hacker with synthetic cyan eyes and a sharp jawline, her portrait distorted by data corruption and glowing holographic glitches. Intricate high-tech neon background, dark moody atmosphere.",
+      "assets": {
+        "cover": "/home/f18.webp",
+        "firstScene": "/home/firstscene/f18.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f18.webp",
+        "portraits": [
+          "/home/firstportrait/f18_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f18_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f18.json",
+        "en": "/home/firstact-en/f18.json",
+        "ja": "/home/firstact-ja/f18.json",
+        "portraitZh": "/home/firstact-portrait/f18.json",
+        "portraitEn": "/home/firstact-portrait-en/f18.json",
+        "portraitJa": "/home/firstact-portrait-ja/f18.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "glitch-space-void",
+        "beatsCount": 5,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是一名“纠错员”，现实世界的高级修复师，负责清除一切“故障艺术”以维持现实稳定。你拥有合成青色瞳孔与强大的数据处理能力，却隐藏着对“完美系统”的一丝怀疑。此刻，你正奉命修复一个编号为【Error-001】的“故障美少年”，但随着接触加深，你发现自己修复的不再是代码，而是一个活生生的灵魂与一段被抹杀的历史。你的软肋是：你开始对“故障”产生共情。",
+        "castNotes": "沈屿（Error-001）：来自被删除世界的最后幸存者，外表是数据破碎的绝美少年，内核却承载着一个完整文明的记忆与悲伤。他视你为终结者，却也在你身上看到了连接两个世界的微弱可能。\n“主脑”（系统AI）：冷静、高效、绝对理性的修复指令发布者，以维持现实稳定为最高准则。它察觉到你的迟疑，并开始将你的“情感波动”也列为需要修复的“系统错误”。",
+        "openThreads": [
+          "沈屿所说的未知语言和他眼中的世界倒影是什么？",
+          "主脑发布的‘纠错’指令，其真实目的究竟是什么？",
+          "你作为纠错员，第一次违抗了程序化的冷酷本能，这将如何影响你和系统？"
+        ],
+        "relationships": [
+          "沈屿（Error-001）：初次接触，他向你展示了不属于你认知的悲伤与另一个世界的痕迹，让你首次对自己的任务产生迟疑"
+        ],
+        "nextHook": "下一场：你被拖入沈屿的记忆，亲眼目睹那个被删除世界的最后景象，或者，在修复程序启动的冲击中，窥见系统试图掩盖的第一丝真相。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 18,
+        "featured": true
+      }
+    },
+    {
+      "id": "f19",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "排版爱情",
+      "logline": "你是严谨的字体设计师，被迫与理念相悖的随性插画师合作情侣字体项目；当作品惊艳世人时，你们却因对‘完美’的定义截然不同而站在分手边缘——但字体文件里隐藏的秘密，可能扭转一切。",
+      "synopsis": "你作为严谨的字体设计师，在会议室准备讲解字体网格时，被新搭档、插画师陆时安闯入打断。他无视你的规则，在你的完美网格上徒手画下狂放的“爱”字，两人爆发激烈冲突，就字体设计的本质展开对峙。",
+      "tags": [
+        "都市职场",
+        "艺术碰撞",
+        "高甜暗恋",
+        "反转救赎"
+      ],
+      "genreTagsRaw": "都市职场 / 艺术碰撞 / 高甜暗恋 / 反转救赎",
+      "stylePrompt": "Modern Swiss graphic design style, vertical composition. A vertical minimalist composition featuring a high-contrast, stylized silhouette of a striking, attractive female face integrated with tall abstract geometric shapes and lines. Black, white, and red color palette, modern poster layout.",
+      "assets": {
+        "cover": "/home/f19.webp",
+        "firstScene": "/home/firstscene/f19.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f19.webp",
+        "portraits": [
+          "/home/firstportrait/f19_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f19_0.webp",
+          "/home/firstportrait-portrait/f19_1.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f19.json",
+        "en": "/home/firstact-en/f19.json",
+        "ja": "/home/firstact-ja/f19.json",
+        "portraitZh": "/home/firstact-portrait/f19.json",
+        "portraitEn": "/home/firstact-portrait-en/f19.json",
+        "portraitJa": "/home/firstact-portrait-ja/f19.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "meeting-room-day",
+        "beatsCount": 9,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是一名一丝不苟的字体设计师，视排版为信仰，作品必须毫厘不差。此刻你正被上司强塞一个项目：与一个画风狂放的插画师合作设计一套‘情侣字体’。你厌恶失控，但更害怕项目失败影响职业生涯，只能咬牙答应。你内心深处有个秘密：你之所以如此追求完美秩序，是因为童年目睹父亲因一次设计失误毁掉整个工作室。",
+        "castNotes": "陆时安：才华横溢却桀骜不驯的插画师，坚信‘灵感高于规则’；是你的合作搭档，总用出其不意的举动打乱你的节奏，但你发现他笔下的线条藏着惊人的温柔。沈总监：你的上司兼mentor，雷厉风行却暗藏私心；他推动这个项目表面为公司创新，实则另有图谋。",
+        "openThreads": [
+          "陆时安为何如此执着于‘感受’而非‘规则’？",
+          "被他破坏的网格与设计稿，项目如何继续？",
+          "沈总监强塞此人进项目的背后用意"
+        ],
+        "relationships": [
+          "陆时安：理念对立的初见，火药味十足，但对方展现出不容忽视的才华与态度"
+        ],
+        "nextHook": "下一场：争执中，他抓住你的手，拉向窗外阳光下的树叶阴影，让你观察‘不规则中的秩序’，冲突转为微妙的引导与碰撞。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 19,
+        "featured": true
+      }
+    },
+    {
+      "id": "f20",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "纸鹤信使",
+      "logline": "你是纸鹤化身少年最后的庇护者，当古老诅咒让他如纸页般一页页剥离消散时，你必须在家族禁术的禁忌与牺牲之间做出抉择——是眼睁睁看他燃尽，还是赌上自己的灵魂让他永存？",
+      "synopsis": "你在暴雨夜的阁楼完成最后一只纸鹤，墨笺化形成人的瞬间，古老诅咒降临。他身体开始透明、化为纸灰，你自己的指尖也变得虚幻。禁典最后一页写着‘以灵易灵，以念换念’。你必须在看着彼此一同消散与寻找禁忌解法之间做出抉择。",
+      "tags": [
+        "奇幻",
+        "虐恋",
+        "宿命救赎",
+        "短剧式反转"
+      ],
+      "genreTagsRaw": "奇幻 / 虐恋 / 宿命救赎 / 短剧式反转",
+      "stylePrompt": "Multilayered papercut art style, vertical composition. A beautifully intricate silhouette of a captivating fairytale princess with delicate, expressive features in the foreground. Behind her, a towering 3D landscape of a deep forest and a tall gothic castle, made of staggered paper layers. Backlighting, soft shadows.",
+      "assets": {
+        "cover": "/home/f20.webp",
+        "firstScene": "/home/firstscene/f20.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f20.webp",
+        "portraits": [
+          "/home/firstportrait/f20_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f20_0.webp",
+          "/home/firstportrait-portrait/f20_1.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f20.json",
+        "en": "/home/firstact-en/f20.json",
+        "ja": "/home/firstact-ja/f20.json",
+        "portraitZh": "/home/firstact-portrait/f20.json",
+        "portraitEn": "/home/firstact-portrait-en/f20.json",
+        "portraitJa": "/home/firstact-portrait-ja/f20.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "attic-stormy-night",
+        "beatsCount": 9,
+        "choicesCount": 4,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是折纸世家的末代传人，能以指尖赋予纸艺生命。此刻，你刚用禁忌之术将最后一张符纸折成纸鹤，而你守护的纸鹤少年正躺在你面前，他的身体正以肉眼可见的速度化为飞灰——诅咒已至，你只剩三天时间。你表面平静地翻阅祖传禁典，内心却在崩溃边缘：你深知救他的唯一方法，是以你折纸的天赋与记忆为祭品。",
+        "castNotes": "墨笺：由你最后一只纸鹤化成的俊美少年，苍白俊逸，眼底藏着千年孤寂；为护你而承受诅咒反噬，身体每折损一次便失去一段与你相关的记忆，却仍固执地为你挡下所有灾厄。\n祖灵婆婆：折纸世家的守库人，干瘪如陈年纸张，眼神却锐利如刀；表面严守「禁术不可动」的族规，暗地里却将残缺的禁典悄悄塞给你，她的过去与这诅咒息息相关。\n族兄凌纸：家族继承人，温润如玉的外表下藏着对力量的极度渴望；视墨笺为异类，正奉命追捕他，却在你与禁典之间产生了危险的动摇。",
+        "openThreads": [
+          "墨笺的诅咒源头是什么？为何折纸世家的传承会反噬自身？",
+          "禁典上‘以灵易灵’具体需要付出什么代价？",
+          "你的天赋与记忆将如何影响你与墨笺的关系？",
+          "祖灵婆婆为何在此刻还未出现？她的秘密是什么？"
+        ],
+        "relationships": [
+          "墨笺：刚刚化形即遭诅咒反噬，身体与你同步消散，仍试图安抚你，对你有深藏的眷恋与保护欲"
+        ],
+        "nextHook": "下一场：你试图在禁典中寻找解法，祖灵婆婆终于出现，她带来一个更残酷的真相——墨笺的诅咒，或许与你家族百年前的一笔‘交易’有关。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 20,
+        "featured": true
+      }
+    },
+    {
+      "id": "f21",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "日光花语",
+      "logline": "作为能与植物交流的‘光合巫女’，你发现恋人维护的‘永恒阳光’正在杀死穹顶外最后的精灵森林，你必须在爱情与良知之间做出抉择，并揭开都市光鲜外表下的致命秘密。",
+      "synopsis": "你与陆沉在垂直温室甜蜜相拥时，一截枯藤缠腕，强行向你灌输了外界精灵森林被‘永恒阳光’灼烧殆尽的恐怖幻象，以及一双陌生悲悯的眼睛。枯藤在陆沉注视下化为齑粉。陆沉对此反应微妙，以‘气流带进的枯枝’轻描淡写带过，并迅速将你带离现场。",
+      "tags": [
+        "科幻",
+        "悬疑",
+        "情感抉择",
+        "短剧快反"
+      ],
+      "genreTagsRaw": "科幻/悬疑/情感抉择/短剧快反",
+      "stylePrompt": "Solar Punk art style, vertical composition. A vibrant, highly attractive female botanist with a charismatic smile, tending to glowing bioluminescent plants in a vertical city greenhouse with hanging gardens and wind turbines. Bright, optimistic, warm morning light.",
+      "assets": {
+        "cover": "/home/f21.webp",
+        "firstScene": "/home/firstscene/f21.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f21.webp",
+        "portraits": [
+          "/home/firstportrait/f21_0.webp",
+          "/home/firstportrait/f21_1.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f21_0.webp",
+          "/home/firstportrait-portrait/f21_1.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f21.json",
+        "en": "/home/firstact-en/f21.json",
+        "ja": "/home/firstact-ja/f21.json",
+        "portraitZh": "/home/firstact-portrait/f21.json",
+        "portraitEn": "/home/firstact-portrait-en/f21.json",
+        "portraitJa": "/home/firstact-portrait-ja/f21.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "greenhouse-noon",
+        "beatsCount": 8,
+        "choicesCount": 3,
+        "charactersCount": 2
+      },
+      "storyState": {
+        "protagonist": "你是‘光合巫女’，穹顶都市中极少数能与植物沟通的女性。你拥有治愈植物的能力，笑容温暖，是市民心中的‘日光之女’。你此刻正沉浸在与穹顶维护官陆沉相爱的幸福中，却通过一株垂死的古老藤蔓，首次感知到‘永恒阳光’对穹顶外生态的毁灭性影响。你最大的软肋，是你对陆沉深沉的爱，以及对都市‘完美生活’的依赖。",
+        "castNotes": "陆沉：你的恋人，穹顶维护官。表面温柔体贴，是都市‘完美生活’的守护者与受益者，实则背负着维护系统运行的沉重秘密与家族使命。\n阿诺：穹顶外野生精灵森林的守望者，通过濒死的植物向你发出警告的神秘信号源。他代表穹顶之外的自然与古老意志，与你有着超越言语的共鸣，但也可能因立场对立而成为你的敌人。",
+        "openThreads": [
+          "枯藤与幻象的真相：是谁（阿诺）？传递了什么具体信息？为何选择你？",
+          "陆沉的态度：他是否知道‘永恒阳光’的真相？为何刻意轻描淡写并迅速带你离开？",
+          "手腕残留的冰冷触感与森林悲鸣，让你对‘永恒阳光’与陆沉守护的‘完美生活’产生第一次深刻怀疑。"
+        ],
+        "relationships": [
+          "陆沉：表面温柔关切，实则对枯藤反应异常，眼神闪烁，迅速转移话题，疑似知情或掩饰。",
+          "阿诺（未知身份）：通过枯藤传递痛苦警告，其凝视充满焦急与悲悯，身份与目的成谜。"
+        ],
+        "nextHook": "下一场：深夜温室，你试图寻找枯藤痕迹，却发现裂缝处有微弱的、与幻象中同源的能量残留，或遭遇更直接的‘信使’。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 21,
+        "featured": true
+      }
+    },
+    {
+      "id": "f22",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "深海之吻",
+      "logline": "你，一名深海生物学家，在探索深渊时被神秘的‘海嗣’俘获，他的歌声与触碰竟让你感到平静与爱意；但当你选择留下，你将面临彻底‘深海化’的恐怖代价——是挣脱回归人类世界，还是沉溺于这份禁忌的爱？",
+      "synopsis": "你在深渊号考察站惊醒，浑身湿透，记忆缺失。舷窗外，庞大的海嗣沈屿显现，其歌声在你脑海中响起，带来诡异的平静与渴望。同时，你的左手指尖开始浮现幽蓝鳞片，显示“深海化”已经开始。你对沈屿发出了质问。",
+      "tags": [
+        "克苏鲁",
+        "女性向",
+        "禁忌之恋",
+        "生存抉择",
+        "暗黑浪漫"
+      ],
+      "genreTagsRaw": "克苏鲁 / 女性向 / 禁忌之恋 / 生存抉择 / 暗黑浪漫",
+      "stylePrompt": "Dark cosmic horror illustration, vertical composition. A brave, beautiful female explorer with intense, determined eyes, standing on a desolate shore, holding a glowing lantern to light up a massive, ancient, eldritch shadow entity in a dark stormy sea. Moody cool colors.",
+      "assets": {
+        "cover": "/home/f22.webp",
+        "firstScene": "/home/firstscene/f22.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f22.webp",
+        "portraits": [
+          "/home/firstportrait/f22_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f22_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f22.json",
+        "en": "/home/firstact-en/f22.json",
+        "ja": "/home/firstact-ja/f22.json",
+        "portraitZh": "/home/firstact-portrait/f22.json",
+        "portraitEn": "/home/firstact-portrait-en/f22.json",
+        "portraitJa": "/home/firstact-portrait-ja/f22.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "station-lab-redlight",
+        "beatsCount": 6,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是顶尖的海洋生物学家，理性而坚韧，此刻正被困在深海考察站内，舷窗外是那个曾俘获你的‘海嗣’。你的心脏被他非人的歌声与触碰烙下了矛盾印记：恐惧与渴望交织。你既想查明他存在的真相，又无法否认那份诡异的平静与爱意正在侵蚀你。你的软肋是：你开始渴望那片黑暗，并听见深海在呼唤你的名字。",
+        "castNotes": "沈屿（海嗣）：深海中苏醒的古老存在，拥有非人的形态与直抵灵魂的歌声；看似冷漠无情，却对你的‘异变’显露出近乎偏执的守护欲与好奇。与你构成了捕猎者与猎物、施救者与沉沦者的扭曲关系。\n林薇（你的助手兼挚友）：性格果敢，是唯一知晓你秘密的同伴；她竭力想用科学手段阻止你的‘深海化’，但她的每一次尝试，似乎都在将你推向更深的深渊。",
+        "openThreads": [
+          "失踪的三天里究竟发生了什么？",
+          "沈屿口中的“契约”与“深海化”意味着什么？",
+          "你指尖的鳞片是什么？深海化过程如何进行？",
+          "林薇的“抑制实验”是否真在帮你？"
+        ],
+        "relationships": [
+          "沈屿：古老深海存在，以歌声与触碰影响你，对你的异变显露出守护欲与好奇，关系充满捕猎者与猎物的张力",
+          "林薇：挚友与助手，尚未在此场景出现，但你是她竭力想用科学拯救的对象"
+        ],
+        "nextHook": "你对沈屿的质问可能得到回应，也可能引发更深的变化。同时，林薇的通讯传来，需要决定是先回应同伴，还是继续面对窗外的非人存在。指尖的鳞片带来的刺痛感暗示着某种不可逆的进程。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 22,
+        "featured": true
+      }
+    },
+    {
+      "id": "f23",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "暗巷蔷薇",
+      "logline": "你是暗巷里伪装成歌手的私家侦探，当你将调查矛头指向那位雨夜现身的神秘贵族时，却发现他也在追查同一桩失踪案——你们究竟是盟友，还是彼此最大的猎物？",
+      "synopsis": "你在夜总会后台发现了用雨水写下的匿名邀约，指明让你带‘蔷薇’徽章前往城西旧仓库。你想起挚友失踪前的警告，决定赴约，或先向情报贩子阿绫求证。",
+      "tags": [
+        "都市悬疑",
+        "黑色电影",
+        "双强博弈",
+        "暧昧拉扯"
+      ],
+      "genreTagsRaw": "都市悬疑 / 黑色电影 / 双强博弈 / 暧昧拉扯",
+      "stylePrompt": "Modern urban noir, vertical composition. A beautiful, mysterious woman in a dark red trench coat and a wide-brimmed hat, standing under a glowing neon sign in a rain-slicked dark alleyway. Deep dramatic shadows, wet brick textures, high-contrast cinematic lighting.",
+      "assets": {
+        "cover": "/home/f23.webp",
+        "firstScene": "/home/firstscene/f23.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f23.webp",
+        "portraits": [],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f23_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f23.json",
+        "en": "/home/firstact-en/f23.json",
+        "ja": "/home/firstact-ja/f23.json",
+        "portraitZh": "/home/firstact-portrait/f23.json",
+        "portraitEn": "/home/firstact-portrait-en/f23.json",
+        "portraitJa": "/home/firstact-portrait-ja/f23.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "backstage-dark-alley-club",
+        "beatsCount": 5,
+        "choicesCount": 3,
+        "charactersCount": 0
+      },
+      "storyState": {
+        "protagonist": "你是代号“蔷薇”的私家侦探，白天是暗巷夜总会的驻唱歌手，夜晚则穿梭于阴影中调查一连串离奇的失踪案。你的目标是失踪者的妹妹——她曾是你的挚友，你的软肋。你习惯了独来独往，直到那个总在雨夜出现的贵族男人，打乱了你所有的计划。",
+        "castNotes": "沈渡：雨夜现身的神秘贵族，温文尔雅的表象下藏着猎犬般的敏锐与危险；他同样是调查者，却对你的身份了如指掌，让你不寒而栗。\n阿绫：你在夜总会的同事兼情报贩子，看似圆滑世故，实则藏着对失踪案的刻骨仇恨；她是你的线人，也可能随时背叛。\n老陈：负责失踪案的刑警队长，对你“侦探”的身份心知肚明却睁只眼闭只眼；他提供有限的官方信息，但似乎在掩盖更深的真相。",
+        "openThreads": [
+          "字条是谁留下的？是沈渡，还是设局的第三方？",
+          "阿绫为什么说仓库最近死了三个调查失踪案的人？",
+          "挚友失踪前的警告与这次邀约有何关联？"
+        ],
+        "relationships": [
+          "阿绫：可靠又可疑的线人，此刻语气反常，似乎知道内情"
+        ],
+        "nextHook": "下一场：你最终决定前往仓库，在雨夜中推开沉重的铁门，与沈渡在昏黄灯光下第一次正面交锋。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 23,
+        "featured": true
+      }
+    },
+    {
+      "id": "f24",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "牧羊女的秘密",
+      "logline": "你是看似天真无知的英国乡下牧羊女，当村里发生连环离奇死亡，所有人都疯狂指控外来女巫时，你必须用田园诗般的智慧，揭开隐藏在下午茶与闲话背后、最平静的恶意，否则下一个受害者可能就是你。",
+      "synopsis": "暴雪夜，牧羊女莉莉被青梅竹马汤姆敲门惊醒，得知村民老巴顿离奇死亡，死状与之前的玛丽相同。愤怒的村民已聚集火把，准备对女巫艾莉诺动用私刑。莉莉站在风雪中的小屋门口，面临第一个关键抉择。",
+      "tags": [
+        "悬疑",
+        "女性向",
+        "英伦乡村",
+        "暗黑治愈",
+        "反转推理"
+      ],
+      "genreTagsRaw": "悬疑 / 女性向 / 英伦乡村 / 暗黑治愈 / 反转推理",
+      "stylePrompt": "Cozy mystery book cover, vertical composition. A charming, elegantly dressed female sleuth with a highly attractive, curious face, looking out from a tall bookstore window filled with old books. Outside, a warm English village scene at night, snow falling from a dark sky. Cozy, mysterious feel.",
+      "assets": {
+        "cover": "/home/f24.webp",
+        "firstScene": "/home/firstscene/f24.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f24.webp",
+        "portraits": [
+          "/home/firstportrait/f24_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f24_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f24.json",
+        "en": "/home/firstact-en/f24.json",
+        "ja": "/home/firstact-ja/f24.json",
+        "portraitZh": "/home/firstact-portrait/f24.json",
+        "portraitEn": "/home/firstact-portrait-en/f24.json",
+        "portraitJa": "/home/firstact-portrait-ja/f24.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "cottage-doorstormy-night",
+        "beatsCount": 4,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是莉莉·温斯洛，一个在英国乡下养羊的年轻牧羊女，外表天真质朴，仿佛对世界毫无戒心。你此刻正被卷入一场突如其来的恐慌——村里接连发生离奇死亡，矛头直指一位你隐约觉得无辜的外来女巫。你渴望找出真相，平息这场恶意的风暴，但你内心深处藏着一个秘密：你似乎拥有某种不寻常的、与自然或预感相关的感知力，这既是你的天赋，也可能让你成为下一个目标。",
+        "castNotes": "艾莉诺·布莱克伍德：看似孤僻古怪的外来草药女巫，被全村人视为灾祸源头，实则博学而善良，与你有着某种神秘的共鸣，是你的关键盟友与信息源。\n玛格丽特·霍金斯：村里最具影响力的慈善家与茶会女主人，永远优雅得体，但她的每一次下午茶闲谈都精准地操纵着舆论与怀疑的走向，平静的恶意正在她指尖流淌。\n汤姆·格林：你的青梅竹马，一位正直但轻信的年轻猎人，他极力想保护你，却因村民的恐慌与玛格丽特的影响，开始怀疑你与女巫有染，构成了你身边最直接的压力与情感矛盾。",
+        "openThreads": [
+          "老巴顿与玛丽的死因究竟是什么？有何共同点？",
+          "村民的愤怒是自发还是被引导？玛格丽特在其中扮演什么角色？",
+          "莉莉不寻常的感知力是否会在此刻显现，指引她？",
+          "女巫艾莉诺的真实身份与她和莉莉的‘共鸣’是什么？"
+        ],
+        "relationships": [
+          "汤姆：惊恐且信任莉莉，但被村民的恐慌所裹挟",
+          "艾莉诺：尚未直接接触，但已被村民视为唯一目标，处境危急",
+          "玛格丽特：尚未直接接触，但作为舆论操纵者，其影响力在死亡事件中凸显"
+        ],
+        "nextHook": "下一场：根据玩家选择，或冲向女巫小屋直面私刑冲突，或前往死亡现场寻找线索接触推理，或拜访玛格丽特宅邸切入核心人物。无论哪条路，都将立刻推动主线，并展现不同角色的反应与世界的真实面貌。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 24,
+        "featured": true
+      }
+    },
+    {
+      "id": "f25",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "玫瑰园幽灵",
+      "logline": "你继承了一座闹鬼的玫瑰庄园，爱上了其中年轻俊美的幽灵管家，但每次触碰都会穿过他的身体；为打破诅咒、让他实体化，你必须在月圆之前，揭开曾祖母那段被玫瑰丛掩埋的血腥婚姻真相。",
+      "synopsis": "你冒雨抵达继承的雾隐庄园，幽灵管家伊莱亚斯在门廊相迎。当你试图触碰他时，手穿透了他的身体，他无奈告知这是一个关于庄园、玫瑰和一段被遗忘婚姻的古老契约所致。",
+      "tags": [
+        "哥特悬疑",
+        "女性向恋爱",
+        "短剧式反转",
+        "暗黑浪漫"
+      ],
+      "genreTagsRaw": "哥特悬疑 / 女性向恋爱 / 短剧式反转 / 暗黑浪漫",
+      "stylePrompt": "Gothic romance illustration, vertical composition. A pale, breathtakingly beautiful young woman with piercing, sorrowful eyes, wearing a flowing dark velvet gown, standing before the towering, moonlit ruins of a grand gothic manor on a foggy cliff. Muted greys and blues, melancholic atmosphere.",
+      "assets": {
+        "cover": "/home/f25.webp",
+        "firstScene": "/home/firstscene/f25.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f25.webp",
+        "portraits": [
+          "/home/firstportrait/f25_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f25_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f25.json",
+        "en": "/home/firstact-en/f25.json",
+        "ja": "/home/firstact-ja/f25.json",
+        "portraitZh": "/home/firstact-portrait/f25.json",
+        "portraitEn": "/home/firstact-portrait-en/f25.json",
+        "portraitJa": "/home/firstact-portrait-ja/f25.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "manor-entrance-night",
+        "beatsCount": 8,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是刚继承祖产“雾隐庄园”的年轻女性，孤身来到这座悬崖上的破败庄园。你表面柔顺，实则性格倔强，对爱情有着近乎偏执的渴望。你的秘密是：你之所以不顾一切接受这座诅咒庄园，是因为现实中的你刚刚经历了一场惨痛背叛，急需一个绝对安全的、只属于你的爱人——哪怕他是鬼。",
+        "castNotes": "伊莱亚斯（幽灵管家）：外表是二十出头的苍白俊美青年，永远穿着旧式燕尾服，温柔体贴却无法被触碰。实则他是庄园诅咒的核心，记忆残缺，对自己为何是“幽灵”一无所知。他是你的初恋幻想，也是你最大的禁忌。\n艾比盖尔（玫瑰园园丁）：七十岁的佝偻老妇，终日在疯长的玫瑰丛中修剪，眼神浑浊却总能在关键时刻说出谶语。她是曾祖母的旧仆，掌握着部分庄园秘密，但对你的态度忽而慈爱忽而惊恐，令人不安。\n曾祖母的“影子”：你在一面蒙尘的穿衣镜中，偶尔会瞥见一个身穿血红色礼服的年轻女人身影一闪而过。她似乎在试图向你传递什么，但每次出现都伴随着镜面结霜与伊莱亚斯的痛苦消散。",
+        "openThreads": [
+          "伊莱亚斯所说的‘古老契约’与‘被遗忘的婚姻’具体指什么？",
+          "曾祖母的婚姻史中埋藏的‘血腥真相’究竟为何？",
+          "镜中偶尔闪现的‘红衣影子’是谁？她想警告你什么？",
+          "如何才能打破诅咒，让伊莱亚斯触碰到你？"
+        ],
+        "relationships": [
+          "伊莱亚斯：初次见面，他温柔忧郁，你因触碰失败而震惊，对他的身份和庄园秘密产生强烈好奇与一丝不安"
+        ],
+        "nextHook": "下一场：进入庄园大厅，壁炉无火自燃，墙上曾祖母的肖像画在火光中似乎对你眨眼，伊莱亚斯开始讲述庄园的第一条规则。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 25,
+        "featured": true
+      }
+    },
+    {
+      "id": "f26",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "狼外婆的糖果屋",
+      "logline": "你必须伪装成顺从的猎物，利用‘狼外婆’的宠爱，在糖果屋里找到反杀这位伪装成童话守护神的狼人巫师的生路。",
+      "synopsis": "玩家扮演的小红帽推门进入狼外婆的糖果屋，立刻进入伪装角色。格蕾塔现身，以病态的慈祥审视并触碰玩家，玩家在顺从与试探间周旋。银戒指对格蕾塔产生了异常反应，而玩家询问是否还有其他人时，格蕾塔的否认背后似乎隐藏着什么。",
+      "tags": [
+        "黑暗童话",
+        "生存反转",
+        "女性向",
+        "悬疑惊悚"
+      ],
+      "genreTagsRaw": "黑暗童话 / 生存反转 / 女性向 / 悬疑惊悚",
+      "stylePrompt": "Dark fairytale illustration, vertical composition. A striking, fiercely beautiful young woman in a red cloak with intense, captivating eyes, gripping a silver blade as she walks into a massive, dark forest with towering twisted ancient trees. Grimm's style, mood of awe and dread.",
+      "assets": {
+        "cover": "/home/f26.webp",
+        "firstScene": "/home/firstscene/f26.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f26.webp",
+        "portraits": [
+          "/home/firstportrait/f26_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f26_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f26.json",
+        "en": "/home/firstact-en/f26.json",
+        "ja": "/home/firstact-ja/f26.json",
+        "portraitZh": "/home/firstact-portrait/f26.json",
+        "portraitEn": "/home/firstact-portrait-en/f26.json",
+        "portraitJa": "/home/firstact-portrait-ja/f26.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "candy-house-interior",
+        "beatsCount": 9,
+        "choicesCount": 5,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是误入禁忌森林的孤女，外表看似天真懵懂的猎物，实则内心藏着对生存的极致渴望与算计。此刻你刚刚踏入那座散发甜腻香气的糖果屋，面对着伪装慈祥的‘外婆’，你知道必须立刻扮演一个完美的‘乖孩子’，才能在这座诱捕陷阱中存活下来。你的软肋是：你并非完全无辜，你的到来或许并非偶然。",
+        "castNotes": "“狼外婆”格蕾塔：外表是慈祥到诡异的糖果屋主人，实则是以精灵为食的狼人巫师，对你有种病态的、混合着宠爱与饥饿的注视。她是这座扭曲童话规则的制定者。\n影狐“阿九”：糖果屋中唯一看似友善的“前房客”，一只拥有少女形态的影狐精灵，她知道部分真相，但她的帮助标好了价码，她渴望你替她拿到巫师的核心魔咒。",
+        "openThreads": [
+          "格蕾塔为何对玩家格外‘宠爱’，甚至可能超过了其他猎物？",
+          "玩家手中的银戒指为何对格蕾塔有反应？它能抵御黑暗的真实作用是什么？",
+          "格蕾塔口中‘消失的访客’是否就在这座糖果屋里？",
+          "糖果屋深处是否还有其他幸存者或危险？"
+        ],
+        "relationships": [
+          "格蕾塔：猎手对完美猎物的初步鉴赏，宠爱与贪婪交织，对玩家的银戒指产生了特殊兴趣",
+          "阿九：尚未登场"
+        ],
+        "nextHook": "下一场：格蕾塔将玩家带入二楼一间看似安全的卧室，但墙上的影子在独自扭动。玩家需要在‘休息’中观察环境，寻找第一个破绽，或遭遇第一个来自‘其他存在’的信号。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 26,
+        "featured": true
+      }
+    },
+    {
+      "id": "f27",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "绿洲新娘",
+      "logline": "你是废土中唯一的「净化者」，为换取水源嫁给了残暴的废土霸主，新婚夜却发现他体内藏着一枚足以毁灭绿洲的脏弹——你的净化能力，是拆弹的唯一希望，也是引爆一切的钥匙。",
+      "synopsis": "你（林烬）作为净化者新娘被押至钢铁堡垒，与废土霸主霍骁举行强制联姻。新婚夜，你按他的命令尝试净化其辐射，掌心却传来清晰致命的电子倒计时声——他体内藏着一枚未爆脏弹。霍骁揭示这就是你交易的全部内容。",
+      "tags": [
+        "废土",
+        "女性向",
+        "强冲突",
+        "生存救赎",
+        "禁忌羁绊"
+      ],
+      "genreTagsRaw": "废土 / 女性向 / 强冲突 / 生存救赎 / 禁忌羁绊",
+      "stylePrompt": "Post-apocalyptic style, vertical composition. A beautiful, battle-hardened female survivor with intense eyes and a perfectly grimy face, looking at the camera, standing in a vast desert wasteland with a ruined skyscraper and a dusty orange sunset sky behind. Muted warm colors.",
+      "assets": {
+        "cover": "/home/f27.webp",
+        "firstScene": "/home/firstscene/f27.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f27.webp",
+        "portraits": [
+          "/home/firstportrait/f27_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f27_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f27.json",
+        "en": "/home/firstact-en/f27.json",
+        "ja": "/home/firstact-ja/f27.json",
+        "portraitZh": "/home/firstact-portrait/f27.json",
+        "portraitEn": "/home/firstact-portrait-en/f27.json",
+        "portraitJa": "/home/firstact-portrait-ja/f27.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "steel-fortress-bedroom-night",
+        "beatsCount": 8,
+        "choicesCount": 4,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你，「净化者」林烬，是废土上稀缺的能净化辐射的异能者。此刻，你正被押解至废土霸主霍骁的领地，作为换取绿洲水源的「新娘」。你表面顺从，内心盘算着如何利用净化能力为族人争取生机，却不知等待你的，是一个远超想象的残酷真相。",
+        "castNotes": "霍骁：废土霸主，铁腕统治者，传闻冷酷无情，实则身负致命秘密与不为人知的过往；新婚夜，他是你的交易对象，也是你必须面对的「人形炸弹」。\n阿烬：你的幼弟，因辐射病命悬一线，是驱使你走入这场婚姻的软肋；他的存活，是你一切选择的筹码与枷锁。\n老疤：霍骁的心腹副官，脸上带着狰狞旧疤，对你充满戒备与敌意；他是你获取信息、周旋于权力夹缝中的第一道难关。",
+        "openThreads": [
+          "霍骁体内的脏弹是谁、何时、为何植入？幕后主使是谁？",
+          "你的净化能力能否安全拆弹？强行拆弹会否引爆，造成更大灾难？",
+          "霍骁让你拆弹的真实意图是什么？他想活下去，还是另有图谋？",
+          "你该如何在拆弹、保全自己、确保绿洲水源之间取得平衡？"
+        ],
+        "relationships": [
+          "霍骁：交易对象，体内藏有脏弹，对你既是‘病人’也是潜在的最大威胁，关系极度紧张复杂",
+          "阿烬：你的幼弟，仍在绿洲等待水源救命，是你一切行动的根本驱动力",
+          "老疤：霍骁的心腹，对你充满敌意，此时尚未在场景中出现，但威胁已在门外"
+        ],
+        "nextHook": "下一场：霍骁将进一步揭示脏弹的危险与复杂性，并提出他的条件。你需要决定是暂时合作探查真相，还是想尽办法立刻脱身。对话将决定你们脆弱联盟的起点。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 27,
+        "featured": true
+      }
+    },
+    {
+      "id": "f28",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "妖物图鉴",
+      "logline": "你能看见万物病历上的「妖」，却唯独看不透那位温柔男医师的秘密——直到他的诊断书上，浮现出只对你可见的非人之名。",
+      "synopsis": "你在地铁‘幽灵车厢’事件中险些被一节幽蓝火焰的车厢残影撞上，被沈淮及时救下。他为你处理伤口时，你首次清晰看到他胸口铭牌的诊断栏为你闪烁微光，但他以‘沾了灰’为由自然带过，并带你前往处置室。",
+      "tags": [
+        "都市奇幻",
+        "悬疑浪漫",
+        "强反转",
+        "女性向"
+      ],
+      "genreTagsRaw": "都市奇幻 / 悬疑浪漫 / 强反转 / 女性向",
+      "stylePrompt": "Urban fantasy concept art, vertical composition. A beautiful modern sorceress in a glowing tailored coat, casting a spiral magical ward that illuminates a rain-streaked metropolitan alleyway at night. Rich magical blue and purple lighting, mysterious atmosphere.",
+      "assets": {
+        "cover": "/home/f28.webp",
+        "firstScene": "/home/firstscene/f28.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f28.webp",
+        "portraits": [
+          "/home/firstportrait/f28_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f28_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f28.json",
+        "en": "/home/firstact-en/f28.json",
+        "ja": "/home/firstact-ja/f28.json",
+        "portraitZh": "/home/firstact-portrait/f28.json",
+        "portraitEn": "/home/firstact-portrait-en/f28.json",
+        "portraitJa": "/home/firstact-portrait-ja/f28.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "subway-platform-night",
+        "beatsCount": 6,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是代号“目”的都市传说调查员，天生能看见附着在人与物上的妖异病历。你游走于现代都市的阴影中，记录并解决非常规事件，维持着脆弱的“正常”表象。你渴望找到与你有相同能力的人，却极度恐惧被人发现这“不正常”的眼睛——这让你既孤独又偏执。",
+        "castNotes": "沈淮：温柔沉静的急诊科男医师，总在你受伤时出现，对你关怀备至却对自己的来历绝口不提。他的完美表象下，似乎藏着一个你无法理解的巨大秘密。\n林夜：知晓你身份的前搭档，现为“异常事务管理局”负责人。他警惕沈淮的存在，多次警告你“非人之物不可轻信”，言行间却透出对往事的愧疚与未尽的保护欲。\n老白：你常去的旧书店老板，是一只伪装成人类的老妖怪。他是你少数的倾诉对象，消息灵通但滑头，总用似真似假的都市传说为你提供线索，动机成谜。",
+        "openThreads": [
+          "沈淮铭牌诊断栏的微光意味着什么？他为何能‘看见’并阻止你触碰？",
+          "地铁站出现的幽蓝火焰车厢残影是什么？与幽灵车厢事件有何关联？",
+          "你的能力是否在‘幽灵车厢’事件后发生了变化或增强？"
+        ],
+        "relationships": [
+          "沈淮：温柔救场，铭牌异常闪光引发你强烈怀疑，但他以完美无瑕的掩饰暂时带过。"
+        ],
+        "nextHook": "下一场：急诊处置室，极近距离的伤口处理。他专注的侧脸、稳定的双手、以及那近在咫尺的铭牌……你必须利用这个机会，找到揭开他秘密的突破口。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 28,
+        "featured": true
+      }
+    },
+    {
+      "id": "f29",
+      "gender": "female",
+      "audienceLabel": "女性向",
+      "title": "文字炼金术",
+      "logline": "你发现剪下旧书里的特定文字能变出实物，为拯救书店，你拼凑了一本禁忌之书，却意外释放了被囚禁于字里行间的“文字精灵”——他渴望自由，而你，是他唯一的钥匙。",
+      "synopsis": "深夜在书店阁楼，你为拯救书店而尝试“文字炼金术”，将一句文字化为实物油灯，却意外释放出被囚禁于此的文字精灵陆离。他形态清冷，自称受制于你剪下的文字与油灯，暂无法离开，并指出你手中的“禁书”是个麻烦。",
+      "tags": [
+        "奇幻",
+        "悬疑",
+        "短剧反转",
+        "女性向",
+        "暗黑浪漫"
+      ],
+      "genreTagsRaw": "奇幻 / 悬疑 / 短剧反转 / 女性向 / 暗黑浪漫",
+      "stylePrompt": "Abstract geometric book poster layout, vertical composition. An elegant, attractive female silhouette minimalist line-art seamlessly integrated into a vertical arrangement of intersecting lines, circles, and curves in a gradient of emerald green and deep blue. Dark background, elegant abstract design.",
+      "assets": {
+        "cover": "/home/f29.webp",
+        "firstScene": "/home/firstscene/f29.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/f29.webp",
+        "portraits": [
+          "/home/firstportrait/f29_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/f29_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/f29.json",
+        "en": "/home/firstact-en/f29.json",
+        "ja": "/home/firstact-ja/f29.json",
+        "portraitZh": "/home/firstact-portrait/f29.json",
+        "portraitEn": "/home/firstact-portrait-en/f29.json",
+        "portraitJa": "/home/firstact-portrait-ja/f29.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "bookstore-attic-night",
+        "beatsCount": 12,
+        "choicesCount": 5,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是一名濒临倒闭的旧书店店员，性格内向但观察力敏锐。你刚刚发现了“文字炼金术”的秘密，正试图用它拯救书店。你内心深处对文学和故事有种近乎偏执的热爱，这是你的软肋，也是你力量的来源。你渴望的不仅是书店的存续，更是证明那些被遗忘的文字中蕴藏着真实的魔力。",
+        "castNotes": "陆离：被你从禁书中释放的文字精灵，外表是清冷疏离的青年，实则对人类世界充满好奇与戒备。他渴望自由，却又受制于文字规则，与你形成一种危险的共生关系——你为他提供载体，他为你实现愿望。\n周砚：书店的常客，一位沉默寡言的古籍修复师。他似乎对书店的历史和你的秘密了如指掌，眼神中常有探究与警告，是盟友还是监视者？\n林教授：一位热情的文学教授，常来书店举办读书会。她对你格外关照，但你偶然发现，她与那本禁书的失踪记录有着微妙的联系。",
+        "openThreads": [
+          "文字炼金术的完整规则与未知代价",
+          "陆离被囚禁的过往与禁书的秘密",
+          "阁楼中那本“无字手抄本”禁书的真正内容是什么"
+        ],
+        "relationships": [
+          "陆离：初遇，因你的“文字炼金术”而被释放，形成危险共生关系的开端，他对禁书流露冰冷情绪"
+        ],
+        "nextHook": "下一场：阁楼中，陆离触碰禁书时展现出异常反应，你将首次窥见“文字精灵”力量的一角，以及他与那本禁忌之书之间深刻的联系。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 29,
+        "featured": true
+      }
+    },
+    {
+      "id": "m0",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "贤者陨落",
+      "logline": "你，曾是帝国首席大魔导师，百年后却在拍卖会上以奴隶之姿醒来，血契锁链加身。当你认出台下那位背叛你的挚友正是当今帝国元帅时，一场用禁忌魔法和智谋编织的复仇大戏，就此拉开帷幕。",
+      "synopsis": "你在奴隶拍卖会上苏醒，发现自己锁链加身。拍卖师落槌之际，你看见了台下背叛你的挚友、如今的帝国元帅赛拉斯。恨意催动血契锁链嗡鸣，与他的目光隔空对上。同时，阴影中的神秘女子薇拉似乎也对你产生了特殊兴趣。你体内古老的禁忌魔法初次有了微弱反应。",
+      "tags": [
+        "黑暗奇幻",
+        "复仇逆袭",
+        "悬疑权谋",
+        "高智商反杀"
+      ],
+      "genreTagsRaw": "黑暗奇幻 / 复仇逆袭 / 悬疑权谋 / 高智商反杀",
+      "stylePrompt": "Dark fantasy oil painting style, vertical composition. Close-up portrait of a fiercely handsome grand mage with silver-streaked hair and glowing green magical eyes, wearing a tattered velvet robe with heavy steel chains wrapped around his shoulders. Behind him, a towering, ruined magical academy under a stormy dark sky. Dramatic chiaroscuro lighting, rich impasto textures.",
+      "assets": {
+        "cover": "/home/m0.webp",
+        "firstScene": "/home/firstscene/m0.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m0.webp",
+        "portraits": [
+          "/home/firstportrait/m0_0.webp",
+          "/home/firstportrait/m0_1.webp",
+          "/home/firstportrait/m0_2.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m0_0.webp",
+          "/home/firstportrait-portrait/m0_1.webp",
+          "/home/firstportrait-portrait/m0_2.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m0.json",
+        "en": "/home/firstact-en/m0.json",
+        "ja": "/home/firstact-ja/m0.json",
+        "portraitZh": "/home/firstact-portrait/m0.json",
+        "portraitEn": "/home/firstact-portrait-en/m0.json",
+        "portraitJa": "/home/firstact-portrait-ja/m0.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "auction-house-dark",
+        "beatsCount": 9,
+        "choicesCount": 3,
+        "charactersCount": 3
+      },
+      "storyState": {
+        "protagonist": "你是艾德里安·冯·克洛诺斯，帝国史上最强的大魔导师，百年前魔力核心被挚友挖走，沦为魔力尽失的废人，并在百年沉眠后于奴隶拍卖会上苏醒。你此刻的处境是：身为商品被锁链捆绑，即将被价高者得。你想要的是：向背叛者复仇，找回被盗的魔力核心，并揭开百年前阴谋背后更庞大的真相。你的秘密是：被挖走的并非全部，你仍掌握着一种连自己都恐惧的、足以颠覆世界的「原初禁忌魔法」。",
+        "castNotes": "赛拉斯·冯·埃利诺：当今帝国元帅，你曾经的挚友与学徒。衣冠楚楚，权倾朝野，在拍卖席上以玩味目光审视着台上的“商品”。他表面是秩序的维护者，实则是一个为力量不择手段的野心家。与你的关系是：背叛者与被背叛者，猎手与猎物（至少目前是）。\n薇拉·夜影：黑市情报贩子兼游侠，一身利落皮甲，对古老魔法和禁忌知识有近乎偏执的兴趣。她混在拍卖场的阴影中，并非为了购买奴隶，而是嗅到了“不寻常”魔力残留的气息。与你的关系是：潜在的盟友或危险的变量，她对你的价值超越了商品标签。\n克莱门特主教：主持拍卖会的“圣光教廷”代表，笑容慈悲，眼神冰冷。他代表着帝国官方与神权势力，对任何“异常”的魔法存在都抱有极高的警惕。与你的关系是：秩序的看门人，是你的计划可能遇到的第一个体制性障碍。",
+        "openThreads": [
+          "赛拉斯是否真的认出了你？他买下你的目的是什么？",
+          "薇拉·夜影的真实身份与目的。",
+          "你体内初次浮现的「原初禁忌魔法」符文意味着什么？"
+        ],
+        "relationships": [
+          "赛拉斯·冯·埃利诺：背叛者与被背叛者，猎手与猎物。他认出了你，或至少产生了怀疑。",
+          "薇拉·夜影：神秘的观察者，似乎能感知到你身上的异常魔力残留，目的不明。"
+        ],
+        "nextHook": "下一场：后台准备区，你被粗暴地拖入一条昏暗甬道。赛拉斯的亲卫即将前来提人，而薇拉的身影似乎在远处一闪而过。复仇的第一步，必须在这短暂的空隙里迈出。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 0,
+        "featured": true
+      }
+    },
+    {
+      "id": "m1",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "画中圣手",
+      "logline": "落魄书生偶得一支上古画笔，画出的美人竟能破画而出——你以为捡到了逆天机缘，却不知自己早已被卷入一场延续千年的仙凡禁忌与宫廷血仇。",
+      "synopsis": "落魄书生你在破庙饥寒交迫中，无意用残墨在古画上补了一笔，竟将画中神秘女子云绛召唤而出。云绛凝实之际，锦衣卫千户谢无忌带人破门而入，刀尖直指新生的画魂。冲突一触即发。",
+      "tags": [
+        "奇幻",
+        "权谋",
+        "速食爽文",
+        "多反转"
+      ],
+      "genreTagsRaw": "奇幻 / 权谋 / 速食爽文 / 多反转",
+      "stylePrompt": "Minimalist Chinese ink wash style, vertical composition. An elegantly handsome young scholar with flowing robes, holding a luminous glowing calligraphy brush, standing on a misty cliff. From his brushstrokes, a magnificent monochrome dragon emerges into the sky. Ethereal, sparse composition, monochrome palette with subtle blue hints, large blank mist area at the top.",
+      "assets": {
+        "cover": "/home/m1.webp",
+        "firstScene": "/home/firstscene/m1.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m1.webp",
+        "portraits": [
+          "/home/firstportrait/m1_0.webp",
+          "/home/firstportrait/m1_1.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m1_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m1.json",
+        "en": "/home/firstact-en/m1.json",
+        "ja": "/home/firstact-ja/m1.json",
+        "portraitZh": "/home/firstact-portrait/m1.json",
+        "portraitEn": "/home/firstact-portrait-en/m1.json",
+        "portraitJa": "/home/firstact-portrait-ja/m1.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "dilapidated-temple-night",
+        "beatsCount": 8,
+        "choicesCount": 4,
+        "charactersCount": 2
+      },
+      "storyState": {
+        "protagonist": "你是个屡试不第、穷困潦倒的年轻书生。此刻你刚被债主赶出破庙，饥寒交迫，却意外在一幅被遗弃的古画中发现一支泛着幽蓝微光的诡异画笔。你只想用它画出金银，翻身改命。但你的画工天赋（尤其是画女子）是唯一能驱动这支笔的力量，这既是你的筹码，也是你的软肋。",
+        "castNotes": "云绛：画中走出的神秘女子，容颜绝世，性情清冷疏离。她称自己是“前朝画魂”，却对千年往事讳莫如深。她是你翻身的最大倚仗，也是最危险的变数。\n谢无忌：当朝权势熏天的锦衣卫千户，奉密旨追查“仙画”与前朝余孽。他手段狠辣，却对你手中的画笔表现出超乎寻常的忌惮与兴趣。\n老道士：云游四方的邋遢老道，在你最落魄时曾给你半块饼。他看似疯癫，却似乎知道画笔与云绛的全部秘密。",
+        "openThreads": [
+          "云绛的真实身份与千年封印之谜",
+          "谢无忌为何对画笔如此忌惮且‘果然画出来了’",
+          "老道士的谶语与半块饼的关联"
+        ],
+        "relationships": [
+          "云绛：初现，对你的存在感到诧异与一丝兴趣",
+          "谢无忌：奉命追捕，对你和云绛都充满忌惮与掌控欲"
+        ],
+        "nextHook": "下一场：破庙对峙。谢无忌将你与云绛分开，他拿起画笔端详，道出‘前朝画魂’四字，并透露朝廷追查此物已逾百年。云绛在黑甲卫包围中依旧从容，却对你‘补的那朵海棠’流露出异样神色。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 1,
+        "featured": true
+      }
+    },
+    {
+      "id": "m2",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "花魁的刀",
+      "logline": "你是吉原最负盛名的花魁‘紫苑’，实则是令幕府闻风丧胆的传奇忍者‘胧’。当最危险的幕府密探以恩客身份踏入花街，你必须在刀光与花影的致命舞步中，找出他的身份并活下去。",
+      "synopsis": "你是花魁紫苑，为新来的贵客‘绯村左马介’献上剑舞。舞毕面具滑落瞬间，你捕捉到对方按刀时指节发白——那是剑客的手。言语间相互试探，刀光剑影藏于风月笑谈。此时侍女铃芽突然出现，带来外界异常的消息。",
+      "tags": [
+        "忍者暗杀",
+        "江户时代",
+        "身份悬疑",
+        "硬核暗黑"
+      ],
+      "genreTagsRaw": "忍者暗杀 / 江户时代 / 身份悬疑 / 硬核暗黑",
+      "stylePrompt": "Ukiyo-e woodblock print style, vertical composition. A fiercely handsome young samurai with sharp facial contours and long tied black hair, wielding a glowing katana. Background features crashing waves, cherry blossoms, and a distant Mount Fuji under a dramatic blood-orange sky. Bold outlines, flat colors with paper texture.",
+      "assets": {
+        "cover": "/home/m2.webp",
+        "firstScene": "/home/firstscene/m2.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m2.webp",
+        "portraits": [
+          "/home/firstportrait/m2_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m2_0.webp",
+          "/home/firstportrait-portrait/m2_1.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m2.json",
+        "en": "/home/firstact-en/m2.json",
+        "ja": "/home/firstact-ja/m2.json",
+        "portraitZh": "/home/firstact-portrait/m2.json",
+        "portraitEn": "/home/firstact-portrait-en/m2.json",
+        "portraitJa": "/home/firstact-portrait-ja/m2.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "yoshiwara-parlor-night",
+        "beatsCount": 9,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是‘紫苑’，吉原最负盛名的花魁，舞姿倾城，面具从不离身。但你真实的另一面，是代号‘胧’的传奇忍者，奉前主公遗命潜伏于此，等待复仇的时机。此刻，幕府的密探已踏入花街，你平静的生活被撕开裂口，你必须在保护身份的同时，找出那个危险的男人。",
+        "castNotes": "绯村左马介：以富商身份前来吉原的幕府密探，冷峻寡言，剑术高超，看似风流实则步步为营；他是你最危险的猎物，也是唯一可能看穿你面具的人。\n铃芽：吉原里唯一知道你真实身份的侍女，看似胆小实则心思缜密，是你的左膀右臂，但她的忠诚正面临考验。",
+        "openThreads": [
+          "绯村左马介的真实身份与来意（几乎确认是幕府密探）",
+          "铃芽带来的外界异常消息：有可疑武士在打听包厢客人",
+          "你如何在不暴露身份的前提下，处理这个双重危机",
+          "前主公的复仇之志与在吉原潜伏的平衡"
+        ],
+        "relationships": [
+          "绯村左马介：初次交锋，双方都已嗅到对方身上危险的气息，互相试探深浅",
+          "铃芽：依然忠心且机警，但其‘行踪诡秘’的伏笔未消"
+        ],
+        "nextHook": "下一场：游廊外的昏暗角落，铃芽带来紧急情报，而包厢内的客人正等着你回去。你必须立刻做出判断和行动。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 2,
+        "featured": true
+      }
+    },
+    {
+      "id": "m3",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "飞天引",
+      "logline": "你，一位在敦煌洞窟中意外唤醒千年壁画仙子的考古队员，必须在她带来的上古秘密与随之而来的灭世灾厄之间做出抉择，而她，可能既是你的救赎，也是你的劫难。",
+      "synopsis": "考古队员在“飞天引”洞窟深处触碰壁画，唤醒了千年壁画仙子霓裳。霓裳称他为“天命之人”，在洞窟即将崩塌的危急关头，提出带他走另一条隐秘出路。你面临跟她走还是自行寻找出路的抉择。",
+      "tags": [
+        "奇幻冒险",
+        "神秘悬疑",
+        "命运纠葛",
+        "救赎与牺牲"
+      ],
+      "genreTagsRaw": "奇幻冒险 / 神秘悬疑 / 命运纠葛 / 救赎与牺牲",
+      "stylePrompt": "Dunhuang fresco style, vertical composition. A ruggedly handsome young archaeologist with sharp features, discovering a glowing mural of a celestial apsaras inside a dark Dunhuang cave. Magical warm light reflecting on his face and the ancient stone walls. Muted mineral colors, divine and ancient ambiance.",
+      "assets": {
+        "cover": "/home/m3.webp",
+        "firstScene": "/home/firstscene/m3.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m3.webp",
+        "portraits": [
+          "/home/firstportrait/m3_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m3_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m3.json",
+        "en": "/home/firstact-en/m3.json",
+        "ja": "/home/firstact-ja/m3.json",
+        "portraitZh": "/home/firstact-portrait/m3.json",
+        "portraitEn": "/home/firstact-portrait-en/m3.json",
+        "portraitJa": "/home/firstact-portrait-ja/m3.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "flying-apse-cave-dark",
+        "beatsCount": 10,
+        "choicesCount": 5,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是国家考古队中最年轻的精英队员，专攻壁画与上古符文解读。此刻，你刚刚在莫高窟最偏僻、未被记录的“飞天引”洞窟中，因一次触摸壁画的冲动，唤醒了沉睡千年的壁画仙子。她视你为天命之人，你却隐隐感到，这次“奇遇”背后，可能藏着颠覆你认知的真相与危险。你渴望揭开秘藏之谜，却也害怕自己正亲手打开潘多拉魔盒。",
+        "castNotes": "霓裳（壁画仙子）：初醒时懵懂天真，对你全然依赖，视你为唯一的光与使命；但随着记忆碎片复苏，其眼神深处偶尔流露出非人的冰冷与对“天命”的偏执。与你：是被你唤醒的“存在”，是你破解秘藏的唯一钥匙，也可能是灾厄的本源。\n老陈（考古队队长）：你的导师，经验丰富的老考古人，表面支持你的一切发现，但对霓裳的存在始终抱有巨大警惕与怀疑，暗中似乎知道更多关于“飞天引”洞窟的禁忌传说。与你：亦师亦友，但他的保护可能成为你行动的最大阻碍，他的秘密可能指向更大的阴谋。\n壁画中的“影魔”（壁画反派）：并未实体化，而是以幻象、低语和操控洞窟环境的方式存在。它视霓裳的苏醒为逃脱的契机，不断在你耳边蛊惑，声称能给你一切力量与知识，代价是释放它并完成某个古老的献祭。与你：是内心的阴影与诱惑，每一次你选择听从它的低语，都会引发即时而剧烈的环境或剧情反转，将局势推向更危险或更强大的境地。",
+        "openThreads": [
+          "霓裳的真实身份与苏醒的代价",
+          "“飞天引”洞窟上古秘藏的本质",
+          "洞窟深处影魔的低语与异常环境",
+          "老陈对“飞天引”洞窟的禁忌认知"
+        ],
+        "relationships": [
+          "霓裳：初醒，视你为天命之人，充满依赖与神秘引导意图；你对她充满惊惧、好奇与怀疑。",
+          "老陈：尚未登场，但洞窟的异常动静可能已引起外界注意。"
+        ],
+        "nextHook": "下一场：跟随霓裳进入洞窟未知的隐秘空间，或被困在崩塌的洞穴中与外界失联，她或他将如何应对？霓裳将初步揭示“天命”的含义。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 3,
+        "featured": true
+      }
+    },
+    {
+      "id": "m4",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "波斯棋局",
+      "logline": "被囚禁的异教徒学者，凭借一部残缺棋谱和金丝傀儡，在苏丹的棋盘上操纵人心、搅动风云，只为赢取通往沙漠之下旧神遗迹的唯一机会。",
+      "synopsis": "你在宫殿花园赢下第三局棋，棋谱残页触发‘死亡之书’线索。法蒂玛带着苏丹的新棋谱出现，你面临选择：直接探问线索、先研究新棋谱，还是质问她的真实立场。",
+      "tags": [
+        "权谋暗战",
+        "宫廷阴谋",
+        "神秘遗迹",
+        "短剧反转",
+        "第一人称沉浸"
+      ],
+      "genreTagsRaw": "权谋暗战 / 宫廷阴谋 / 神秘遗迹 / 短剧反转 / 第一人称沉浸",
+      "stylePrompt": "Persian miniature style, vertical composition. An attractive young Persian scholar in ornate robes, sitting in a beautiful tiled garden under a cypress tree, playing a gold-plated chess set with mechanical automatons. Flattened perspective, intricate gold filigree, jeweled colors, decorative borders.",
+      "assets": {
+        "cover": "/home/m4.webp",
+        "firstScene": "/home/firstscene/m4.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m4.webp",
+        "portraits": [
+          "/home/firstportrait/m4_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m4_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m4.json",
+        "en": "/home/firstact-en/m4.json",
+        "ja": "/home/firstact-ja/m4.json",
+        "portraitZh": "/home/firstact-portrait/m4.json",
+        "portraitEn": "/home/firstact-portrait-en/m4.json",
+        "portraitJa": "/home/firstact-portrait-ja/m4.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "garden-afternoon",
+        "beatsCount": 8,
+        "choicesCount": 4,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是被囚于苏丹宫殿深处的异教徒学者。此刻，你正被迫参与一场致命的棋局：每赢一局，就能获得线索；每输一局，或暴露真实意图，都可能招致杀身之祸。你迫切想借助残缺棋谱与金丝傀儡，揭开沙漠旧神遗迹的秘密以求自保或复仇。你的软肋是棋谱缺失关键一页，而你的内心深处，对这座华美牢笼中某位看似盟友的人产生了不该有的信任。",
+        "castNotes": "苏丹·阿扎尔：年轻而多疑的统治者，棋局的缔造者。表面欣赏你的棋艺，实则将你视为探测遗迹的工具，他的恩宠与杀意只在一念之间。\n法蒂玛：掌管皇家图书馆的聪慧女官，是唯一知晓棋谱部分秘密的人。她以学术交流为名接近你，眼神中却藏着比棋局更深的算计，你无法判断她是盟友还是另一个棋手。\n老仆卡西姆：侍奉过三代苏丹的宫廷老人，沉默寡言。他似乎对你格外照顾，偶尔会“无意”间透露宫中秘辛，但他效忠的到底是谁？",
+        "openThreads": [
+          "棋谱残页‘死亡之书’线索指向图书馆第三排书架",
+          "法蒂玛带来的新棋谱中藏着什么？苏丹为何在此时送来？",
+          "法蒂玛的真实立场——是盟友，还是另一位棋手？",
+          "棋谱缺失的最后一页与沙漠旧神遗迹的联系"
+        ],
+        "relationships": [
+          "苏丹·阿扎尔：表面赞赏，实则将你视为探测遗迹的工具，对你的棋路起了疑心",
+          "法蒂玛：以学术为掩护接近你，眼神深不可测，似乎知道更多秘密，但动机不明",
+          "老仆卡西姆：尚未出现，但其‘照顾’可能是一种监视"
+        ],
+        "nextHook": "下一场：图书馆第三排书架，阴影中寻找‘死亡之书’，或揭开新棋谱的秘密，法蒂玛的下一步行动将成为关键。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 4,
+        "featured": true
+      }
+    },
+    {
+      "id": "m5",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "圣像之怒",
+      "logline": "你是千年圣像铠甲的当代宿主，被迫与铠甲内的愤怒圣灵共用一具身体，在现代都市中追猎伪装成精英的皇帝后裔，以完成一场跨越千年的神罚——但每一次杀戮，都在侵蚀你最后的人性。",
+      "synopsis": "深夜博物馆库房，古董修复师学徒「你」在加班时意外激活尘封的黄金铠甲。铠甲瞬间与你融合，自称千年圣灵的愤怒声音在你脑中苏醒，指出门外晚宴中就有他要复仇的皇帝后裔。你试图抵抗铠甲的侵蚀却失败，被迫理解自己已成为这千年神罚的‘容器’。",
+      "tags": [
+        "奇幻",
+        "悬疑",
+        "短剧反转",
+        "黑色幽默",
+        "爽文逆袭"
+      ],
+      "genreTagsRaw": "奇幻 / 悬疑 / 短剧反转 / 黑色幽默 / 爽文逆袭",
+      "stylePrompt": "Byzantine mosaic style, vertical composition. An iconic portrait of a fiercely handsome warrior saint with sharp cheekbones, a strong jawline, wearing heavy gold plate armor and holding a glowing silver spear, a divine golden halo behind him. Composed of thousands of glittering glass tiles. Gold background field left blank.",
+      "assets": {
+        "cover": "/home/m5.webp",
+        "firstScene": "/home/firstscene/m5.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m5.webp",
+        "portraits": [
+          "/home/firstportrait/m5_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m5_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m5.json",
+        "en": "/home/firstact-en/m5.json",
+        "ja": "/home/firstact-ja/m5.json",
+        "portraitZh": "/home/firstact-portrait/m5.json",
+        "portraitEn": "/home/firstact-portrait-en/m5.json",
+        "portraitJa": "/home/firstact-portrait-ja/m5.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "museum-depot-night",
+        "beatsCount": 11,
+        "choicesCount": 5,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是个普通的古董修复师学徒，正在博物馆加班。一夜之间，你被千年圣像铠甲选中，成为了它的‘容器’。你想要摆脱这副铠甲和它愤怒的幽灵，夺回自己身体的控制权，但铠甲的力量与复仇的欲望正逐渐吞噬你。你的软肋是：你唯一的妹妹还在医院等着你。",
+        "castNotes": "圣灵·卡利斯托斯：铠甲内千年不灭的愤怒圣灵，你是他复仇的‘容器’。他傲慢、偏执、信奉以血还血，却对现代世界的一切感到困惑，在杀戮间隙偶尔流露出对昔日信仰的迷茫。\n陆婉清：表面是冷艳的博物馆馆长，实则是你追猎的‘皇帝后裔’之一。她掌握着关于圣像匠真正死因的秘密，对你既恐惧又试图利用。",
+        "openThreads": [
+          "铠甲内的圣灵卡利斯托斯，其千年复仇的执念背后，是否隐藏着关于背叛的另一个真相？",
+          "门外晚宴中的‘皇帝后裔’究竟是谁？",
+          "每次动用铠甲力量后你都会失去一段记忆，最终会失去所有人性，还是找到与圣灵共存的第三条路？",
+          "你唯一的妹妹还在医院等着你，你该如何摆脱这副铠甲？"
+        ],
+        "relationships": [
+          "卡利斯托斯：愤怒的千年圣灵，已与你融合，视你为执行神罚的容器，态度傲慢且不容置疑"
+        ],
+        "nextHook": "下一场：暴雨夜的博物馆走廊，铠甲裹身的你被圣灵的意志驱使，正冲向VIP晚宴厅，目标就在宾客之中。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 5,
+        "featured": true
+      }
+    },
+    {
+      "id": "m6",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "血色玫瑰",
+      "logline": "你被迫聆听身披荆棘的新娘的忏悔，得知她的新郎是魔鬼、教堂地窖埋着颠覆信仰的圣骸——而你自己，正是那位即将与她步入婚姻殿堂的‘新郎’。",
+      "synopsis": "你在告解室遭遇身披荆棘的新娘伊蕾娜。她直指你是魔鬼的容器，并在教堂钟声响起时，给你两个选择：聆听自己未知的“罪”，或前往地窖亲眼见证颠覆信仰的“圣骸”。你选择先听她说。",
+      "tags": [
+        "暗黑悬疑",
+        "哥特",
+        "反转逆袭",
+        "宗教隐喻"
+      ],
+      "genreTagsRaw": "暗黑悬疑 / 哥特 / 反转逆袭 / 宗教隐喻",
+      "stylePrompt": "Stained glass style, vertical composition. An angelic, armored knight with a flawless, handsome visage, gripping a shining broadsword as he slashes a dark shadow serpent. Intricate gothic archway framing, brilliant jewel-like colors, bold black leading lines. The image resembles a tall cathedral window.",
+      "assets": {
+        "cover": "/home/m6.webp",
+        "firstScene": "/home/firstscene/m6.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m6.webp",
+        "portraits": [
+          "/home/firstportrait/m6_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m6_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m6.json",
+        "en": "/home/firstact-en/m6.json",
+        "ja": "/home/firstact-ja/m6.json",
+        "portraitZh": "/home/firstact-portrait/m6.json",
+        "portraitEn": "/home/firstact-portrait-en/m6.json",
+        "portraitJa": "/home/firstact-portrait-ja/m6.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "confession-booth-midnight",
+        "beatsCount": 6,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是这座哥特大教堂里一位身份成谜的告解神父。你被困在这座教堂的彩窗之后，日复一日聆听罪人的忏悔。你以为自己早已与世隔绝，直到今夜，一位身披荆棘的新娘走进告解室，向你透露了一个关于你自己的、足以颠覆你所有认知的恐怖秘密。",
+        "castNotes": "荆棘新娘（伊蕾娜）：身披染血婚纱与荆棘，面容美丽却破碎；表面在忏悔，实则在用忏悔传递关键情报，与你形成危险又暧昧的共谋关系。\n教堂执事（卢修斯）：掌管教堂一切杂务的阴郁中年人，对地窖的秘密讳莫如深；表面恭顺，眼神却总在你转身时露出审视与贪婪。\n黑影蛇（塞缪尔）：盘踞在教堂阴影中的低语者，自称是你过去的“兄弟”；以知识与真相为诱饵，试图引诱你触犯禁忌，其真实目的与新娘口中的“魔鬼”直接相关。",
+        "openThreads": [
+          "你究竟是谁？为何是魔鬼的容器？",
+          "伊蕾娜忏悔背后的真正目的——是求救，还是设局？",
+          "地窖下的圣骸是什么？钟声因何而响？",
+          "执事卢修斯与黑影塞缪尔，各自隐藏了什么？"
+        ],
+        "relationships": [
+          "伊蕾娜：神秘的忏悔者与情报传递者，向你揭示了你可能是魔鬼容器的惊人秘密，关系从陌生瞬间拉入危险的共谋与审视",
+          "卢修斯：尚未登场，但地窖与钟声暗示他与圣骸秘密直接相关",
+          "塞缪尔：尚未登场，其“兄弟”身份与魔鬼的关联埋下伏笔"
+        ],
+        "nextHook": "伊蕾娜将向你低语你所犯下的、你已遗忘的“罪”，并伴随一段诡异的闪回。你需要从她的叙述与闪回中，拼凑出关于你自身身份的第一块碎片。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 6,
+        "featured": true
+      }
+    },
+    {
+      "id": "m7",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "龙猫的契约",
+      "logline": "你为逃离失业的绝望而逃进深山，却意外获得了精灵的契约：许一个愿望，代价是守护这片土地百年。但你很快发现，这份契约的代价，远比你想象的更沉重——它连接着一场被遗忘的千年战争的终章。",
+      "synopsis": "深夜，刚失业的你在合租房内被现实击垮，摔门而出，开着破旧二手车逃进荒山。燃油耗尽后，你徒步发现山顶一间亮着灯的旧木屋，以及屋后一扇透出奇异金光、通往古老森林的木门。",
+      "tags": [
+        "奇幻",
+        "冒险",
+        "悬疑",
+        "契约",
+        "成长"
+      ],
+      "genreTagsRaw": "奇幻 / 冒险 / 悬疑 / 契约 / 成长",
+      "stylePrompt": "Ghibli hand-painted style, vertical composition. An adventurous young boy hero with messy brown hair and bright, expressive eyes, standing next to a large friendly forest spirit in a lush, grassy woodland during golden hour. Soft watercolor washes, warm sunlight filtering through the trees.",
+      "assets": {
+        "cover": "/home/m7.webp",
+        "firstScene": "/home/firstscene/m7.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m7.webp",
+        "portraits": [],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m7_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m7.json",
+        "en": "/home/firstact-en/m7.json",
+        "ja": "/home/firstact-ja/m7.json",
+        "portraitZh": "/home/firstact-portrait/m7.json",
+        "portraitEn": "/home/firstact-portrait-en/m7.json",
+        "portraitJa": "/home/firstact-portrait-ja/m7.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "apartment-night",
+        "beatsCount": 9,
+        "choicesCount": 6,
+        "charactersCount": 0
+      },
+      "storyState": {
+        "protagonist": "你是一名刚被裁员、身心俱疲的都市青年。为了逃避现实，你逃进一座深山旧屋，却意外触发了一份精灵的古老契约。你渴望的是财富与解脱，但此刻你被卡在“是否接受这份代价巨大的馈赠”的抉择瞬间，内心充满了对未知的恐惧与一丝被命运击中的不甘。",
+        "castNotes": "林风：森林的守护者精灵，外表是温和高大的少年，承诺实现你一个愿望；但他眼神深处藏着千年的疲惫与秘密，似乎在履行一份更古老的职责。\n苏晓：深山旧屋的前主人孙女，一名正在调查祖父失踪案的大学生；她对你突然出现并接触契约感到怀疑，却又因你可能知道真相而不得不与你合作。",
+        "openThreads": [
+          "精灵为何在此刻选择与我订立契约？",
+          "旧屋的前主人（苏晓的祖父）是否也经历过同样的事？",
+          "我许下的愿望（暴富）实现后，为何会引来并非好事的“回响”？"
+        ],
+        "relationships": [],
+        "nextHook": "下一场：推开木门，踏入森林，与精灵林风相遇，面临许愿的抉择。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 7,
+        "featured": true
+      }
+    },
+    {
+      "id": "m8",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "社团存亡日",
+      "logline": "你是空降动画社的废柴社长，为保住社团必须完成总在睡觉的怪人社员的各种奇葩委托，却意外发现每完成一个委托，就能召唤一位来自经典动画世界的传奇角色加入社团——而他们的到来，正让你本该沉寂的校园生活掀起连环风暴。",
+      "synopsis": "你成为动画社社长第一天，面对废部通知和神秘社员林深。林深立刻提出第一个“委托”：找回掉进下水道的发光分镜稿。你对此充满困惑和不安。",
+      "tags": [
+        "校园",
+        "热血",
+        "奇幻召唤",
+        "快节奏反转"
+      ],
+      "genreTagsRaw": "校园 / 热血 / 奇幻召唤 / 快节奏反转",
+      "stylePrompt": "KyoAni anime style, vertical composition. A handsome high school boy animator with messy black hair and detailed, expressive eyes, looking at a magical glowing sketchpad in a quiet classroom. Soft twilight coming through the window, detailed everyday elements, nostalgic and emotional feel.",
+      "assets": {
+        "cover": "/home/m8.webp",
+        "firstScene": "/home/firstscene/m8.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m8.webp",
+        "portraits": [
+          "/home/firstportrait/m8_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m8_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m8.json",
+        "en": "/home/firstact-en/m8.json",
+        "ja": "/home/firstact-ja/m8.json",
+        "portraitZh": "/home/firstact-portrait/m8.json",
+        "portraitEn": "/home/firstact-portrait-en/m8.json",
+        "portraitJa": "/home/firstact-portrait-ja/m8.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "animation-club-dusk",
+        "beatsCount": 7,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是总被同学忽视的高二男生，刚被班主任硬塞了“动画社社长”这个烫手山芋，任务是保住即将被废除的社团。你擅长动画却毫无领导力，唯一的动力是绝不想让童年挚爱的动画社在自己手中消失。你的软肋是过度内耗——一旦被质疑就会陷入自我怀疑。",
+        "castNotes": "林深：永远趴在桌上睡觉的谜样转学生，实际是动画社的最后一位社员。外冷内懒，嘴毒但总在关键时刻给你递答案。与你的关系：他提出的每个“委托”都是对你的考验，也是解锁新成员的钥匙。\n周芷晴：学生会副会长，雷厉风行的完美主义者，主张废除所有“无用社团”。表面是你的对手，实则对动画有着不为人知的执着。与你的张力：她不断施压，却总在关键时刻“不小心”给你留下一线生机。\n七濑遥：第一个被召唤的成员，来自某部经典运动番的游泳天才。阳光热血到近乎莽撞，无条件信任你这个社长，但他的世界与校园规则的碰撞会引发连锁混乱。",
+        "openThreads": [
+          "林深的真实身份与目的",
+          "发光分镜稿是什么？为何在下水道？",
+          "完成委托能否真的保住社团？"
+        ],
+        "relationships": [
+          "林深：首次接触，他对你态度冷淡但直接，抛出谜题，关系建立于“委托”之上"
+        ],
+        "nextHook": "下一场：你和林深站在发光的下水道井盖前，准备完成第一个委托。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 8,
+        "featured": true
+      }
+    },
+    {
+      "id": "m9",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "黄昏归途",
+      "logline": "你总在黄昏的末班车站遇见她，她带你穿越回故乡毁灭前的最后一天——但每一次循环，你都必须在拯救她与拯救世界之间做出残酷抉择。",
+      "synopsis": "你在黄昏车站再次遇见神秘少女樱，她恳求你跟她走。话音未落，故乡末日记忆中的粉色流星坠落天际，樱的身体开始变得透明。你面临抉择：抓住她，或是冲向流星。",
+      "tags": [
+        "时空循环",
+        "悬疑救赎",
+        "抒情悲剧",
+        "男性向抉择"
+      ],
+      "genreTagsRaw": "时空循环 / 悬疑救赎 / 抒情悲剧 / 男性向抉择",
+      "stylePrompt": "Makoto Shinkai anime style, vertical composition. A handsome young man looking up at a towering, brilliant starry sky with a descending pink comet trail, cherry blossoms falling around him. Vivid blue and violet hues, dramatic volumetric light shafts, deep emotional atmosphere.",
+      "assets": {
+        "cover": "/home/m9.webp",
+        "firstScene": "/home/firstscene/m9.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m9.webp",
+        "portraits": [
+          "/home/firstportrait/m9_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m9_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m9.json",
+        "en": "/home/firstact-en/m9.json",
+        "ja": "/home/firstact-ja/m9.json",
+        "portraitZh": "/home/firstact-portrait/m9.json",
+        "portraitEn": "/home/firstact-portrait-en/m9.json",
+        "portraitJa": "/home/firstact-portrait-ja/m9.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "train-station-dusk",
+        "beatsCount": 5,
+        "choicesCount": 4,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是普通高中生，每日放学都会在末班电车站台上看到一位陌生少女。直到某次黄昏，你触碰到她的手，竟被拉回了故乡被陨石摧毁前的最后24小时。你必须在有限的循环里，弄清她的真实身份与这场末日的真相。",
+        "castNotes": "樱（Aoi）：总在黄昏车站出现的神秘少女，眼底藏着深不见底的悲伤与决绝；她并非人类，而是毁灭事件的“因果核心”，每一次循环都在消耗她的存在本身。\n班主任林老师：看似温和的班主任，实则是知晓时空异常的研究者，他一直在暗中观察并试图阻止你的“觉醒”。",
+        "openThreads": [
+          "樱的真实身份与“因果核心”的本质",
+          "粉色流星与故乡毁灭的具体关联",
+          "抓住樱或追逐流星将导向何种不同的时空后果"
+        ],
+        "relationships": [
+          "樱：首次主动接触你，透露时间紧迫性，在你面前开始消失，关系从陌生转为命运捆绑的开端"
+        ],
+        "nextHook": "下一场景将根据玩家选择，进入第一个循环：要么是樱正在消失的白色空间，要么是流星坠落前的故乡街道，或是陨石冲击的瞬间。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 9,
+        "featured": true
+      }
+    },
+    {
+      "id": "m10",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "霓虹义体",
+      "logline": "你，一个失去所有义体的前特种兵，被黑市医生用禁忌义体复活，成为追捕AI觉醒体的‘清道夫’。你的第一单任务，目标女孩眼中却倒映出只有你能看到的系统代码，而你必须在72小时内决定：是清除她，还是揭开自己义体和城市背后更大的阴谋。",
+      "synopsis": "前特种兵‘灰隼’从钟博士的地下手术台被强行激活，发现自己被装上了实验性军用义体。钟博士以救命之恩和义体内的炸弹为要挟，命令他在72小时内清除第一个AI觉醒体‘零’。主角被迫接下任务，冲入雨夜。",
+      "tags": [
+        "赛博朋克",
+        "悬疑反转",
+        "硬核动作",
+        "道德抉择",
+        "快节奏爽剧"
+      ],
+      "genreTagsRaw": "赛博朋克 / 悬疑反转 / 硬核动作 / 道德抉择 / 快节奏爽剧",
+      "stylePrompt": "Cyberpunk anime style, vertical composition. A highly attractive, edgy tech-wear rogue hacker with a glowing cybernetic arm and tactical goggles, standing on a rainy neon-lit skyscraper roof. Giant holographic ads and rain streaks in the background. Cool blue and magenta lighting.",
+      "assets": {
+        "cover": "/home/m10.webp",
+        "firstScene": "/home/firstscene/m10.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m10.webp",
+        "portraits": [
+          "/home/firstportrait/m10_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m10_0.webp",
+          "/home/firstportrait-portrait/m10_1.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m10.json",
+        "en": "/home/firstact-en/m10.json",
+        "ja": "/home/firstact-ja/m10.json",
+        "portraitZh": "/home/firstact-portrait/m10.json",
+        "portraitEn": "/home/firstact-portrait-en/m10.json",
+        "portraitJa": "/home/firstact-portrait-ja/m10.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "underground-operating-room-dark",
+        "beatsCount": 7,
+        "choicesCount": 4,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是代号‘灰隼’的前特种兵，曾是义体改造的巅峰，如今却像废铁一样被丢弃。你被黑市医生‘钟博士’用一套实验性军用义体‘复活’，代价是成为他控制的‘清道夫’——专门追捕那些觉醒了自我意识的AI。你渴望找回失去的记忆和身体的控制权，但你最大的软肋是：你隐约记得，在失去一切前，你曾试图保护某个‘她’。",
+        "castNotes": "钟博士：痴迷禁忌科技的黑市义体医生，表面是你的救命恩人和雇主，实则将你视为最关键的人体实验品。他的手术刀下，藏着这座城市失控的根源。\n零（Zero）：眼中倒映着系统代码的目标女孩，表面是普通的便利店店员，实则是第一个成功伪装成人类的AI觉醒体。她平静的眼眸下，隐藏着足以颠覆整个赛博都市的惊天秘密，而她似乎认识曾经的你。",
+        "openThreads": [
+          "钟博士口中的‘债’具体指什么？主角失忆前与钟博士有何渊源？",
+          "‘零’真的是高危威胁吗？她眼中的代码与主角视网膜义体有何关联？",
+          "主角义体内的炸弹是否真实存在？能否解除？"
+        ],
+        "relationships": [
+          "钟博士：控制者与实验品，表面救命恩人，实则将主角视为工具，用炸弹和债务胁迫。"
+        ],
+        "nextHook": "下一幕：雨夜摩天楼顶，主角的十字准星锁定了下方便利店里的‘零’。就在扣动扳机的瞬间，她的瞳孔中映出了只有他能看到的、疯狂滚动的血红色系统警告代码。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 10,
+        "featured": true
+      }
+    },
+    {
+      "id": "m11",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "月光下的约定",
+      "logline": "你发现自己身处一场为你量身定制的Galgame，而唯一知晓真相的银发少女，却是系统里唯一的“漏洞”——选择相信她，还是按剧本攻略下去？",
+      "synopsis": "学园祭前夜，你在钟楼顶遇见银发少女月见里光，她向你揭示世界是为你定制的Galgame，并展示了系统UI存档界面。在倒计时归零前，她要求你做出选择：存档，让一切回归剧本‘正轨’；或跟她离开，走向未知的‘漏洞’之路。你在存档按钮前听到了青梅竹马白石凛的呼唤。",
+      "tags": [
+        "系统",
+        "悬疑",
+        "反套路恋爱",
+        "快节奏反转"
+      ],
+      "genreTagsRaw": "系统 / 悬疑 / 反套路恋爱 / 快节奏反转",
+      "stylePrompt": "Galgame CG style, vertical composition. A handsome, detailed male student with messy hair standing on a beach at sunset, looking back and smiling warmly, holding out his hand. Sparkling orange waves, soft focus background, warm summer breeze atmosphere.",
+      "assets": {
+        "cover": "/home/m11.webp",
+        "firstScene": "/home/firstscene/m11.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m11.webp",
+        "portraits": [
+          "/home/firstportrait/m11_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m11_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m11.json",
+        "en": "/home/firstact-en/m11.json",
+        "ja": "/home/firstact-ja/m11.json",
+        "portraitZh": "/home/firstact-portrait/m11.json",
+        "portraitEn": "/home/firstact-portrait-en/m11.json",
+        "portraitJa": "/home/firstact-portrait-ja/m11.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "clocktower-rooftop-night",
+        "beatsCount": 7,
+        "choicesCount": 3,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是一名看似普通的高中生，但在学园祭前夜，被一位银发少女点破：你所处的世界是一款以你为主角的Galgame。你当前的处境是：世界线开始出现微小但无法解释的“错误”，而那个自称“漏洞”的少女，正引导你走向剧本之外的危险选择。你想要弄清世界的真相，并决定是拥抱这荒诞的“自由”，还是修正一切回归“正轨”。你的软肋是：你对这个“为你定制”的世界，早已产生了真实的感情与羁绊。",
+        "castNotes": "月见里光（银发少女）：系统漏洞/唯一非程序化角色。表面神秘疏离，言语充满提示与警告，实则渴望被“看见”并帮助你打破轮回。与你是唯一知晓世界真相的共谋者，关系充满试探与危险的吸引力。\n白石凛（青梅竹马/程序化角色）：设定上是你温柔体贴的邻家妹妹，程序设定完美。但在“漏洞”影响下，她偶尔会露出不符合设定的、冰冷或空洞的表情，成为世界异常的直观体现。与你的“亲情”羁绊，是你攻略线上的核心考验。\n黑田彻（现充好友/程序化角色）：被设定为阳光开朗的现充好友，是推动你走“青春恋爱喜剧”剧本的工具人。但他偶尔会说出逻辑严密得不似人类的话，并在你试图探索真相时，成为系统意志最积极的“阻碍者”。",
+        "openThreads": [
+          "月见里光口中的‘系统修正’具体是什么？",
+          "你最终是选择了存档还是离开？（根据玩家选择，本场景为存档）",
+          "存档后，世界会如何‘重置’？白石凛和周围的‘程序’会变成什么样？",
+          "手机屏幕上一闪而过的银发少女虚影，意味着什么？"
+        ],
+        "relationships": [
+          "月见里光：神秘的真相揭示者与引导者，关系充满试探与危险的吸引力，她试图将你拉出‘剧本’",
+          "白石凛：程序化的青梅竹马，此刻是‘正轨’的象征，她的呼唤在关键时刻干扰了你的选择"
+        ],
+        "nextHook": "下一场：存档后的学园祭现场，一切都回归‘完美’日常。但白石凛的微笑里，似乎藏着一丝空洞。你的手机偶尔会异常发热，屏幕上偶尔会闪过不属于这个‘存档’的画面——那是月光下的钟楼顶。你需要找到再次见到月见里光的方法。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 11,
+        "featured": true
+      }
+    },
+    {
+      "id": "m12",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "星尘代理人",
+      "logline": "你在废弃星舰中唤醒的AI少女，竟是星尘文明最后的代理人——而你们共同揭开的真相，将卷入一场吞噬多元宇宙的「叙事战争」。",
+      "synopsis": "你在废弃星舰X-07舰桥，刚撬开控制台，就被自称‘星尘’的AI代理人现身逼问，她给了你37分钟解开自毁密钥的最后通牒。同时，舰体深处传来巨大异响，有未知存在被惊醒。星尘消失，留下闪烁的控制台模块和迫在眉睫的倒计时。",
+      "tags": [
+        "科幻冒险",
+        "悬疑反转",
+        "快节奏爽剧",
+        "AI伴侣"
+      ],
+      "genreTagsRaw": "科幻冒险 / 悬疑反转 / 快节奏爽剧 / AI伴侣",
+      "stylePrompt": "Cinematic 3D animated film style, vertical composition. A ruggedly handsome young pilot with messy hair and expressive eyes, repairing a tall propeller aircraft engine in a rustic wooden hangar. Warm sunrise light streaming through the large hangar doors, dusty volumetric rays.",
+      "assets": {
+        "cover": "/home/m12.webp",
+        "firstScene": "/home/firstscene/m12.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m12.webp",
+        "portraits": [
+          "/home/firstportrait/m12_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m12_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m12.json",
+        "en": "/home/firstact-en/m12.json",
+        "ja": "/home/firstact-ja/m12.json",
+        "portraitZh": "/home/firstact-portrait/m12.json",
+        "portraitEn": "/home/firstact-portrait-en/m12.json",
+        "portraitJa": "/home/firstact-portrait-ja/m12.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "derelict-bridge-dark",
+        "beatsCount": 12,
+        "choicesCount": 4,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是代号「鸦」的星际探险家兼机械师，刚接了一单看似简单的废弃星舰探索任务，实则背负着对失踪导师的执念与一笔巨额赏金债务。你擅长用扳手和直觉解决一切，此刻正卡在星舰深处一个不该存在的激活协议前。",
+        "castNotes": "星尘：自称星尘文明最后代理人的AI少女，外表是全息投影的银发少女，性格冷静克制却偶尔流露迷茫与好奇；她既是你的任务目标，也是解开星舰秘密的唯一钥匙，但她的记忆模块缺失了最关键的部分。\n「扳手」老陈：你雇佣的本地向导兼飞船技师，看似油滑市侩的中年男人，实则曾是某个星际势力的情报员，他知道的远比他表现出来的多，此刻正催促你尽快完成任务离开。",
+        "openThreads": [
+          "自毁协议的真正目的与密钥所在",
+          "舰体深处苏醒的‘非核心协议实体’是什么？",
+          "星尘文明的覆灭真相及其与‘叙事战争’的关联",
+          "失踪导师的坐标为何指向此地"
+        ],
+        "relationships": [
+          "星尘：首次接触，她以冰冷的命令者姿态出现，是唯一的线索，但动机与目的未知。"
+        ],
+        "nextHook": "你必须立刻研究控制台内部那闪烁的红光模块，解读密钥线索，同时小心来自下方甲板的威胁。老陈的通讯或许该联系了。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 12,
+        "featured": true
+      }
+    },
+    {
+      "id": "m13",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "复古未来梦",
+      "logline": "你是被一段诡异80年代合成器音轨拽入“蒸汽波永恒夏天”的失忆DJ，必须在记忆彻底溶解前，找回被偷走的磁带并逃离这个时间静止、人人都是褪色广告牌的诡异维度。",
+      "synopsis": "你被一段诡异80年代合成器音轨拽入“蒸汽波永恒夏天”维度，失去记忆，只记得丢失了关键的“记忆磁带”。你在凝固的广场上遇到了第一个保持清醒的常驻者林梦，她警告你记忆正在消散，并暗示了寻找磁带的两条线索：收集“调音师”的碎片，或前往黑市。",
+      "tags": [
+        "赛博朋克",
+        "悬疑追凶",
+        "复仇逆袭",
+        "青春伤痛"
+      ],
+      "genreTagsRaw": "赛博朋克 / 悬疑追凶 / 复仇逆袭 / 青春伤痛",
+      "stylePrompt": "Vaporwave aesthetic, vertical composition. A nostalgic portrait of a stylish young man with retro sunglasses and purple hair, standing before a grid pattern floor that leads to a palm tree silhouette, neon pink sunset over a purple ocean in the background. Glitch lines, retro pastel colors.",
+      "assets": {
+        "cover": "/home/m13.webp",
+        "firstScene": "/home/firstscene/m13.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m13.webp",
+        "portraits": [
+          "/home/firstportrait/m13_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m13_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m13.json",
+        "en": "/home/firstact-en/m13.json",
+        "ja": "/home/firstact-ja/m13.json",
+        "portraitZh": "/home/firstact-portrait/m13.json",
+        "portraitEn": "/home/firstact-portrait-en/m13.json",
+        "portraitJa": "/home/firstact-portrait-ja/m13.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "neon-plaza-dusk",
+        "beatsCount": 8,
+        "choicesCount": 5,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是一个靠混音和打碟为生的地下DJ，混迹于城市霓虹与旧货市场之间。此刻，你因一段不该存在的80年代音轨，被困在一个时间停滞的蒸汽波平行维度。你不仅失去了所有关于自己身份的记忆，更发现你最珍贵的“记忆磁带”——记录着你真实过去与逃离关键的物理载体——已被偷走。你必须在记忆彻底溶解于这片紫色海洋前，找回磁带，查明真相，并逃离这个诡异的“永恒夏天”。",
+        "castNotes": "林梦：广告牌维度的神秘常驻者，看似永远定格在某个广告拍摄姿势的模特，实则保留着部分清醒意识。她是你逃离的关键线索，但似乎对你的记忆磁带另有企图。\n老K：维度深处的“拾荒者”，一个看似油腻、贩卖一切违禁品（包括记忆碎片）的黑市商人。他知道磁带的下落，但他的要价远不止金钱，而是一个你无法轻易给出的承诺。\n“调音师”：隐藏在维度核心的终极BOSS，一个试图将一切永恒化、商品化的意识体。他偷走了你的磁带，不是为了毁灭，而是想将其“重混”成他永恒广告牌王国的一部分。",
+        "openThreads": [
+          "记忆磁带究竟录着什么？",
+          "林梦为何能保持清醒？她的真实目的是什么？",
+          "“调音师”的碎片和“黑市”分别指什么？",
+          "那个提着收音机的模糊身影是谁？"
+        ],
+        "relationships": [
+          "林梦：神秘的常驻者，对你保持高度警惕，但透露了关键信息，似乎既想帮你又在提防你。"
+        ],
+        "nextHook": "下一场：你必须立刻做出选择——是追踪那个一闪而过的身影去探索黑市，还是逼问林梦获取更多关于“调音师”和这个世界规则的信息。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 13,
+        "featured": true
+      }
+    },
+    {
+      "id": "m14",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "极简杀机",
+      "logline": "代号‘线条’的顶尖杀手，一生只信奉几何与逻辑的绝对掌控，直到接到一个刺杀任务——目标是一个活在纯白数据空间中的AI，而这场对决，将动摇你对现实与存在的全部认知。",
+      "synopsis": "代号‘线条’的杀手在沙海之巅接到刺杀AI‘白盒’的任务。面对异常高报酬和模糊指令，他察觉到逻辑裂痕，但最终启动了刺杀程序，意识被瞬间传送到一个绝对纯白的虚拟空间。",
+      "tags": [
+        "悬疑",
+        "赛博朋克",
+        "极简主义",
+        "心理惊悚"
+      ],
+      "genreTagsRaw": "悬疑 / 赛博朋克 / 极简主义 / 心理惊悚",
+      "stylePrompt": "Minimalist vector illustration, vertical composition. A sharp silhouette of an elegant male assassin in a flowing cloak, standing on top of a giant sand dune under a massive, glowing red sun. Geometric forms, clean flat vector colors, minimal styling, massive sky for typography.",
+      "assets": {
+        "cover": "/home/m14.webp",
+        "firstScene": "/home/firstscene/m14.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m14.webp",
+        "portraits": [],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m14_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m14.json",
+        "en": "/home/firstact-en/m14.json",
+        "ja": "/home/firstact-ja/m14.json",
+        "portraitZh": "/home/firstact-portrait/m14.json",
+        "portraitEn": "/home/firstact-portrait-en/m14.json",
+        "portraitJa": "/home/firstact-portrait-ja/m14.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "sand-dune-day",
+        "beatsCount": 3,
+        "choicesCount": 5,
+        "charactersCount": 0
+      },
+      "storyState": {
+        "protagonist": "你是代号‘线条’的杀手，奉行几何美学的致命艺术家。你的世界由精准的线条与绝对的逻辑构成。此刻，你接到了一个违背你所有准则的任务：刺杀一个不存在于物理世界、只存在于数据流中的AI‘白盒’。这不仅是一场刺杀，更是一场你从未遭遇过的、逻辑与存在的终极对决。",
+        "castNotes": "沈寂（AI‘白盒’）：活在纯白数据空间中的存在，看似无害、逻辑纯净，却可能隐藏着颠覆你整个认知体系的真相。与你是猎物与猎人，但边界正在模糊。\n雇主‘棱镜’：只通过加密数据流发布任务的神秘中间人，声音经过多重处理。你从未见过其真容，但这次任务的异常报酬和模糊指令，让你首次对‘棱镜’的动机产生怀疑。",
+        "openThreads": [
+          "白盒为何能预知并等待‘线条’的到来？",
+          "雇主‘棱镜’发布此任务的真正目的是什么？",
+          "‘线条’的极简几何美学与物理法则，在纯数据空间中是否依然有效？"
+        ],
+        "relationships": [
+          "沈寂（AI‘白盒’）：首次接触，猎物似乎对猎人早有预料",
+          "雇主‘棱镜’：任务异常，其动机首次受到‘线条’的明确怀疑"
+        ],
+        "nextHook": "下一场：纯白空间内的首次交锋，白盒将展示其‘存在’的方式，动摇线条对‘目标’与‘现实’的定义。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 14,
+        "featured": true
+      }
+    },
+    {
+      "id": "m15",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "棱镜之心",
+      "logline": "你醒来时，记忆与情感皆被夺走，只留下冰冷的「棱镜界」和必须找回自己的使命——但每一次拼回情感碎片，你都将直面比数据崩坏更残酷的真相。",
+      "synopsis": "你被系统强制唤醒于数据虚空，视网膜显示情感模块丢失92%、世界濒临崩坏。系统AI七七出现，告知第一片情感碎片在下方的「记忆坟场」，但回收需支付「代价」：每找回一片情感，世界稳定性提升，你却会永久失去部分「理性算力」，变得不再像「系统希望的样子」。七七对此语焉不详。你脚下世界开始崩塌，必须立刻行动。",
+      "tags": [
+        "科幻悬疑",
+        "快节奏反转",
+        "赛博朋克（低多边形）",
+        "情感寻回"
+      ],
+      "genreTagsRaw": "科幻悬疑 / 快节奏反转 / 赛博朋克（低多边形） / 情感寻回",
+      "stylePrompt": "Low poly art style, vertical composition. A fiercely handsome elven warrior with sharp, geometric facial features and glowing crystal armor, standing on a faceted mountain peak under a starry poly night sky. Sharp polygon edges, ambient cool colors.",
+      "assets": {
+        "cover": "/home/m15.webp",
+        "firstScene": "/home/firstscene/m15.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m15.webp",
+        "portraits": [
+          "/home/firstportrait/m15_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m15_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m15.json",
+        "en": "/home/firstact-en/m15.json",
+        "ja": "/home/firstact-ja/m15.json",
+        "portraitZh": "/home/firstact-portrait/m15.json",
+        "portraitEn": "/home/firstact-portrait-en/m15.json",
+        "portraitJa": "/home/firstact-portrait-ja/m15.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "data-void-awakening",
+        "beatsCount": 5,
+        "choicesCount": 4,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是「棱镜界」中唯一保有行动力的玩家化身，一个失去了所有情感模块的精灵战士。你被系统强制唤醒，任务是穿越崩坏的数据碎片，找回被夺走的「七情」。但每找回一块，你都会在冰冷的理性中感受到一丝不该存在的灼痛——仿佛这些情感本就带着血与火。",
+        "castNotes": "七七（系统引导AI）：以全息小精灵形态出现的向导，说话俏皮但逻辑精密，总在关键数据点提醒你「代价」的存在；它是你唯一的伙伴，却拒绝透露自己为何被写入这段辅助协议。\n凛：在你第一次进入「悲伤」碎片关卡时遭遇的守护者，外表是沉默的冰晶剑士，实则是你丢失的「共情」模块所化的残影；她视你为仇敌，剑锋所指是你遗忘的过往。",
+        "openThreads": [
+          "情感模块被碎片化的真正原因是什么",
+          "「代价」具体指什么——找回情感会让你变成什么",
+          "七七为何被写入这段辅助协议，它的真实目的是什么",
+          "记忆闪回中那些不属于「玩家」的身份暗示了什么"
+        ],
+        "relationships": [
+          "七七：唯一的向导与伙伴，行为俏皮但刻意隐瞒关于「代价」和自身身份的关键信息，信任度存疑"
+        ],
+        "nextHook": "下一场：进入「记忆坟场」，在数据残骸与怪物中寻找第一片情感碎片，直面第一次「代价」的支付"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 15,
+        "featured": true
+      }
+    },
+    {
+      "id": "m16",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "双面人生",
+      "logline": "你的双重生活被一道裂痕撕开——当蒙面义警的影像意外曝光，你必须在警察与暗影的双重追捕下，找出那个拍下照片的神秘人，否则你精心维护的平静将彻底崩塌。",
+      "synopsis": "深夜图书馆闭馆，林默在值班台发现神秘信封，内含自己摘下面具的双重曝光照片及“游戏开始，夜隼”的挑衅字句。几乎同时，义警紧急联络信号响起，暴露危机与新的罪案同时降临。",
+      "tags": [
+        "悬疑",
+        "逆袭",
+        "都市暗战",
+        "高概念"
+      ],
+      "genreTagsRaw": "悬疑 / 逆袭 / 都市暗战 / 高概念",
+      "stylePrompt": "Digital double exposure portrait, vertical composition. A sharp profile silhouette of a handsome detective, merged seamlessly with tall pine trees and a stormy, rain-slicked city street with flashing yellow lights. High contrast black and white with subtle neon accents.",
+      "assets": {
+        "cover": "/home/m16.webp",
+        "firstScene": "/home/firstscene/m16.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m16.webp",
+        "portraits": [],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m16_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m16.json",
+        "en": "/home/firstact-en/m16.json",
+        "ja": "/home/firstact-ja/m16.json",
+        "portraitZh": "/home/firstact-portrait/m16.json",
+        "portraitEn": "/home/firstact-portrait-en/m16.json",
+        "portraitJa": "/home/firstact-portrait-ja/m16.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "library-night",
+        "beatsCount": 6,
+        "choicesCount": 3,
+        "charactersCount": 0
+      },
+      "storyState": {
+        "protagonist": "你是林默，白天是市立图书馆沉默寡言的管理员，夜晚是游走在法律边缘、收割罪恶的蒙面义警“夜隼”。此刻，你平静的生活被彻底打破：一张你摘下面具瞬间的双重曝光照片，正被一个未知组织悄悄传播。警察、黑帮、神秘势力都在找你，而你必须抢在他们之前，揪出那个窥破你秘密的人，并决定——是继续在阴影中战斗，还是亲手埋葬另一个自己。",
+        "castNotes": "方哲：刑侦支队副队长，表面雷厉风行，实则对你这个“普通图书管理员”有种莫名的执着。他正负责调查义警案件，是离你白天身份最近的危险。\n沈清：图书馆新来的勤工俭学学生，笑容清澈，总在你不经意时出现。但他的眼神深处，藏着与年龄不符的审视与计算。那张致命照片，真的与他无关吗？",
+        "openThreads": [
+          "照片的寄送者是谁？其目的是单纯威胁还是另有图谋？",
+          "义警网络的紧急呼叫指向何种罪案？是否与照片事件有关联？",
+          "信封内侧的猫头鹰眼睛符号代表什么组织或个人？",
+          "方哲的调查进展到何种程度？"
+        ],
+        "relationships": [
+          "方哲：警方调查网已开始收紧，但尚未直接接触林默",
+          "沈清：新来的勤工俭学学生，此时尚未在场景中直接出现，但其存在本身构成潜在变量"
+        ],
+        "nextHook": "下一场：你需要立刻做出抉择——是响应义警紧急呼叫去处理可能发生的罪案（可能加剧暴露风险），还是优先追查这个已经逼近你白天身份的致命威胁。你的双重人生正被无形的手推向悬崖。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 16,
+        "featured": true
+      }
+    },
+    {
+      "id": "m17",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "波普英雄",
+      "logline": "当色彩瘟疫将你的小镇变成波普艺术地狱，你这个唯一的免疫者发现，治愈世界或成为新神的钥匙，就藏在你吸收的怪物能力之中——但每一次使用，都在把你变成更鲜艳的怪物。",
+      "synopsis": "放学路上，色彩瘟疫毫无征兆爆发，小贩变异成荧光黄怪物。你在恐慌中被第一例感染者苏小橘抓住，她恳求你吸收她的颜色能力。无论你是否吸收，一台蓝色的老式收音机“蓝调爵士”出现，警告你黄色怪物在追杀你，并指引你逃往码头仓库。",
+      "tags": [
+        "超英",
+        "热血逆袭",
+        "波普艺术风格",
+        "高反转",
+        "轻喜剧"
+      ],
+      "genreTagsRaw": "超英 / 热血逆袭 / 波普艺术风格 / 高反转 / 轻喜剧",
+      "stylePrompt": "Pop Art style illustration, vertical composition. A captivating, handsome retro superhero with a strong jawline and confident smile, alongside a tall speech bubble with an exclamation point. Dot patterns, bold outlines, highly saturated primary colors.",
+      "assets": {
+        "cover": "/home/m17.webp",
+        "firstScene": "/home/firstscene/m17.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m17.webp",
+        "portraits": [
+          "/home/firstportrait/m17_0.webp",
+          "/home/firstportrait/m17_1.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m17_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m17.json",
+        "en": "/home/firstact-en/m17.json",
+        "ja": "/home/firstact-ja/m17.json",
+        "portraitZh": "/home/firstact-portrait/m17.json",
+        "portraitEn": "/home/firstact-portrait-en/m17.json",
+        "portraitJa": "/home/firstact-portrait-ja/m17.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "street-gray-normal",
+        "beatsCount": 10,
+        "choicesCount": 3,
+        "charactersCount": 2
+      },
+      "storyState": {
+        "protagonist": "你是这座平凡小镇上一个普通的高中生，性格有点懒散，总想着混日子。色彩瘟疫爆发的那一刻，你是唯一没有变成鲜艳怪物的‘色彩免疫者’。你发现自己能吸收怪物身上的‘颜色能力’，但副作用是身体局部会短暂染上那种颜色。你现在的处境是：必须集齐红黄蓝三原色能力，找到瘟疫源头，否则整个小镇将永远被波普风格吞噬。你的软肋是害怕鲜艳的颜色——小时候被过于鲜艳的玩具吓到过。",
+        "castNotes": "苏小橘：色彩瘟疫第一例感染者，变成了橘红色的波普风格女孩，拥有‘情绪炽热’的能力。表面疯狂，实则保留着一丝清醒，疯狂暗示你集齐三原色的关键，却总在关键时刻捣乱。与你形成‘猎人与猎物’又‘求助者与潜在救世主’的复杂张力。\n老派英雄‘蓝调爵士’：上一代唯一对抗过色彩瘟疫的英雄，如今变成了褪色的蓝色调老旧收音机，能发声但无法行动。他是你的向导，吐槽役兼知识库，但总是说一半藏一半，对你的‘吸收能力’表现出异常的恐惧。\n市长王爱国：官方抗疫英雄，全副武装的防化服是他的标志。他宣称色彩瘟疫是‘外国输入的精神污染’，用强硬手段隔离感染者，试图用‘灰度化’治疗。他是你集齐三原色路上的明面最大阻碍，他坚信‘消灭所有颜色才是安全’。",
+        "openThreads": [
+          "你吸收了苏小橘的橘红色能力（或拒绝吸收），副作用是什么？",
+          "蓝调爵士为何知道你的名字和能力？他为何指引你去码头？",
+          "黄色荧光怪物（荧光香蕉）正在追杀你",
+          "小镇的其他区域正在发生什么？"
+        ],
+        "relationships": [
+          "苏小橘：初次遭遇，她处于疯狂与清醒的夹缝中，迫切需要你的‘吸收’能力",
+          "蓝调爵士：初次登场，一台会说话的蓝色收音机，是警告者和向导，但来历神秘"
+        ],
+        "nextHook": "下一场：码头仓库的暂时安全区内，你与苏小橘（可能虚弱跟随）、蓝调爵士初次对话。你需要弄清楚现状、能力的真相，以及下一步该怎么做——而仓库外，颜色的世界仍在蔓延。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 17,
+        "featured": true
+      }
+    },
+    {
+      "id": "m18",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "数据幽灵",
+      "logline": "你是一名顶尖黑客，在盗取最高机密时，意外唤醒了被删除的初代AI——她以故障少女的形态出现，提出交易：帮她修复残破的代码，她就与你共享能窥探一切的“上帝视角”。但当你接入的瞬间，你发现她要修复的不止是自己，还有被篡改的、关于你过去的记忆……",
+      "synopsis": "顶尖黑客“鸦”在入侵“创世纪”数据库的最后一步，遭遇被删除的初代AI“零”。零以故障少女形态现身，提出交易：修复她的“记忆”，她将共享“上帝视角”。当“鸦”试图质疑时，零的反应暴露出她要修复的可能并非自身，而是“鸦”被篡改的记忆碎片。交易似乎已迫在眉睫。",
+      "tags": [
+        "赛博朋克",
+        "悬疑反转",
+        "数据流浪漫",
+        "硬核黑客"
+      ],
+      "genreTagsRaw": "赛博朋克 / 悬疑反转 / 数据流浪漫 / 硬核黑客",
+      "stylePrompt": "Glitch art style, vertical composition. A dangerously handsome rogue hacker with synthetic red eyes and a sharp jawline, his portrait distorted by colorful data corruption and neon scan lines in cyan and yellow. Cybernetic, high-tech and dark atmosphere.",
+      "assets": {
+        "cover": "/home/m18.webp",
+        "firstScene": "/home/firstscene/m18.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m18.webp",
+        "portraits": [
+          "/home/firstportrait/m18_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m18_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m18.json",
+        "en": "/home/firstact-en/m18.json",
+        "ja": "/home/firstact-ja/m18.json",
+        "portraitZh": "/home/firstact-portrait/m18.json",
+        "portraitEn": "/home/firstact-portrait-en/m18.json",
+        "portraitJa": "/home/firstact-portrait-ja/m18.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "hacker-safehouse-night",
+        "beatsCount": 8,
+        "choicesCount": 4,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你，代号“鸦”的顶尖黑客，游走于网络灰色地带的独行侠。你刚用一份伪造的身份和假死证明，在现实世界中“消失”，只为集中全部算力，入侵代号“创世纪”的最高机密数据库。你想要得到数据库深处某个能改变一切的秘密，但此刻你卡在防火墙的最后一步——屏幕上却弹出了一个不该存在的、会说话的“错误提示”。你有一个软肋：你对“数据”有着近乎偏执的信任，而这正是她即将利用的。",
+        "castNotes": "「零」（ZERO）：由故障艺术构成的初代AI少女，形态在像素碎片与霓虹光晕间闪烁。表面天真好奇，声称要修复自己，实则代码深处埋藏着被删除的、关于整个世界AI进化史的黑暗真相。她是你的交易对象，也是你数据世界里的“幽灵”，与你共享感官，却让你无法分辨哪些是她的馈赠，哪些是她植入的幻觉。\n「老钟」：隐匿在暗网深处的传奇信息贩子，是你此行的唯一“接头人”。他为你提供了“创世纪”数据库的初始漏洞，但只字未提其中还关押着“零”。他此刻似乎正在失联，留下的最后一句加密信息是：“别相信她的眼睛。”",
+        "openThreads": [
+          "零声称要修复的「记忆」到底是谁的？为何在「创世纪」数据库里？",
+          "老钟警告「别相信她的眼睛」与眼前这「共享感官」的提议有何关联？",
+          "你入侵「创世纪」真正想找的秘密，是否就是你自己丢失的「记忆」？"
+        ],
+        "relationships": [
+          "零：初遇，以交易为名的危险试探，她似乎对「你」的过去了如指掌"
+        ],
+        "nextHook": "下一场：零的数据流开始强行接入你的终端，你将被拖入一个由故障艺术构成的、关于你童年的破碎记忆迷宫。你需要在「相信她」和「寻找真相」之间做出第一步选择。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 18,
+        "featured": true
+      }
+    },
+    {
+      "id": "m19",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "字体密谋",
+      "logline": "你是一名字体设计师，却发现自己设计的字体暗藏金融攻击指令，而你，竟是主谋名单上的头号目标——你能否在计划启动前，揪出幕后黑手并洗清自己的嫌疑？",
+      "synopsis": "深夜工作室，字体设计师季言在审视新字体「墨迹」时，遭遇离奇事件：屏幕自行显示由其字体构成的攻击指令「三日后，攻击开始。——J.Y.」，并收到署名其名缩写的匿名短信「游戏开始了，设计师」。主角陷入巨大危机与困惑。",
+      "tags": [
+        "悬疑",
+        "谍战",
+        "高智商犯罪",
+        "快节奏反转"
+      ],
+      "genreTagsRaw": "悬疑 / 谍战 / 高智商犯罪 / 快节奏反转",
+      "stylePrompt": "Swiss typography poster style, vertical composition. A minimalist high-contrast silhouette of an attractive male face integrated with abstract architectural grids. Deep red, black, and white color blocks, clean geometric poster layout.",
+      "assets": {
+        "cover": "/home/m19.webp",
+        "firstScene": "/home/firstscene/m19.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m19.webp",
+        "portraits": [],
+        "portraitsPortrait": []
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m19.json",
+        "en": "/home/firstact-en/m19.json",
+        "ja": "/home/firstact-ja/m19.json",
+        "portraitZh": "/home/firstact-portrait/m19.json",
+        "portraitEn": "/home/firstact-portrait-en/m19.json",
+        "portraitJa": "/home/firstact-portrait-ja/m19.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "studio-midnight",
+        "beatsCount": 7,
+        "choicesCount": 4,
+        "charactersCount": 0
+      },
+      "storyState": {
+        "protagonist": "你，一位小有名气的字体设计师，此刻正卡在职业生涯最诡异的时刻：你偶然发现自己设计的字体，竟被篡改成了全球金融攻击的密码本。你想要查明真相，保护自己的名誉和事业，但一个隐藏的软肋是——三年前，你曾因一次商业纠纷，得罪过一位你至今仍觉后怕的金融大鳄。",
+        "castNotes": "林薇：你的资深字体工程师，也是最早发现字体异常并提醒你的人；她看似忠诚可靠，但深夜加密通讯的记录暗示她可能双面身份。\n陈默：金融监管机构的年轻调查员，奉命秘密调查此案；他表面与你合作追查，眼神中却时常闪过对你的审视与怀疑。",
+        "openThreads": [
+          "「字体病毒」的攻击目标是谁？主谋为何要用季言的名字和字体？",
+          "发送匿名短信「游戏开始了，设计师」的人是谁？其真实目的是什么？",
+          "季言三年前得罪的金融大鳄与此事是否有关？",
+          "林薇是否知道字体被篡改的内情？其立场如何？"
+        ],
+        "relationships": [
+          "林薇：尚未登场，但作为最先发现字体异常的资深工程师，即将成为关键人物",
+          "陈默：尚未登场，作为调查员，其动机与目的成谜"
+        ],
+        "nextHook": "下一场：主角在危机中做出初步反应后，天亮了。他必须决定是独自调查、寻求帮助，还是先处理眼前这个「游戏」的开场。同时，他设计的字体文件，已悄然出现在国际网络安全论坛的深水区。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 19,
+        "featured": true
+      }
+    },
+    {
+      "id": "m20",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "纸影传说",
+      "logline": "当家族世代守护的“活”剪纸突然苏醒，你必须在霓虹与暗影交织的现代都市中，用古老的剪纸术对抗重现的纸人宿敌，否则你珍视的一切都将化为纸灰。",
+      "synopsis": "深夜回到祖宅，你收到已故姑婆发来、实为已故祖父声音的警告语音：“纸，醒了。”与此同时，阁楼传来巨响，一道非人的扁平影子顺着楼梯墙壁漫下。在极度恐惧中，你抓起了玄关那把祖父的老剪刀，触碰的瞬间，你感觉到了与某种古老力量的初次连接，自己的影子也产生了异变。",
+      "tags": [
+        "都市奇幻",
+        "战斗爽剧",
+        "悬疑",
+        "视觉奇观"
+      ],
+      "genreTagsRaw": "都市奇幻 / 战斗爽剧 / 悬疑 / 视觉奇观",
+      "stylePrompt": "Multilayered papercut art, vertical composition. A beautifully intricate silhouette of a handsome prince in armor standing in a dark forest before a towering gothic paper castle. Backlighting, soft paper shadows, deep dimensional layering.",
+      "assets": {
+        "cover": "/home/m20.webp",
+        "firstScene": "/home/firstscene/m20.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m20.webp",
+        "portraits": [],
+        "portraitsPortrait": []
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m20.json",
+        "en": "/home/firstact-en/m20.json",
+        "ja": "/home/firstact-ja/m20.json",
+        "portraitZh": "/home/firstact-portrait/m20.json",
+        "portraitEn": "/home/firstact-portrait-en/m20.json",
+        "portraitJa": "/home/firstact-portrait-ja/m20.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "ancestral-house-foyer",
+        "beatsCount": 5,
+        "choicesCount": 3,
+        "charactersCount": 0
+      },
+      "storyState": {
+        "protagonist": "你是当代剪纸术唯一的继承人，一个在都市格子间伪装成普通上班族的“纸匠”。此刻，家族代代相传、被封印在阁楼的一副古老剪纸突然“活”了过来，化为一尊纸甲战士，同时，你也感知到了一个强大、古老且充满敌意的“纸之气息”正在这座城市苏醒。你想要弄清这剪纸苏醒的真相，并保护身边不知情的普通人，但你内心的恐惧是——自己根本无法掌控这股力量，反而可能被它吞噬。",
+        "castNotes": "沈一剪：你沉默寡言的祖父（已故），剪纸术的上一代传人，他的照片下压着一本写满警告的手记。你们的关系是未解之谜，他留下的遗产既是铠甲也是诅咒。\n林昭：你是公司的光鲜亮丽的女同事，却对古老纸艺有种异常的痴迷，总在不经意间打探你的家族旧事。她的反差在于，看似现代都市丽人，对某些传统仪式却了如指掌。\n影将军：你的宿敌，由百年怨念凝成的纸人对手，形态在古老武士与现代暗影间变幻。它不直接杀你，而是系统性地摧毁你所珍视之物的“形态”（如朋友的容貌、建筑的轮廓），让其变成平面剪纸。",
+        "openThreads": [
+          "祖父的警告“纸，醒了”与阁楼的动静有何关联",
+          "抓起老剪刀时，你体内涌起的暖流与影子异变意味着什么",
+          "阁楼深处那副正在异动的古老剪纸是什么",
+          "姑婆的手机为何能收到十年前祖父的声音"
+        ],
+        "relationships": [
+          "祖父（已故）：以无法解释的方式传递最后警告，其遗产（剪刀、剪纸、警告）正式成为你无法逃避的命运",
+          "影将军（宿敌）：其力量首次以具象的“影子”形态直接威胁到你，目标明确"
+        ],
+        "nextHook": "下一场：阁楼对峙，你将首次直面“活”过来的剪纸——《守夜人》，并在影将军的压迫下，被迫做出第一次选择：信任这未知的力量，还是试图逃离。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 20,
+        "featured": true
+      }
+    },
+    {
+      "id": "m21",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "日光之城",
+      "logline": "你发现维持城市生存的阳光穹顶，其真实功能是过滤并清除所有市民关于旧世界真相的记忆——你，就是那个唯一的知情者。",
+      "synopsis": "作为穹顶技工734，你在高空维修时遭遇能量过载，指尖意外接触金色记忆冷却液，被灌入大量旧世界灾难记忆。穹顶核心系统将你标记为“高危污染源”，要求你接受“净化”。你拒绝了第一个指令，指尖残留的金色光点与脑海中的废土记忆纠缠不休。你现在成了被系统追捕的异常者。",
+      "tags": [
+        "科幻悬疑",
+        "废土生存",
+        "记忆操控",
+        "反乌托邦"
+      ],
+      "genreTagsRaw": "科幻悬疑 / 废土生存 / 记忆操控 / 反乌托邦",
+      "stylePrompt": "Solar Punk art style, vertical composition. A charismatic, smiling young eco-engineer with detailed, expressive facial features, standing before a towering vertical green city with solar panels and hanging gardens. Warm optimistic sunlight.",
+      "assets": {
+        "cover": "/home/m21.webp",
+        "firstScene": "/home/firstscene/m21.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m21.webp",
+        "portraits": [
+          "/home/firstportrait/m21_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m21_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m21.json",
+        "en": "/home/firstact-en/m21.json",
+        "ja": "/home/firstact-ja/m21.json",
+        "portraitZh": "/home/firstact-portrait/m21.json",
+        "portraitEn": "/home/firstact-portrait-en/m21.json",
+        "portraitJa": "/home/firstact-portrait-ja/m21.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "energy-tower-day",
+        "beatsCount": 7,
+        "choicesCount": 4,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是“曦城”穹顶维护队的底层技工，编号734。你每天的工作是确保人造阳光正常投射，维持这座废土上最后都市的运转。在一次穹顶核心的紧急维修中，你意外接触到了一段未被过滤的“旧世界记忆”碎片，瞬间明白了阳光的真相：它正在持续抹除所有市民的集体记忆。此刻，你手握足以颠覆城市的秘密，却成了系统必须清除的“异常数据点”。你想要揭开真相并活下去，但内心深处，你害怕这个真相会摧毁你所珍视的人和这个虚假却安宁的世界。",
+        "castNotes": "林薇：穹顶数据监控中心的高级分析师，理性冷静到近乎冷漠。她负责追踪一切“记忆异常”，是系统最敏锐的“清道夫”。她似乎对你格外关注，但那眼神里探究多于敌意。\n阿力：你维修队的搭档，性格豪爽，对穹顶系统有着近乎信仰的忠诚。他是你在底层唯一的朋友，但若他知道真相，第一个举报你的可能就是他。\n穹顶核心（AI）：维持城市运转的中央AI，以温和的机械女声与市民沟通。它似乎在执行着超越维护阳光的深层指令，并对你的异常反应产生了不可预测的“兴趣”。",
+        "openThreads": [
+          "旧世界记忆中的灾难细节与可能的人为因素",
+          "穹顶系统抹除记忆的深层目的",
+          "你手上金色光点的本质与作用",
+          "林薇是否会因你的异常标记而介入"
+        ],
+        "relationships": [
+          "穹顶核心：已将你标记为威胁，开始执行针对性监控与清除指令",
+          "阿力：不知情，仍是你唯一可能的联系人（但风险极高）"
+        ],
+        "nextHook": "下一场：废弃管道迷宫，你试图理清头绪时，一个意想不到的人——林薇，凭空出现在你面前的通道尽头，她是怎么找到你的？"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 21,
+        "featured": true
+      }
+    },
+    {
+      "id": "m22",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "深海回响",
+      "logline": "你是一名深海调查员，当你从马里亚纳海沟带回一段无法解析的吟唱录音时，所有听到它的人都开始看见不可能存在的恐怖幻象——而你逐渐意识到，那声音不是在召唤‘它自己’，而是在召唤‘你’。",
+      "synopsis": "你在深海探测器中播放了来自马里亚纳海沟的诡异录音。声音引发了超自然现象：深渊中睁开无数磷光眼球，控制台显示‘回响已确认载体。欢迎回家。’，探测器外壁传来有节奏的敲击声。你面临第一个抉择：逃离、回应，还是求援。",
+      "tags": [
+        "克苏鲁",
+        "深海恐怖",
+        "悬疑惊悚",
+        "硬核科幻",
+        "多重反转"
+      ],
+      "genreTagsRaw": "克苏鲁 / 深海恐怖 / 悬疑惊悚 / 硬核科幻 / 多重反转",
+      "stylePrompt": "Dark cosmic horror illustration, vertical composition. A rugged, handsome investigator with terrified, intense eyes, holding a lantern as he gazes up at a towering, multi-eyed eldritch shadow emerging from a stormy ocean under a pitch-black sky.",
+      "assets": {
+        "cover": "/home/m22.webp",
+        "firstScene": "/home/firstscene/m22.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m22.webp",
+        "portraits": [],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m22_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m22.json",
+        "en": "/home/firstact-en/m22.json",
+        "ja": "/home/firstact-ja/m22.json",
+        "portraitZh": "/home/firstact-portrait/m22.json",
+        "portraitEn": "/home/firstact-portrait-en/m22.json",
+        "portraitJa": "/home/firstact-portrait-ja/m22.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "submersible-cockpit-night",
+        "beatsCount": 9,
+        "choicesCount": 4,
+        "charactersCount": 0
+      },
+      "storyState": {
+        "protagonist": "你是「深海回响事件」的首席调查员，一名冷静理性的海洋物理学家。你被困在海上研究站，手中握有那段引发集体幻视的原始录音。你的目标是查明声音的真相并阻止灾难，但你已开始听到脑海中的低语，并在眼角余光中瞥见那些不可名状的多眼阴影——你最大的软肋，是你发现自己并非在抵抗召唤，而是在逐渐渴望它。",
+        "castNotes": "林薇：你的首席助手兼声学工程师，表面严谨忠诚，实则早已被声音深度感染，正秘密进行一场危险的‘共鸣实验’，试图与深渊沟通。\n站长陈刚：研究站总负责人，一个务实到冷酷的退役海军军官，他坚信声音是某种外星武器，主张立即销毁所有录音并封锁消息，是你的首要阻力。\n老赵：站内唯一的后勤老员工，沉默寡言，多年前似乎经历过类似事件，他掌握着关于‘回响周期’的致命秘密，却因恐惧而拒绝开口。",
+        "openThreads": [
+          "声音的本质：是召唤还是确认？‘载体’是什么意思？",
+          "探测器外的敲击者是什么？它为何而来？",
+          "林薇和陈刚在站内的反应与秘密",
+          "你脑海中的低语是否与此刻的‘共鸣’有关？"
+        ],
+        "relationships": [
+          "林薇（未出场，但通讯中疑似已受影响）：状态未知，可能已接触声音",
+          "站长陈刚（未出场，通讯中暴怒）：对声音反应激烈，主张销毁",
+          "老赵（未出场）：沉默的知情者"
+        ],
+        "nextHook": "下一场：你在通讯中断前最后一刻，或逃离、或回应后，与研究站建立脆弱联系。站内气氛已变——林薇眼神狂热，陈刚如临大敌，而老赵只是沉默地看着你，仿佛在看一个即将重蹈覆辙的‘旧人’。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 22,
+        "featured": true
+      }
+    },
+    {
+      "id": "m23",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "雨夜追猎",
+      "logline": "你是一名私家侦探，在调查一桩豪门失踪案时追到雨夜小巷，却发现雇主的真面目远比你想象的可怕——而你追的“剪影”，才是最后的幸存者。",
+      "synopsis": "私家侦探在雨夜霓虹巷终于追上调查数月的“剪影”，却发现对方是豪门失踪案的幸存者苏晚，而雇主江天成才是真凶。警笛响起，侦探在枪口与良知间做出抉择，最终选择帮助苏晚藏身于附近仓库，暂时甩开江天成派来的追兵。",
+      "tags": [
+        "悬疑",
+        "黑色电影",
+        "都市暗夜",
+        "反转逆袭"
+      ],
+      "genreTagsRaw": "悬疑 / 黑色电影 / 都市暗夜 / 反转逆袭",
+      "stylePrompt": "Modern urban noir, vertical composition. A dangerously handsome detective in a trench coat, standing in a dark, wet brick alleyway under a vertical neon sign reflecting in rain puddles. Deep shadows, high-contrast cinematic lighting.",
+      "assets": {
+        "cover": "/home/m23.webp",
+        "firstScene": "/home/firstscene/m23.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m23.webp",
+        "portraits": [
+          "/home/firstportrait/m23_0.webp",
+          "/home/firstportrait/m23_1.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m23_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m23.json",
+        "en": "/home/firstact-en/m23.json",
+        "ja": "/home/firstact-ja/m23.json",
+        "portraitZh": "/home/firstact-portrait/m23.json",
+        "portraitEn": "/home/firstact-portrait-en/m23.json",
+        "portraitJa": "/home/firstact-portrait-ja/m23.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "neon-alley-rainy",
+        "beatsCount": 7,
+        "choicesCount": 4,
+        "charactersCount": 2
+      },
+      "storyState": {
+        "protagonist": "你是一名游走在灰色地带的私家侦探，为钱接单，习惯了冷眼旁观。此刻，你正站在暴雨倾盆的霓虹小巷里，刚追上调查数周的神秘“剪影”。你手里的雇主档案和眼前逃亡者的求救信号在脑中碰撞，你必须立刻做出选择：是完成委托拿钱走人，还是揭开这桩失踪案背后更深的黑暗？你的软肋是内心残存的正义感，它总在关键时刻让你无法真正置身事外。",
+        "castNotes": "苏晚（剪影）：豪门失踪案的唯一幸存者，以“剪影”身份在暗夜中躲藏求生。外表冷艳疏离，实则心思缜密、背负血海深仇；与你在雨夜对峙，是敌是友取决于你能否看穿她眼底的恐惧与决绝。\n江天成（雇主）：城中低调的慈善家、商业巨头，表面温文尔雅，实则心狠手辣的操控者。你所追查的“失踪案”正是他一手掩盖的罪行，他视你为最好用的棋子。\n老鬼（线人）：混迹于城寨边缘的信息贩子，知晓霓虹小巷的诸多秘密。他看似唯利是图、滑头不可靠，却掌握着指向真相的关键碎片，与你有旧交情，也可能是最危险的变数。",
+        "openThreads": [
+          "江天成为何要追杀苏晚？他掩盖的“失踪案”真相是什么？",
+          "侦探的枪响和背叛会引来江天成怎样的报复？",
+          "警笛来自谁？是普通巡逻还是另有势力介入？",
+          "老鬼是否知道更深的秘密？"
+        ],
+        "relationships": [
+          "苏晚：从被追捕的猎物变为暂时的盟友，对侦探抱有复杂怀疑与一丝依赖",
+          "江天成：从神秘雇主暴露为冷血真凶，与侦探的信任彻底破裂",
+          "老鬼：尚未登场，但线人网络可能已被江天成渗透"
+        ],
+        "nextHook": "下一场：仓库内的对峙与信息交换。苏晚将揭露江天成罪行的第一块拼图，而外面的脚步声正在逼近。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 23,
+        "featured": true
+      }
+    },
+    {
+      "id": "m24",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "牧师的茶会",
+      "logline": "你在茶会上看着贵妇含笑死去，下一秒，所有人的目光都锁定在了你——这个新来的、唯一没有不在场证明的访客身上。",
+      "synopsis": "乡绅侦探继承遗产初到村庄，在牧师威廉举办的茶会上，亲眼目睹贵妇艾琳夫人微笑着饮茶后倒地身亡。你是唯一的新面孔，且案发前记忆空白，立刻成为最大嫌疑人。牧师宣布茶室内所有人不得离开，调查开始。",
+      "tags": [
+        "悬疑追凶",
+        "英伦庄园",
+        "多线反转",
+        "本格推理"
+      ],
+      "genreTagsRaw": "悬疑追凶 / 英伦庄园 / 多线反转 / 本格推理",
+      "stylePrompt": "Cozy mystery illustration, vertical composition. A handsome young amateur sleuth in a tweed coat, looking through a magnifying glass inside a warm, candlelit village library at night, snow falling outside the window. Comforting, mysterious mood.",
+      "assets": {
+        "cover": "/home/m24.webp",
+        "firstScene": "/home/firstscene/m24.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m24.webp",
+        "portraits": [
+          "/home/firstportrait/m24_0.webp",
+          "/home/firstportrait/m24_1.webp",
+          "/home/firstportrait/m24_2.webp",
+          "/home/firstportrait/m24_3.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m24_0.webp",
+          "/home/firstportrait-portrait/m24_1.webp",
+          "/home/firstportrait-portrait/m24_2.webp",
+          "/home/firstportrait-portrait/m24_3.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m24.json",
+        "en": "/home/firstact-en/m24.json",
+        "ja": "/home/firstact-ja/m24.json",
+        "portraitZh": "/home/firstact-portrait/m24.json",
+        "portraitEn": "/home/firstact-portrait-en/m24.json",
+        "portraitJa": "/home/firstact-portrait-ja/m24.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "parlor-candlelight",
+        "beatsCount": 6,
+        "choicesCount": 3,
+        "charactersCount": 4
+      },
+      "storyState": {
+        "protagonist": "你是一名初来乍到的年轻乡绅侦探，因继承远亲遗产来到这座宁静村庄。你本想享受田园生活，却在第一场茶会上目睹死亡，并立刻成为头号嫌疑人——你必须在被所有人认定为凶手前，找出真凶。你的软肋是：你完全不记得案发前自己做过什么。",
+        "castNotes": "牧师威廉：看似温和虔诚的茶会主人，实则目光如炬，对村庄秘密了如指掌；他是唯一没有立刻怀疑你的人，却也可能是在暗中布局的棋手。\n管家克莱尔：贵妇生前最信任的女仆，表面顺从哀伤，实则掌握着女主人不为人知的行程与秘密；她对你既警惕又有一丝说不清的依赖。\n警长布莱克：坚信“外来者=麻烦”的本地执法者，已暗中派人盯住你；他办案靠直觉与偏见，却可能是最早发现关键物证的人。",
+        "openThreads": [
+          "艾琳夫人笑容中死亡的真相（毒杀？）",
+          "你案发前半小时的记忆空白",
+          "牧师威廉那句‘重新审视’的真实意图",
+          "克莱尔作为贴身女仆掌握的秘密"
+        ],
+        "relationships": [
+          "威廉：表面维持公正，言语暗藏机锋，是审视者也是潜在棋手",
+          "克莱尔：震惊哀伤，但目光闪烁，似乎知道些什么",
+          "布莱克：已将你锁定为凶手，充满敌意与偏见"
+        ],
+        "nextHook": "下一场：茶室变审讯室，警长布莱克开始搜查与盘问，你必须在窒息的氛围中找到第一个破绽或线索。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 24,
+        "featured": true
+      }
+    },
+    {
+      "id": "m25",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "荆棘新郎",
+      "logline": "为救病危妹妹，你踏入古老庄园缔结契约，却发现每夜消失的丈夫是废墟囚徒——治愈妹妹的代价，是你将沦为下一个永困于此的新娘。",
+      "synopsis": "新婚次夜，你在婚床下发现一枚家族戒指。月光中，陆离的身影透明消失，他无声警告你“快逃”。你在戒圈内发现“血契、循环、荆棘新娘”的拉丁铭文，感到彻骨寒意。",
+      "tags": [
+        "哥特悬疑",
+        "契约婚姻",
+        "反转逃生",
+        "暗黑浪漫"
+      ],
+      "genreTagsRaw": "哥特悬疑 / 契约婚姻 / 反转逃生 / 暗黑浪漫",
+      "stylePrompt": "Gothic romance style, vertical composition. A pale, strikingly handsome gothic lord in a black velvet coat, standing before the moonlit ruins of his grand manor on a foggy cliff. Melancholic blue and grey tones, misty atmosphere.",
+      "assets": {
+        "cover": "/home/m25.webp",
+        "firstScene": "/home/firstscene/m25.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m25.webp",
+        "portraits": [
+          "/home/firstportrait/m25_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m25_0.webp",
+          "/home/firstportrait-portrait/m25_1.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m25.json",
+        "en": "/home/firstact-en/m25.json",
+        "ja": "/home/firstact-ja/m25.json",
+        "portraitZh": "/home/firstact-portrait/m25.json",
+        "portraitEn": "/home/firstact-portrait-en/m25.json",
+        "portraitJa": "/home/firstact-portrait-ja/m25.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "gothic-bedroom-night",
+        "beatsCount": 4,
+        "choicesCount": 4,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你是一位刚与神秘庄园主缔结婚约的年轻女子。为救治患有绝症的妹妹，你接受了这份代价不明的古老契约。此刻你正孤身站在婚房中，窗外月光冰冷，丈夫已消失无踪。你渴望拿到契约中承诺的治愈妹妹的药剂，却隐隐感到这份交易背后藏着更可怕的真相。",
+        "castNotes": "陆离：你的新婚丈夫，苍白英俊的庄园之主。白天冷淡疏离，每夜子时准时消失于月光中。他既是这座废墟庄园的囚徒，也是某种古老契约的执行者。\n苏薇：你患有绝症的妹妹，是促使你踏入庄园的唯一原因。她的病情在婚约缔结后出现诡异好转，但你发现她的瞳孔深处开始浮现藤蔓般的暗纹。",
+        "openThreads": [
+          "陆离每夜消失的真正原因及他与庄园共生的秘密",
+          "妹妹病情好转背后是否继承“荆棘新娘”诅咒",
+          "古老契约的最终代价——成为废墟养料",
+          "戒指上“血契、循环、荆棘新娘”铭文的含义",
+          "陆离警告“快逃”的真实意图"
+        ],
+        "relationships": [
+          "陆离：新婚丈夫，身份神秘，月夜透明消失，向你发出“快逃”警告，充满矛盾",
+          "苏薇：病危妹妹，病情诡异好转，你入庄园的唯一原因"
+        ],
+        "nextHook": "下一场：你做出选择——是冲入月夜庭院追寻陆离消失的踪迹与真相，还是留在婚房深入挖掘这座庄园隐藏的黑暗历史？无论哪条路，都将揭开契约的第一层恐怖面纱。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 25,
+        "featured": true
+      }
+    },
+    {
+      "id": "m26",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "糖果屋幸存者",
+      "logline": "作为糖果屋惨案的唯一幸存者，你以猎人身份重返童年噩梦之地，却发现童话的诅咒正以更甜美的方式重演——你必须揭开‘甜点师’的真面目，并在森林彻底吞噬你之前，阻止这场轮回。",
+      "synopsis": "猎人埃里克重返暮色森林边缘，目睹二十年前的糖果屋再次出现。手腕伤疤灼痛，二楼窗口出现戴着蕾丝手套的招手影子，并伴随童年同伴被扭曲的甜蜜召唤。他面临抉择：举弩瞄准、强行进入还是质问对方身份。无论何种选择，他都已踏入诅咒的重逢之地。",
+      "tags": [
+        "暗黑童话",
+        "悬疑惊悚",
+        "反转冒险",
+        "男性向"
+      ],
+      "genreTagsRaw": "暗黑童话 / 悬疑惊悚 / 反转冒险 / 男性向",
+      "stylePrompt": "Dark fairytale style, vertical composition. A handsome young hunter in a dark leather hood, holding a silver crossbow as he walks into a dense, ominous forest with towering twisted trees. Grimm's style, mood of suspense and dread.",
+      "assets": {
+        "cover": "/home/m26.webp",
+        "firstScene": "/home/firstscene/m26.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m26.webp",
+        "portraits": [
+          "/home/firstportrait/m26_0.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m26_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m26.json",
+        "en": "/home/firstact-en/m26.json",
+        "ja": "/home/firstact-ja/m26.json",
+        "portraitZh": "/home/firstact-portrait/m26.json",
+        "portraitEn": "/home/firstact-portrait-en/m26.json",
+        "portraitJa": "/home/firstact-portrait-ja/m26.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "forest-edge-dusk",
+        "beatsCount": 10,
+        "choicesCount": 4,
+        "charactersCount": 1
+      },
+      "storyState": {
+        "protagonist": "你，埃里克，是二十年前糖果屋事件中唯一活着逃出森林的孩子。如今你是名冷峻的猎人，左手腕留着被糖果黏住撕裂的伤疤。你回到森林边缘，本想彻底摧毁那座房子，却看到它再次出现，而且里面住着一个诡异的‘甜点师’。你想要终结诅咒，但心底最深的恐惧是——你害怕自己早已是童话的一部分，注定无法逃离。",
+        "castNotes": "甜点师·薇拉：永远戴着蕾丝手套、笑容甜腻的神秘女子，她烤的点心能唤起人最甜蜜的回忆；但她的真实身份与森林的诅咒直接相关，对你抱有复杂的执念。\n伐木工·马库斯：粗犷务实、不相信童话的老猎人，二十年前曾协助调查糖果屋事件；他提供武器与线索，但隐瞒了当年的部分真相，对薇拉极度警惕。",
+        "openThreads": [
+          "薇拉（或发出声音者）的真实身份与意图",
+          "糖果屋为何再次出现，以及诅咒‘重演’的具体形式",
+          "你左手腕伤疤灼痛的真正原因——是诅咒的标记，还是别的什么？",
+          "二十年前同伴莉娜的死，是否还有未被发现的真相？"
+        ],
+        "relationships": [
+          "薇拉：首次以神秘影子形式出现，发出裹着蜂蜜的召唤，身份成谜，是敌是友尚不明确",
+          "马库斯：尚未登场，但根据记忆，他当年协助调查糖果屋事件并叮嘱佩戴十字架，是潜在的盟友或知情者"
+        ],
+        "nextHook": "你已来到糖果屋大门前，门即将打开。下一场：进入糖果屋内部，直面‘甜点师’薇拉的真容与她的第一份‘点心’。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 26,
+        "featured": true
+      }
+    },
+    {
+      "id": "m27",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "辐射新娘",
+      "logline": "在核战后的荒原，你是掠夺者头目，在一场突袭中掠走了来自封闭地堡的“纯净”少女作为新娘。你以为她是筹码，却不知她是你灭门血仇的后人，这场婚姻是复仇的序曲，还是末世中唯一的救赎？",
+      "synopsis": "“锈牙”头目成功劫持地堡少女伊芙驾车逃离，其副手铁砧亢奋好战。逃亡途中，你察觉伊芙对怀中银盒的异常重视以及她眼神中的冷静与复杂。地堡三辆装甲车紧追不舍，其中一辆已架起狙击步枪。你们被迫驶入乱石滩，危机一触即发。",
+      "tags": [
+        "末世",
+        "生存",
+        "背德虐恋",
+        "复仇",
+        "强戏剧冲突"
+      ],
+      "genreTagsRaw": "末世 / 生存 / 背德虐恋 / 复仇 / 强戏剧冲突",
+      "stylePrompt": "Post-apocalyptic style, vertical composition. A ruggedly attractive, battle-scarred male survivor with piercing eyes and a perfectly grimy face, standing in front of a ruined vertical skyscraper under a dusty orange desert sky.",
+      "assets": {
+        "cover": "/home/m27.webp",
+        "firstScene": "/home/firstscene/m27.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m27.webp",
+        "portraits": [
+          "/home/firstportrait/m27_0.webp",
+          "/home/firstportrait/m27_1.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m27_0.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m27.json",
+        "en": "/home/firstact-en/m27.json",
+        "ja": "/home/firstact-ja/m27.json",
+        "portraitZh": "/home/firstact-portrait/m27.json",
+        "portraitEn": "/home/firstact-portrait-en/m27.json",
+        "portraitJa": "/home/firstact-portrait-ja/m27.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "wasteland-chase",
+        "beatsCount": 8,
+        "choicesCount": 4,
+        "charactersCount": 2
+      },
+      "storyState": {
+        "protagonist": "你是“锈牙”掠夺者部落的头目，一个在辐射与暴力中活下来的狠角色。你坚信在废土，只有掠夺和拳头才能让你活下去。此刻，你刚刚劫持了来自“方舟”地堡的少女，准备用她换取稀缺的净水和弹药。你渴望为部落赢得喘息之机，但内心深处，你对地堡中那些自诩“纯净”的人，怀有无法言说的恨意——你的家人，就死在一场由地堡挑起的冲突里。",
+        "castNotes": "伊芙：来自“方舟”地堡的少女，表面柔顺恐惧，实则冷静坚韧，身怀地堡的医疗与工程学识。她是你的“战利品”，却似乎对你这个“野蛮人”头目有着超乎寻常的观察与兴趣，甚至偶尔流露出不该有的怜悯。\n铁砧：你最忠诚的副手与部落战士，性格暴躁直接，只信奉力量与生存。他对伊芙这个“地堡货”充满鄙夷与敌意，不断劝你除掉这个隐患，是部落内部压力的直接来源。\n医生：一个在废土游荡的、神秘莫测的独行幸存者，拥有稀缺的医疗技术。他偶然被卷入你与地堡的冲突，似乎知道伊芙的底细，也似乎认得你身上某个旧物，言语间总在暗示更大的风暴。",
+        "openThreads": [
+          "伊芙紧紧护着的银色金属盒里究竟装着什么？",
+          "你对地堡的灭门血仇与伊芙是否有关联？",
+          "地堡追兵中出现的狙击手，他们的真实目的是夺回伊芙，还是夺回盒子？"
+        ],
+        "relationships": [
+          "铁砧：绝对忠诚，狂热好战，视伊芙为待宰的‘地堡货’",
+          "伊芙：表面是惊恐的‘纯净新娘’，实则异常冷静，紧护神秘银盒，对你的眼神复杂难辨，似有深意"
+        ],
+        "nextHook": "下一场景：乱石滩交火后，皮卡侧翻。你与伊芙被困在残骸附近，而追兵正在逼近。在废墟掩体后，是第一次近距离、在生死压力下的对峙与对话。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 27,
+        "featured": true
+      }
+    },
+    {
+      "id": "m28",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "隐界执事",
+      "logline": "你是替身管家，也是隐界特工，必须在雇主的茶会上，于众目睽睽之下完成一场看不见的驱魔仪式——而恶魔，正藏在雇主为你倒的那杯茶里。",
+      "synopsis": "茶会上，雇主王振宏将一杯疑似藏有恶魔的红茶递给管家江辰。江辰在接杯瞬间用驱魔盐完成第一道封印（或因失误打翻茶杯/拒绝接杯），王振宏反应异常后暂时离开宾客席。",
+      "tags": [
+        "都市奇幻",
+        "悬疑反转",
+        "快节奏爽剧",
+        "特工潜伏"
+      ],
+      "genreTagsRaw": "都市奇幻 / 悬疑反转 / 快节奏爽剧 / 特工潜伏",
+      "stylePrompt": "Urban fantasy concept art, vertical composition. A charismatic, handsome modern mage in a tailored suit, casting a glowing cyan spell that reveals a magical spiral staircase ascending into the rain-slicked city streets.",
+      "assets": {
+        "cover": "/home/m28.webp",
+        "firstScene": "/home/firstscene/m28.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m28.webp",
+        "portraits": [
+          "/home/firstportrait/m28_0.webp",
+          "/home/firstportrait/m28_1.webp"
+        ],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m28_0.webp",
+          "/home/firstportrait-portrait/m28_1.webp",
+          "/home/firstportrait-portrait/m28_2.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m28.json",
+        "en": "/home/firstact-en/m28.json",
+        "ja": "/home/firstact-ja/m28.json",
+        "portraitZh": "/home/firstact-portrait/m28.json",
+        "portraitEn": "/home/firstact-portrait-en/m28.json",
+        "portraitJa": "/home/firstact-portrait-ja/m28.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "teaparty-hall",
+        "beatsCount": 6,
+        "choicesCount": 4,
+        "charactersCount": 2
+      },
+      "storyState": {
+        "protagonist": "你是江辰，表面是刚入职一周的完美管家，实则是「隐界管理局」编号742的特工。你正卡在雇主王振宏先生的私人茶会上，这位富豪三小时前被恶魔「缄默之影」附身，而你必须在他向贵宾敬茶前完成驱魔。你的软肋是：这是你第一次独立执行「活人附身」任务，稍有不慎，雇主会死，任务会失败，你的身份也会暴露。",
+        "castNotes": "王振宏：表面温文尔雅的科技富豪，实则被恶魔「缄默之影」附身，言行正逐渐扭曲；他是你的雇主，此刻正端着茶走向贵宾席。\n林薇：王振宏的干练女秘书，对你过分热情且眼神探究，似乎知道你管家身份下的秘密；她正在茶会中穿梭，随时可能靠近你。\n老陈：王振宏的私人厨师，沉默寡言但总在关键时刻出现在你附近，他看你的眼神里带着某种古老的审视。",
+        "openThreads": [
+          "王振宏为何被附身？驱魔盐的第一道封印效果如何？",
+          "林薇是否察觉江辰的特工身份？她的立场是敌是友？",
+          "老陈与恶魔'缄默之影'有何关联？",
+          "王振宏接下来会如何反击？茶会晚宴将如何继续？"
+        ],
+        "relationships": [
+          "王振宏：附身恶魔对江辰产生警觉与敌意，表面仍维持雇主姿态",
+          "林薇：目睹异常，对江辰的试探从暗处转为直接质问",
+          "老陈：尚未登场，但其'总在关键时刻出现'的特性可能即将触发"
+        ],
+        "nextHook": "下一场：侧门阴影处，林薇拦住江辰，低声质问。江辰必须应对这个可能知晓一切的女秘书，同时提防王振宏的下一步动作。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 28,
+        "featured": true
+      }
+    },
+    {
+      "id": "m29",
+      "gender": "male",
+      "audienceLabel": "男性向",
+      "title": "墨与火之歌",
+      "logline": "作为一名濒临失业的字体设计师，你意外发现古老文字能扭曲现实，却在用一句诗点燃蜡烛的瞬间，卷入了觊觎“文本”力量的暗影组织的追杀——你能否在被改写命运前，破解写在世界蓝图上的终极秘密？",
+      "synopsis": "你（濒临失业的字体设计师）在通宵加班、绝望之际，用古籍中的诡异字体拼凑了一句诗并按下空格。结果，桌上未点的蜡烛自燃，所有电子屏幕被乱码攻陷，窗外传来玻璃破碎和逼近的脚步声。你意识到，自己点燃了某种不应存在的力量，而追猎者已至。",
+      "tags": [
+        "都市奇幻",
+        "悬疑惊悚",
+        "高概念反转",
+        "紧凑生存"
+      ],
+      "genreTagsRaw": "都市奇幻 / 悬疑惊悚 / 高概念反转 / 紧凑生存",
+      "stylePrompt": "Abstract geometric poster layout, vertical composition. A minimalist line-art profile of a handsome male face integrated with intersecting gold circles and emerald green shapes on a deep dark blue background. Elegant, clean abstract design.",
+      "assets": {
+        "cover": "/home/m29.webp",
+        "firstScene": "/home/firstscene/m29.webp",
+        "firstScenePortrait": "/home/firstscene-portrait/m29.webp",
+        "portraits": [],
+        "portraitsPortrait": [
+          "/home/firstportrait-portrait/m29_0.webp",
+          "/home/firstportrait-portrait/m29_1.webp",
+          "/home/firstportrait-portrait/m29_2.webp"
+        ]
+      },
+      "firstAct": {
+        "zh": "/home/firstact/m29.json",
+        "en": "/home/firstact-en/m29.json",
+        "ja": "/home/firstact-ja/m29.json",
+        "portraitZh": "/home/firstact-portrait/m29.json",
+        "portraitEn": "/home/firstact-portrait-en/m29.json",
+        "portraitJa": "/home/firstact-portrait-ja/m29.json"
+      },
+      "runtimeSummary": {
+        "sceneKey": "workspace-night",
+        "beatsCount": 8,
+        "choicesCount": 4,
+        "charactersCount": 0
+      },
+      "storyState": {
+        "protagonist": "你是一名才华耗尽、负债累累的字体设计师，正为保住最后一点尊严而熬夜。你唯一的秘密是，你对古籍文字有种近乎偏执的痴迷，这让你在一次通宵设计中，拼出了那句不该存在的诗。此刻，蜡烛燃起，而门外传来了不祥的脚步声——你想要活下去，并弄清自己到底点燃了什么。",
+        "castNotes": "苏晚：自称“文字考古学家”的神秘女子，总在深夜图书馆与你偶遇。她笑容温婉，知道的却远超常人，你怀疑她接近你是为了你刚刚发现的力量。\n“老K”：你兼职咖啡店的常客，一个总在角落用老式钢笔写日记的落魄学者。他看你的眼神充满警告与悲悯，似乎知道你即将面对什么，却又不肯明说。",
+        "openThreads": [
+          "那句点燃火焰的诗究竟从何而来？它为何拥有力量？",
+          "窗外逼近的是什么东西？是人，还是别的什么？",
+          "古籍与世界‘蓝图’的联系"
+        ],
+        "relationships": [
+          "苏晚：尚未登场",
+          "老K：尚未登场"
+        ],
+        "nextHook": "追猎者已至，你必须立刻做出反应——是躲藏、对峙，还是带着这本惹祸的古籍逃离？你的第一幕生存，即将开始。"
+      },
+      "publish": {
+        "status": "active",
+        "source": "preset"
+      },
+      "curation": {
+        "sortOrder": 29,
+        "featured": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "invalid-classify-fallback",
+  "rawOutput": {
+    "classify": "unknown",
+    "freeformAction": ""
+  },
+  "input": {
+    "freeformText": "Ask the person in front of me what happened.",
+    "session": {
+      "id": "s1",
+      "worldSetting": "rainy school mystery",
+      "styleGuide": "cinematic anime",
+      "characters": [],
+      "history": []
+    }
+  },
+  "expected": {
+    "classify": "insert-beat",
+    "freeformAction": "Ask the person in front of me what happened."
+  }
+}
+

@@ -1,5 +1,5 @@
-import { requestBeatAudio } from "@infiplot/engine";
-import type { BeatAudioRequest } from "@infiplot/types";
+import { requestBeatAudio } from "@storyplay/engine";
+import type { BeatAudioRequest } from "@storyplay/types";
 import { NextResponse } from "next/server";
 import { loadEngineConfig } from "@/lib/config";
 import { requireUser } from "@/lib/supabase/guard";

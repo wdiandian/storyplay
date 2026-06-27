@@ -4,7 +4,7 @@ import {
   visionDecide as visionDecideClient,
   classifyFreeform as classifyFreeformClient,
   requestInsertBeat as requestInsertBeatClient,
-} from "@infiplot/engine";
+} from "@storyplay/engine";
 import {
   readStoredModelConfig,
   resolveEngineConfig,
@@ -26,7 +26,7 @@ import type {
   TtsProvider,
   VisionRequest,
   VisionResponse,
-} from "@infiplot/types";
+} from "@storyplay/types";
 
 function getClientConfig(): EngineConfig | null {
   const modelCfg = readStoredModelConfig();

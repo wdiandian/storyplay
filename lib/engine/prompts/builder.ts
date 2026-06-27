@@ -1,5 +1,5 @@
-import type { ChatMessage } from "@infiplot/ai-client";
-import type { Session } from "@infiplot/types";
+import type { ChatMessage } from "@storyplay/ai-client";
+import type { Session } from "@storyplay/types";
 import { WRITER_SEGMENTS } from "./registry";
 import { buildWriterContext } from "../context";
 import { buildLanguageDirective } from "../prompts";

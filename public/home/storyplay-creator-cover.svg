@@ -1,0 +1,14 @@
+<svg width="1200" height="1500" viewBox="0 0 1200 1500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="1500" fill="#F4EFE7"/>
+  <rect x="72" y="72" width="1056" height="1356" rx="40" fill="#FBF8F2" stroke="#D8CBBB" stroke-width="2"/>
+  <path d="M170 1010C270 896 397 836 551 830C749 822 883 706 950 482" stroke="#8E4F3D" stroke-width="26" stroke-linecap="round"/>
+  <path d="M246 474C327 369 443 316 595 316C747 316 865 371 950 482" stroke="#2F6E64" stroke-width="26" stroke-linecap="round"/>
+  <circle cx="596" cy="671" r="148" fill="#E7B960"/>
+  <circle cx="596" cy="671" r="88" fill="#FBF8F2"/>
+  <path d="M440 674H752" stroke="#2B2926" stroke-width="18" stroke-linecap="round"/>
+  <path d="M596 518V824" stroke="#2B2926" stroke-width="18" stroke-linecap="round"/>
+  <path d="M276 1132H924" stroke="#D8CBBB" stroke-width="4" stroke-linecap="round"/>
+  <path d="M358 1200H842" stroke="#D8CBBB" stroke-width="4" stroke-linecap="round"/>
+  <text x="600" y="190" text-anchor="middle" fill="#2B2926" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="700">StoryPlay</text>
+  <text x="600" y="1320" text-anchor="middle" fill="#746B61" font-family="Arial, sans-serif" font-size="34" letter-spacing="4">CREATOR STORY</text>
+</svg>

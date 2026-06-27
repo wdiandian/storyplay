@@ -1,4 +1,4 @@
-// Supported locales for InfiPlot
+// Supported locales for StoryPlay
 export const DEFAULT_LOCALE = "zh-CN" as const;
 
 export type Locale = "zh-CN" | "en" | "ja";
@@ -12,7 +12,7 @@ export const LOCALE_NAMES: Record<Locale, string> = {
 export const LOCALES: Locale[] = Object.keys(LOCALE_NAMES) as Locale[];
 
 // Locale storage key
-export const LOCALE_STORAGE_KEY = "infiplot:locale";
+export const LOCALE_STORAGE_KEY = "storyplay:locale";
 
 // Get locale from localStorage or browser language
 export function getInitialLocale(): Locale {

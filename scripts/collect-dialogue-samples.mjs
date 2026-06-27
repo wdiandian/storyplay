@@ -6,7 +6,7 @@
  * 确保对话足够长且有分支选择。
  */
 
-const BASE_URL = "https://infiplot.y-9e6.workers.dev";
+const BASE_URL = "https://storyplay.y-9e6.workers.dev";
 
 const scenarios = [
   {
@@ -60,7 +60,7 @@ async function generateScenario(scenario) {
   console.log(`  ✅ 场景1: ${scene1.beats.length} beats`);
 
   // Build session for next scene
-  let session = {
+  const session = {
     id: startData.sessionId,
     createdAt: Date.now(),
     worldSetting: scenario.worldSetting,
@@ -226,12 +226,12 @@ async function main() {
 
   // Save document
   const { writeFile } = await import("node:fs/promises");
-  const outPath = "G:\\infiplot\\.spec-workflow\\specs\\prompt-architecture-redesign\\task19-dialogue-samples.md";
+  const outPath = "G:\\storyplay\\.spec-workflow\\specs\\prompt-architecture-redesign\\task19-dialogue-samples.md";
   await writeFile(outPath, doc, "utf-8");
   console.log(`\n\n✅ 盲测文档已保存: ${outPath}`);
 
   // Also save raw JSON for reference
-  const jsonPath = "G:\\infiplot\\.spec-workflow\\specs\\prompt-architecture-redesign\\task19-raw-scenes.json";
+  const jsonPath = "G:\\storyplay\\.spec-workflow\\specs\\prompt-architecture-redesign\\task19-raw-scenes.json";
   await writeFile(jsonPath, JSON.stringify(results, null, 2), "utf-8");
   console.log(`📄 原始数据已保存: ${jsonPath}`);
 }

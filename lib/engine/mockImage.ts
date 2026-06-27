@@ -1,4 +1,4 @@
-import type { Orientation } from "@infiplot/types";
+import type { Orientation } from "@storyplay/types";
 
 // Static SVG placeholder used when MOCK_IMAGE=true, so we can exercise the
 // TTS path without paying for image generation. Returned as a data URI so the

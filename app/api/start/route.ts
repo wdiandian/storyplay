@@ -1,5 +1,5 @@
-import { startSession } from "@infiplot/engine";
-import type { SceneStreamEvent, StartRequest } from "@infiplot/types";
+import { startSession } from "@storyplay/engine";
+import type { SceneStreamEvent, StartRequest } from "@storyplay/types";
 import { NextResponse } from "next/server";
 import { loadEngineConfig } from "@/lib/config";
 import { requireUser } from "@/lib/supabase/guard";

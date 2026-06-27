@@ -14,7 +14,7 @@ import type {
   BeatChoice,
   Orientation,
   SceneExit,
-} from "@infiplot/types";
+} from "@storyplay/types";
 import {
   downloadImagesIndividually,
   downloadImagesAsZip,
@@ -74,9 +74,9 @@ export type GalleryDoc = {
   characters?: { name: string; basePortraitUrl?: string }[];
 };
 
-const STORAGE_PREFIX = "infiplot:gallery:";
+const STORAGE_PREFIX = "storyplay:gallery:";
 const AUDIO_SUFFIX = ":audio";
-const MUTED_STORAGE_KEY = "infiplot:gallery:muted";
+const MUTED_STORAGE_KEY = "storyplay:gallery:muted";
 
 function readDoc(id: string): GalleryDoc | null {
   try {
@@ -623,7 +623,7 @@ function GalleryInner() {
   // Audio map keyed by `${sceneId}:${beatId}`. Loaded in two phases: the
   // sidecar localStorage key (gallery export path) is read lazily after first
   // paint so the multi-MB JSON.parse doesn't block the first scene image's
-  // progressive paint. Imports from `.infiplot` files set this synchronously
+  // progressive paint. Imports from `.storyplay` files set this synchronously
   // since the data is already in memory.
   const [audioByBeatId, setAudioByBeatId] = useState<Record<string, string>>({});
   const [muted, setMuted] = useState<boolean>(() => {
@@ -669,19 +669,26 @@ function GalleryInner() {
   useEffect(() => {
     const hash = window.location.hash.replace(/^#/, "");
     const id = new URLSearchParams(hash).get("id") || hash;
+    let frame: number | null = null;
     if (!id) {
-      setMissingId("");
-      return;
+      frame = requestAnimationFrame(() => setMissingId(""));
+      return () => {
+        if (frame !== null) cancelAnimationFrame(frame);
+      };
     }
     const d = readDoc(id);
     if (!d || d.scenes.length === 0) {
-      setMissingId(id);
-      return;
+      frame = requestAnimationFrame(() => setMissingId(id));
+      return () => {
+        if (frame !== null) cancelAnimationFrame(frame);
+      };
     }
-    setDoc(d);
-    setOrientation(d.orientation ?? detectOrientation());
     const first = d.scenes[0]!;
-    setStack([{ scene: first, beatId: first.entryBeatId, mainIdx: 0 }]);
+    frame = requestAnimationFrame(() => {
+      setDoc(d);
+      setOrientation(d.orientation ?? detectOrientation());
+      setStack([{ scene: first, beatId: first.entryBeatId, mainIdx: 0 }]);
+    });
 
     // Lazy-load the audio sidecar AFTER first paint so its JSON.parse (~MBs
     // of base64) doesn't stall the main thread and let the first image
@@ -691,13 +698,19 @@ function GalleryInner() {
         const audio = readSidecarAudio(id);
         if (Object.keys(audio).length > 0) setAudioByBeatId(audio);
       }, 0);
-      return () => window.clearTimeout(t);
+      return () => {
+        if (frame !== null) cancelAnimationFrame(frame);
+        window.clearTimeout(t);
+      };
     }
+    return () => {
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
   }, []);
 
   // Prefer the doc's stored orientation; fall back to the device.
   const top = stack[stack.length - 1] ?? null;
-  const alternates = doc?.alternates ?? {};
+  const alternates = useMemo(() => doc?.alternates ?? {}, [doc?.alternates]);
 
   // Pre-warm the next + previous main scene images so prev/next never flashes.
   useEffect(() => {
@@ -846,16 +859,22 @@ function GalleryInner() {
       clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
     }
+    let frame: number | null = null;
     if (!presentation) {
-      setToolbarVisible(true);
-      return;
+      frame = requestAnimationFrame(() => setToolbarVisible(true));
+      return () => {
+        if (frame !== null) cancelAnimationFrame(frame);
+      };
     }
-    setToolbarVisible(true);
-    hideTimerRef.current = setTimeout(() => {
-      setToolbarVisible(false);
-      hideTimerRef.current = null;
-    }, 2200);
+    frame = requestAnimationFrame(() => {
+      setToolbarVisible(true);
+      hideTimerRef.current = setTimeout(() => {
+        setToolbarVisible(false);
+        hideTimerRef.current = null;
+      }, 2200);
+    });
     return () => {
+      if (frame !== null) cancelAnimationFrame(frame);
       if (hideTimerRef.current) {
         clearTimeout(hideTimerRef.current);
         hideTimerRef.current = null;
@@ -929,7 +948,7 @@ function GalleryInner() {
         sceneN++;
         files.push({
           url: sc.imageUrl,
-          name: `infiplot-scene-${String(sceneN).padStart(3, "0")}.${inferImageExtension(sc.imageUrl)}`,
+          name: `StoryPlay-scene-${String(sceneN).padStart(3, "0")}.${inferImageExtension(sc.imageUrl)}`,
         });
       }
       let branchN = 0;
@@ -939,10 +958,10 @@ function GalleryInner() {
         branchN++;
         files.push({
           url: alt.imageUrl,
-          name: `infiplot-branch-${String(branchN).padStart(3, "0")}.${inferImageExtension(alt.imageUrl)}`,
+          name: `StoryPlay-branch-${String(branchN).padStart(3, "0")}.${inferImageExtension(alt.imageUrl)}`,
         });
       }
-      const result = await downloadImagesAsZip(files, `infiplot-gallery-${doc.id}.zip`);
+      const result = await downloadImagesAsZip(files, `StoryPlay-gallery-${doc.id}.zip`);
       if (result.downloaded === 0) {
         alert("所有图片抓取失败，请检查网络后重试");
       } else if (result.failed.length > 0) {
@@ -955,7 +974,7 @@ function GalleryInner() {
     }
   }, [doc, downloadingScenes]);
 
-  // ── Import a friend-shared `.infiplot` file ──────────────────────────
+  // ── Import a friend-shared `.storyplay` file ──────────────────────────
   const loadDocFromFile = useCallback(async (file: File) => {
     setImporting(true);
     setImportError(null);
@@ -1012,7 +1031,7 @@ function GalleryInner() {
         const safeName = c.name.replace(/[^a-zA-Z0-9一-龥_-]/g, "_");
         return {
           url: c.basePortraitUrl as string,
-          name: `infiplot-character-${String(i + 1).padStart(2, "0")}-${safeName || "char"}.jpg`,
+          name: `StoryPlay-character-${String(i + 1).padStart(2, "0")}-${safeName || "char"}.jpg`,
         };
       });
     if (files.length === 0) return;
@@ -1035,7 +1054,7 @@ function GalleryInner() {
         <p className="font-serif italic text-clay-900 text-lg leading-[1.7] mb-4 max-w-md">
           {missingId
             ? "这份图集存在本机浏览器里,可能已被清理,或不在当前设备上。"
-            : "想看朋友分享的图集?选他发给你的 .infiplot 文件;想自己导出?去游戏页点「导出图集」。"}
+            : "想看朋友分享的图集?选他发给你的 .storyplay 文件;想自己导出?去游戏页点「导出图集」。"}
         </p>
 
         <label
@@ -1051,7 +1070,7 @@ function GalleryInner() {
           {importing ? "正在导入" : "导入分享文件"}
           <input
             type="file"
-            accept=".infiplot,application/octet-stream"
+            accept=".storyplay,application/octet-stream"
             disabled={importing}
             onChange={(e) => {
               const f = e.target.files?.[0];

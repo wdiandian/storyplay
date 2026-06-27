@@ -1,4 +1,4 @@
-import type { Session, Character } from "@infiplot/types";
+import type { Session, Character } from "@storyplay/types";
 import {
   renderStoryStateSpine,
   renderStoryStateDynamic,

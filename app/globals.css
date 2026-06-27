@@ -3,27 +3,83 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: light;
+    --sp-bg: #efeae0;
+    --sp-bg-rgb: 239 234 224;
+    --sp-surface: #f7f2e8;
+    --sp-surface-rgb: 247 242 232;
+    --sp-surface-muted: #e5dfd2;
+    --sp-surface-muted-rgb: 229 223 210;
+    --sp-border: #d7d0c3;
+    --sp-border-rgb: 215 208 195;
+    --sp-text: #1a1a1a;
+    --sp-text-rgb: 26 26 26;
+    --sp-text-muted: #6f695f;
+    --sp-text-muted-rgb: 111 105 95;
+    --sp-accent: #cd6f47;
+    --sp-accent-rgb: 205 111 71;
+    --sp-accent-soft: #ead0c1;
+    --sp-accent-soft-rgb: 234 208 193;
+    --sp-story: #1a1a1a;
+    --sp-story-rgb: 26 26 26;
+    --sp-play: #cd6f47;
+    --sp-play-rgb: 205 111 71;
+    --sp-focus: #6b8a6f;
+    --sp-focus-rgb: 107 138 111;
+  }
+
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --sp-bg: #1a1a1a;
+    --sp-bg-rgb: 26 26 26;
+    --sp-surface: #23211e;
+    --sp-surface-rgb: 35 33 30;
+    --sp-surface-muted: #2f2b25;
+    --sp-surface-muted-rgb: 47 43 37;
+    --sp-border: #4a4035;
+    --sp-border-rgb: 74 64 53;
+    --sp-text: #efeae0;
+    --sp-text-rgb: 239 234 224;
+    --sp-text-muted: #c9c0b2;
+    --sp-text-muted-rgb: 201 192 178;
+    --sp-accent: #d9825b;
+    --sp-accent-rgb: 217 130 91;
+    --sp-accent-soft: #4f3025;
+    --sp-accent-soft-rgb: 79 48 37;
+    --sp-story: #efeae0;
+    --sp-story-rgb: 239 234 224;
+    --sp-play: #d9825b;
+    --sp-play-rgb: 217 130 91;
+    --sp-focus: #bdcec0;
+    --sp-focus-rgb: 189 206 192;
+  }
+
   html {
     font-feature-settings: "ss01", "kern", "liga";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background: var(--sp-bg);
   }
 
   body {
+    background-color: var(--sp-bg);
+    color: var(--sp-text);
     background-image:
-      radial-gradient(rgba(133, 79, 37, 0.025) 1px, transparent 1px),
-      radial-gradient(rgba(133, 79, 37, 0.018) 1px, transparent 1px);
-    background-size: 28px 28px, 38px 38px;
-    background-position: 0 0, 14px 19px;
+      linear-gradient(180deg, rgb(var(--sp-surface-rgb) / 0.42), transparent 340px),
+      radial-gradient(rgb(var(--sp-text-rgb) / 0.025) 1px, transparent 1px);
+    background-size: auto, 28px 28px;
+    background-position: 0 0, 0 0;
+    transition: background-color 180ms ease, color 180ms ease;
   }
 
   ::selection {
-    background-color: rgb(217 122 46 / 0.28);
-    color: #2d1810;
+    background-color: rgb(var(--sp-accent-rgb) / 0.28);
+    color: var(--sp-text);
   }
 
   textarea::placeholder {
-    color: rgb(168 105 59 / 0.45);
+    color: rgb(var(--sp-text-muted-rgb) / 0.58);
   }
 }
 
@@ -32,8 +88,8 @@
     background-image: linear-gradient(
       to right,
       transparent,
-      rgba(45, 24, 16, 0.18) 18%,
-      rgba(45, 24, 16, 0.18) 82%,
+      rgb(var(--sp-border-rgb) / 0.95) 18%,
+      rgb(var(--sp-border-rgb) / 0.95) 82%,
       transparent
     );
     height: 1px;
@@ -41,7 +97,7 @@
 
   .hairline-full {
     height: 1px;
-    background: rgba(45, 24, 16, 0.14);
+    background: rgb(var(--sp-border-rgb) / 0.85);
   }
 
   .num {
@@ -114,7 +170,7 @@
   }
 }
 
-@keyframes infiplot-ripple {
+@keyframes storyplay-ripple {
   0% {
     width: 14px;
     height: 14px;

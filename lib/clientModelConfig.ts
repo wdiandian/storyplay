@@ -1,4 +1,4 @@
-import type { EngineConfig, ProviderProtocol } from "@infiplot/types";
+import type { EngineConfig, ProviderProtocol } from "@storyplay/types";
 
 // Bring-your-own model keys — stored CLIENT-SIDE ONLY.
 //
@@ -6,7 +6,7 @@ import type { EngineConfig, ProviderProtocol } from "@infiplot/types";
 // them in localStorage and the browser talks to providers directly. The keys
 // are therefore never sent to our server: no request body, no header, no log.
 
-const STORAGE_KEY = "infiplot:model";
+const STORAGE_KEY = "storyplay:model";
 
 const VALID_PROTOCOLS: ProviderProtocol[] = [
   "openai_compatible",
@@ -130,7 +130,7 @@ export function clearStoredModelConfig(): void {
  *  "please configure" message. */
 export function resolveEngineConfig(
   model: StoredModelConfig | null,
-  tts: import("@infiplot/types").TtsConfig | null,
+  tts: import("@storyplay/types").TtsConfig | null,
 ): EngineConfig {
   if (!model) {
     throw new Error("模型配置未设置。请返回首页，点击「模型设置」配置 API 参数。");

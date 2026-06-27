@@ -7,7 +7,7 @@
  * Usage:
  *   npx tsx scripts/migrate-featured.ts > drizzle/seed-featured.sql
  *   npx tsx scripts/migrate-featured.ts --dry-run
- *   wrangler d1 execute infiplot-db --file=drizzle/seed-featured.sql
+ *   wrangler d1 execute storyplay-db --file=drizzle/seed-featured.sql
  */
 
 import { readFileSync } from "node:fs";

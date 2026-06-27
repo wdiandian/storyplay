@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StoryPlay 创作路径可视化</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8f5;
+      --panel: #ffffff;
+      --ink: #20242a;
+      --muted: #66706c;
+      --line: #d9ded6;
+      --green: #2f7d5a;
+      --blue: #315f99;
+      --gold: #8d6425;
+      --red: #9d3f35;
+      --soft-green: #e6f3eb;
+      --soft-blue: #e7eef8;
+      --soft-gold: #f4ead2;
+      --soft-red: #f5e2df;
+      --shadow: 0 12px 28px rgba(23, 31, 28, .08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.6;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 36px 0 64px;
+    }
+
+    header {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(32px, 5vw, 56px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    .status {
+      width: fit-content;
+      max-width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .lead {
+      max-width: 840px;
+      color: #46504d;
+      font-size: 18px;
+    }
+
+    section {
+      margin-top: 28px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(130px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .card {
+      min-height: 112px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .card small {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .blue {
+      background: var(--soft-blue);
+      border-color: #cbd9ec;
+    }
+
+    .green {
+      background: var(--soft-green);
+      border-color: #c7e2d1;
+    }
+
+    .gold {
+      background: var(--soft-gold);
+      border-color: #e6d4aa;
+    }
+
+    .red {
+      background: var(--soft-red);
+      border-color: #e7c9c4;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .chip {
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #eef1ec;
+      color: #43504b;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 16px;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    th,
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #eef1ec;
+      color: #35413d;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: #eef1ec;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: .92em;
+    }
+
+    .note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 860px) {
+      .flow,
+      .grid,
+      .agent-grid {
+        grid-template-columns: 1fr;
+      }
+
+      section {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="status">Status: Visual Aid. 这是辅助理解图，不作为代码事实来源。</div>
+      <h1>StoryPlay 创作路径可视化</h1>
+      <p class="lead">当前 StoryPlay 更接近实时故事生成器：玩家给一个故事命题，Creative Engine 通过内部 Agent System 生成一幕可玩的视觉故事。后续 Creator System 应该编辑产品层配置，而不是直接编辑 agent / skill。</p>
+    </header>
+
+    <section>
+      <h2>1. 当前最短链路</h2>
+      <div class="flow">
+        <article class="card blue">
+          <small>Input</small>
+          <h3>用户输入</h3>
+          <p>故事想法、主角倾向、画风、节奏等首页配置。</p>
+        </article>
+        <article class="card green">
+          <small>Runtime</small>
+          <h3>Session</h3>
+          <p>保存 worldSetting、styleGuide、history、characters、storyState。</p>
+        </article>
+        <article class="card green">
+          <small>Agents</small>
+          <h3>directScene</h3>
+          <p>串联 Writer、CharacterDesigner、Cinematographer、Painter。</p>
+        </article>
+        <article class="card gold">
+          <small>Output</small>
+          <h3>Scene / Beat</h3>
+          <p>返回可播放场景、节拍、对白、选择、图片和故事记忆。</p>
+        </article>
+        <article class="card blue">
+          <small>Loop</small>
+          <h3>玩家推进</h3>
+          <p>选择、自由输入、背景点击会进入下一轮生成或探索。</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. Agent System 位置</h2>
+      <div class="agent-grid">
+        <article class="card green"><span class="chip">TEXT</span><h3>Writer</h3><p>生成 plan、story、choices 和 storyState 更新。</p></article>
+        <article class="card green"><span class="chip">TEXT</span><h3>StyleSelector</h3><p>在 auto 画风时选择内置视觉风格。</p></article>
+        <article class="card green"><span class="chip">TEXT / IMAGE / TTS</span><h3>CharacterDesigner</h3><p>生成角色卡、肖像和音色。</p></article>
+        <article class="card green"><span class="chip">TEXT</span><h3>Cinematographer</h3><p>把剧情意图转为英文镜头画面 prompt。</p></article>
+        <article class="card green"><span class="chip">IMAGE</span><h3>Painter</h3><p>合并画风、镜头、角色参考图，生成场景图。</p></article>
+        <article class="card green"><span class="chip">VISION</span><h3>Vision</h3><p>理解玩家点击的背景区域。</p></article>
+        <article class="card green"><span class="chip">TEXT</span><h3>FreeformClassifier</h3><p>分类自由输入的意图。</p></article>
+        <article class="card green"><span class="chip">TEXT</span><h3>InsertBeat</h3><p>在当前场景内插入临时节拍。</p></article>
+        <article class="card green"><span class="chip">TTS</span><h3>Voice / TTS</h3><p>准备角色音色并合成对白音频。</p></article>
+      </div>
+      <p class="note">当前治理口径是 9 个注册 agent 节点；agent / skill 是内部基建，不给创作者直接编辑。</p>
+    </section>
+
+    <section>
+      <h2>3. 模型 API 对应关系</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>模型角色</th>
+            <th>使用节点</th>
+            <th>维护重点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>TEXT_*</code></td>
+            <td>Writer、StyleSelector、CharacterDesigner、Cinematographer、FreeformClassifier、InsertBeat</td>
+            <td>按 agent 验证 schema、parser、fallback 和内容质量。</td>
+          </tr>
+          <tr>
+            <td><code>IMAGE_*</code></td>
+            <td>CharacterDesigner、Painter</td>
+            <td>验证参考图优先级、风格一致性、失败降级。</td>
+          </tr>
+          <tr>
+            <td><code>VISION_*</code></td>
+            <td>Vision</td>
+            <td>验证点击区域理解和可交互建议。</td>
+          </tr>
+          <tr>
+            <td><code>TTS_*</code></td>
+            <td>CharacterDesigner、Voice / TTS</td>
+            <td>验证音色分配、对白合成和静音 fallback。</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="note">模型升级不应全局替换后直接上线，应按 agent 节点分别跑 fixture / golden eval。</p>
+    </section>
+
+    <section>
+      <h2>4. Creator System 边界</h2>
+      <div class="grid">
+        <article class="card blue">
+          <small>Creator</small>
+          <h3>创作者编辑</h3>
+          <p>World Config、Character Config、Narrative Rules、Visual Style Config、Interaction Rules。</p>
+        </article>
+        <article class="card gold">
+          <small>Creative Engine</small>
+          <h3>产品配置转运行时</h3>
+          <p>把创作者配置转换为 Session、StoryState、Scene、Beat 等运行时结构。</p>
+        </article>
+        <article class="card red">
+          <small>Internal</small>
+          <h3>Agent System</h3>
+          <p>维护 contract、skill、prompt、parser、fallback、runtime、fixtures。</p>
+        </article>
+      </div>
+      <p class="note">创作者不能直接编辑底层 agent contract、skill、parser、fallback 或 provider fallback。</p>
+    </section>
+  </main>
+</body>
+</html>

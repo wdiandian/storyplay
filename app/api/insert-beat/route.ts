@@ -1,5 +1,5 @@
-import { requestInsertBeat } from "@infiplot/engine";
-import type { InsertBeatRequest } from "@infiplot/types";
+import { requestInsertBeat } from "@storyplay/engine";
+import type { InsertBeatRequest } from "@storyplay/types";
 import { NextResponse } from "next/server";
 import { loadEngineConfig } from "@/lib/config";
 import { requireUser } from "@/lib/supabase/guard";

@@ -1,0 +1,11 @@
+{
+  "name": "contract-metadata",
+  "agentId": "insert-beat",
+  "expected": {
+    "kind": "llm",
+    "modelRole": "text",
+    "inputSchema": "InsertBeatRequest",
+    "outputSchema": "InsertBeatResponse"
+  }
+}
+

@@ -1,0 +1,13 @@
+{
+  "name": "fallback-runtime",
+  "input": {
+    "worldSetting": "test"
+  },
+  "fallbackOutput": "fallback-style",
+  "expected": {
+    "ok": false,
+    "agentId": "style-selector",
+    "output": "fallback-style"
+  }
+}
+

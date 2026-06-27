@@ -1,0 +1,11 @@
+{
+  "name": "contract-metadata",
+  "agentId": "vision",
+  "expected": {
+    "kind": "vision",
+    "modelRole": "vision",
+    "inputSchema": "VisionRequest",
+    "outputSchema": "VisionResponse"
+  }
+}
+

@@ -28,16 +28,16 @@
       "@/*": [
         "./*"
       ],
-      "@infiplot/engine": [
+      "@storyplay/engine": [
         "./lib/engine/index.ts"
       ],
-      "@infiplot/ai-client": [
+      "@storyplay/ai-client": [
         "./lib/ai-client/index.ts"
       ],
-      "@infiplot/tts-client": [
+      "@storyplay/tts-client": [
         "./lib/tts-client/index.ts"
       ],
-      "@infiplot/types": [
+      "@storyplay/types": [
         "./lib/types/index.ts"
       ]
     },

@@ -1,6 +1,6 @@
 import type {
   WriterScenePlan,
-} from "@infiplot/types";
+} from "@storyplay/types";
 import type { WriterBeatsOutput } from "../agents/writer";
 import {
   coerceBeatsFromRaw,

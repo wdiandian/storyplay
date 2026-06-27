@@ -140,7 +140,7 @@ async function main() {
   try {
     const cleanJsonText = rawText.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
     parsed = JSON.parse(cleanJsonText);
-  } catch (e) {
+  } catch {
     console.error("Failed to parse JSON from LLM output. Raw content:\n", rawText);
     process.exit(1);
   }
