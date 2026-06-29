@@ -7,13 +7,14 @@ const config: NextConfig = {
   turbopack: {
     root: __dirname,
   },
-  // /public defaults to `max-age=0, must-revalidate`; pin the stable /home/* covers + first-act JSON for 1y so browsers/CDN stop re-downloading them.
+  // Covers are content-managed assets and may be regenerated in place.
+  // Keep first-loads fresh; callers can still add query versions for cache busting.
   async headers() {
     return [
       {
         source: "/home/:path*",
         headers: [
-          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
         ],
       },
     ];

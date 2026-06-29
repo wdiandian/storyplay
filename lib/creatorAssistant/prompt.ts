@@ -17,6 +17,17 @@ const actionGuidance: Record<CreatorStoryAssistantAction, string> = {
     "Use the selected playtest context if present to improve the next testable draft. Focus on clearer setup, player choice quality, pacing, and guardrails.",
 };
 
+const sectionGuidance = {
+  project: "You may suggest improvements across the whole StoryProject.",
+  basics: "Focus only on title, logline, synopsis, audience, genres, moods, and tags.",
+  world: "Focus only on world setting, rules, tone, and locations.",
+  narrative: "Focus only on protagonist, core conflict, key mysteries, chapter goals, and creator notes.",
+  outline: "Focus only on storyOutline and structure.acts/scenes.",
+  characters: "Focus only on characters. Respect locked characters.",
+  interaction: "Focus only on interaction design and choice style.",
+  visual: "Focus only on visual style, first scene visual direction, cover notes, and runtime styleGuide.",
+} as const;
+
 function compactProjectForPrompt(input: CreatorStoryAssistantInput) {
   const { project, selectedActId, selectedSceneId, playtestId } = input;
   const selectedAct =
@@ -196,6 +207,8 @@ export function buildCreatorStoryAssistantMessages(
   const user = {
     action: input.action,
     actionGuidance: actionGuidance[input.action],
+    targetSection: input.targetSection ?? "project",
+    sectionGuidance: sectionGuidance[input.targetSection ?? "project"],
     creatorInstruction: input.userInstruction ?? "",
     locale: input.locale,
     outputSchema: schema,

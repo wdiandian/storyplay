@@ -8,7 +8,10 @@ import {
 import { loadEngineConfigForScenario, modelRouteMetadata } from "@/lib/modelRouting";
 import { checkOfficialQuota } from "@/lib/officialQuota";
 import { resolveBillingUserId } from "@/lib/serverIdentity";
-import type { CreatorStoryAssistantAction } from "@/lib/creatorAssistant/types";
+import type {
+  CreatorStoryAssistantAction,
+  CreatorStoryAssistantTargetSection,
+} from "@/lib/creatorAssistant/types";
 import { getStoredStoryProject } from "@/lib/storyProject/store";
 import {
   normalizeStoryProject,
@@ -29,6 +32,16 @@ const actions = new Set<CreatorStoryAssistantAction>([
   "create-characters",
   "improve-playtest",
 ]);
+const targetSections = new Set<CreatorStoryAssistantTargetSection>([
+  "project",
+  "basics",
+  "world",
+  "narrative",
+  "outline",
+  "characters",
+  "interaction",
+  "visual",
+]);
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
@@ -42,6 +55,12 @@ function readAction(value: unknown): CreatorStoryAssistantAction | undefined {
 
 function readOptionalString(value: unknown) {
   return typeof value === "string" ? value.trim() : undefined;
+}
+
+function readTargetSection(value: unknown): CreatorStoryAssistantTargetSection | undefined {
+  return typeof value === "string" && targetSections.has(value as CreatorStoryAssistantTargetSection)
+    ? (value as CreatorStoryAssistantTargetSection)
+    : undefined;
 }
 
 function readLocale(value: unknown, fallback: StoryProjectLanguage): StoryProjectLanguage {
@@ -118,6 +137,7 @@ export async function POST(req: Request, context: ProjectAssistantRouteContext) 
       action,
       project: inputProject,
       userInstruction: readOptionalString(body.userInstruction),
+      targetSection: readTargetSection(body.targetSection),
       selectedActId: readOptionalString(body.selectedActId),
       selectedSceneId: readOptionalString(body.selectedSceneId),
       playtestId: readOptionalString(body.playtestId),

@@ -19,11 +19,22 @@ export type CreatorStoryAssistantInput = {
   action: CreatorStoryAssistantAction;
   project: StoryProject;
   userInstruction?: string;
+  targetSection?: CreatorStoryAssistantTargetSection;
   selectedActId?: string;
   selectedSceneId?: string;
   playtestId?: string;
   locale: StoryProjectLanguage;
 };
+
+export type CreatorStoryAssistantTargetSection =
+  | "project"
+  | "basics"
+  | "world"
+  | "narrative"
+  | "outline"
+  | "characters"
+  | "interaction"
+  | "visual";
 
 export type CreatorStoryAssistantSuggestion = {
   severity: "info" | "warning" | "critical";

@@ -14,6 +14,7 @@ import {
 import type {
   CreatorStoryAssistantAction,
   CreatorStoryAssistantOutput,
+  CreatorStoryAssistantTargetSection,
 } from "@/lib/creatorAssistant/types";
 import {
   createStoryProjectAct,
@@ -75,6 +76,21 @@ const assistantActions: Array<{
     description: "补齐角色卡、关系定位、视觉和声音描述。",
     icon: "fa-users",
   },
+];
+
+const assistantTargets: Array<{
+  value: CreatorStoryAssistantTargetSection;
+  label: string;
+  action: CreatorStoryAssistantAction;
+}> = [
+  { value: "project", label: "全工程", action: "expand-concept" },
+  { value: "basics", label: "基础信息", action: "expand-concept" },
+  { value: "world", label: "世界观", action: "expand-concept" },
+  { value: "narrative", label: "叙事核心", action: "expand-concept" },
+  { value: "outline", label: "大纲", action: "build-outline" },
+  { value: "characters", label: "角色", action: "create-characters" },
+  { value: "interaction", label: "互动", action: "expand-concept" },
+  { value: "visual", label: "视觉", action: "expand-concept" },
 ];
 
 function localePath(path: string, locale: string) {
@@ -245,6 +261,8 @@ export function ProjectEditorClient({
   const [assistantInstruction, setAssistantInstruction] = useState("");
   const [assistantLoadingAction, setAssistantLoadingAction] = useState<CreatorStoryAssistantAction | "">("");
   const [assistantResult, setAssistantResult] = useState<CreatorStoryAssistantOutput | null>(null);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantTarget, setAssistantTarget] = useState<CreatorStoryAssistantTargetSection>("project");
 
   const dirty = useMemo(
     () => JSON.stringify(project) !== JSON.stringify(lastSavedProject),
@@ -376,7 +394,10 @@ export function ProjectEditorClient({
     setProject((current) => ({ ...current, ...patch }));
   }
 
-  async function runAssistant(action: CreatorStoryAssistantAction) {
+  async function runAssistant(
+    action: CreatorStoryAssistantAction,
+    targetSection: CreatorStoryAssistantTargetSection = assistantTarget,
+  ) {
     setAssistantLoadingAction(action);
     setAssistantResult(null);
     setNotice("");
@@ -388,6 +409,7 @@ export function ProjectEditorClient({
           action,
           project,
           userInstruction: assistantInstruction,
+          targetSection,
           selectedActId: selectedAct?.id,
           selectedSceneId: selectedScene?.id,
           playtestId: selectedPlaytest?.id,
@@ -406,6 +428,7 @@ export function ProjectEditorClient({
       }
 
       setAssistantResult(data.result);
+      setAssistantOpen(true);
       setNotice("AI 创作助手已生成建议；应用后仍需手动保存工程。");
     } catch {
       setSaveState("error");
@@ -985,7 +1008,7 @@ export function ProjectEditorClient({
           )}
         </header>
 
-        <section className="mt-6 rounded-2xl border border-sp-border bg-sp-surface p-5 shadow-sm shadow-black/[0.04]">
+        <section className="hidden mt-6 rounded-2xl border border-sp-border bg-sp-surface p-5 shadow-sm shadow-black/[0.04]">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
@@ -2202,6 +2225,136 @@ export function ProjectEditorClient({
         </section>
       </div>
     </main>
+    <div className={assistantOpen ? "fixed inset-y-0 right-0 z-40 flex w-full max-w-[640px] flex-col items-stretch bg-sp-surface shadow-2xl shadow-black/25 sm:w-[min(640px,calc(100vw-3rem))]" : "fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3"}>
+      {assistantOpen && (
+        <div className="flex h-full flex-col overflow-hidden border-l border-sp-border bg-sp-surface p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <i className="fa-solid fa-sparkles text-sm text-sp-accent" />
+                <h2 className="font-serif text-2xl font-semibold text-sp-text">创作助手</h2>
+              </div>
+              <p className="mt-1 text-xs leading-5 text-sp-subdued">
+                选择要回填的板块，生成后先预览，再应用到当前草稿。
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAssistantOpen(false)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-sp-border bg-sp-muted text-sp-subdued hover:border-sp-accent hover:text-sp-accent"
+            >
+              <i className="fa-solid fa-xmark text-[12px]" />
+            </button>
+          </div>
+
+          <div className="mt-4">
+            <div className="text-[11px] font-medium text-sp-subdued">作用范围</div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {assistantTargets.map((target) => (
+                <button
+                  key={target.value}
+                  type="button"
+                  onClick={() => setAssistantTarget(target.value)}
+                  className={
+                    "inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors " +
+                    (assistantTarget === target.value
+                      ? "border-sp-accent bg-sp-accentSoft text-sp-accent"
+                      : "border-sp-border bg-sp-muted text-sp-subdued hover:border-sp-accent hover:text-sp-accent")
+                  }
+                >
+                  {target.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <textarea
+            value={assistantInstruction}
+            onChange={(event) => setAssistantInstruction(event.target.value)}
+            rows={3}
+            placeholder="可选：告诉助手怎么改，例如“更悬疑”“补女主关系”“只补世界规则”。"
+            className="mt-4 w-full resize-none rounded-xl border border-sp-border bg-sp-muted px-3 py-2 text-sm leading-6 text-sp-text outline-none transition-colors placeholder:text-sp-subdued/70 focus:border-sp-accent"
+          />
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => runAssistant("diagnose", assistantTarget)}
+              disabled={Boolean(assistantLoadingAction)}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-sp-border bg-sp-muted text-sm font-semibold text-sp-text hover:border-sp-accent hover:text-sp-accent disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <i className="fa-solid fa-stethoscope text-[12px]" />
+              诊断
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const target = assistantTargets.find((item) => item.value === assistantTarget);
+                runAssistant(target?.action ?? "expand-concept", assistantTarget);
+              }}
+              disabled={Boolean(assistantLoadingAction)}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-sp-accent text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <i className="fa-solid fa-wand-magic-sparkles text-[12px]" />
+              {assistantLoadingAction ? "生成中" : "生成并预览"}
+            </button>
+          </div>
+
+          {assistantResult ? (
+            <div className="mt-4 min-h-0 flex-1 overflow-y-auto rounded-xl border border-sp-border bg-sp-muted p-3">
+              <div className="text-sm font-semibold text-sp-text">{assistantResult.summary}</div>
+              {assistantResult.suggestions.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {assistantResult.suggestions.slice(0, 4).map((suggestion, index) => (
+                    <div key={`${suggestion.field}-${index}`} className="rounded-lg bg-sp-surface px-3 py-2 text-xs leading-5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-[11px] text-sp-subdued">{suggestion.field}</span>
+                        <span className="text-[10px] font-semibold text-sp-accent">{suggestion.severity}</span>
+                      </div>
+                      <div className="mt-1 text-sp-text">{suggestion.message}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {assistantPatchPreview.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <div className="text-xs font-semibold text-sp-text">回填预览</div>
+                  {assistantPatchPreview.map((item) => (
+                    <div key={item.field} className="rounded-lg bg-sp-surface px-3 py-2 text-xs leading-5">
+                      <div className="font-mono text-[11px] text-sp-subdued">{item.field}</div>
+                      <div className="mt-1 text-sp-subdued line-through">{item.before || "空"}</div>
+                      <div className="mt-1 text-sp-text">{item.after || "空"}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {assistantPatchPreview.length > 0 && (
+                <button
+                  type="button"
+                  onClick={applyAssistantPatch}
+                  className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-sp-accent text-sm font-semibold text-white hover:opacity-90"
+                >
+                  <i className="fa-solid fa-check text-[12px]" />
+                  一键回填到当前草稿
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="mt-4 flex min-h-0 flex-1 items-center justify-center rounded-xl border border-dashed border-sp-border bg-sp-muted p-6 text-center text-sm leading-6 text-sp-subdued">
+              选择一个板块并生成建议。结果会先显示在这里，不会自动覆盖当前工程。
+            </div>
+          )}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => setAssistantOpen((current) => !current)}
+        className={(assistantOpen ? "hidden " : "inline-flex ") + "h-12 items-center gap-2 rounded-full bg-sp-accent px-5 text-sm font-semibold text-white shadow-xl shadow-black/20 transition-opacity hover:opacity-90"}
+      >
+        <i className="fa-solid fa-sparkles text-[13px]" />
+        创作助手
+      </button>
+    </div>
     {settingsOpen && (
       <SettingsModal
         initialTab="models"

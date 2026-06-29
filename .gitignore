@@ -12,6 +12,7 @@ out
 
 .vercel
 .turbo
+tmp/
 .claude
 .storyplay
 

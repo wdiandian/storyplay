@@ -169,6 +169,14 @@ type FeaturedStoryRow = {
   openingPackage?: PublishedOpeningPackage;
 };
 
+const HOME_COVER_VERSION = "20260629c";
+
+function versionHomeCover(path: string) {
+  if (!path.startsWith("/home/")) return path;
+  if (!/^\/home\/[fm]\d+\.webp(?:$|\?)/.test(path)) return path;
+  return path.includes("?") ? `${path}&v=${HOME_COVER_VERSION}` : `${path}?v=${HOME_COVER_VERSION}`;
+}
+
 function taxonomyForCardId(id: string) {
   const sku = getStorySkuById(id);
   return sku ? inferStorySkuTaxonomy(sku) : null;
@@ -187,7 +195,7 @@ function rowToFeaturedCard(row: FeaturedStoryRow): FeaturedCard {
     id: row.id,
     title: row.title,
     outline: row.outline,
-    coverPath: row.coverPath,
+    coverPath: versionHomeCover(row.coverPath),
     genres: taxonomy?.genres ?? legacyTags.slice(0, 2),
     moods: taxonomy?.moods ?? legacyTags.slice(2, 4),
     interaction: taxonomy?.interaction ?? "中互动",
@@ -853,7 +861,10 @@ const DISPLAY_ORDER: Record<Gender, number[]> = {
 // 从 Story SKU manifest 构造首页卡片（featured API 故障/空时的降级源，
 // 同时作为首屏即时渲染的初始值，避免等 fetch 期间卡片区空白）。
 function buildFallbackCards(g: Gender): FeaturedCard[] {
-  return listFeaturedStorySkus(g).map(storySkuToCard);
+  return listFeaturedStorySkus(g).map((story) => {
+    const card = storySkuToCard(story);
+    return { ...card, coverPath: versionHomeCover(card.coverPath) };
+  });
 }
 
 type StoriesI18n = { male: StoryContent[]; female: StoryContent[] };
@@ -1646,6 +1657,8 @@ export default function HomePage() {
   // 实现「所见即所玩」。切性向时重置，否则索引可能越界。
   const [phraseIdx, setPhraseIdx] = useState(0);
   const visiblePhraseIdx = phrases.length > 0 ? phraseIdx % phrases.length : 0;
+  const visibleExamplePrompt = (phrases[visiblePhraseIdx] ?? "").trim();
+  const resolveStartPrompt = () => prompt.trim() || visibleExamplePrompt;
   const quickOptionRows = OPTS.map((_, i) => i).filter((i) => i !== voiceRow);
   useEffect(() => {
     setPhraseIdx(0);
@@ -1773,7 +1786,13 @@ export default function HomePage() {
   const [autoStartPending, setAutoStartPending] = useState(false);
 
   const persistPendingStart = () => {
-    const snap = { prompt, sel, customStyleGuide, customStyleRefImage, playerName };
+    const snap = {
+      prompt: resolveStartPrompt(),
+      sel,
+      customStyleGuide,
+      customStyleRefImage,
+      playerName,
+    };
     // Quota fallback: the data-URL style ref (~100KB) is the usual culprit —
     // drop it first; text-only form still resumes the start.
     writeResumeSnapshot(PENDING_START_KEY, snap, [
@@ -1861,6 +1880,11 @@ export default function HomePage() {
   }, [autoStartPending]);
 
   const start = async () => {
+    // 空输入时直接采用当前正在显示的 Typewriter 示例，保证“看到哪句，
+    // 快速开始就玩哪句”。同时写回输入框，登录弹窗/跳转前后也能保持一致。
+    const userPrompt = resolveStartPrompt();
+    if (!prompt.trim() && userPrompt) setPrompt(userPrompt);
+
     if (AUTH_ENABLED) {
       if (!(await isAuthed())) {
         // Don't snapshot here — persistPendingStart fires via
@@ -1873,10 +1897,6 @@ export default function HomePage() {
       }
     }
 
-    // 空输入时落回 Typewriter 当前闪动的示例——用户看到啥就玩啥，
-    // 不会再出现「点开始 → 剧情和占位文字毫无关系」的体验断层。
-    const userPrompt =
-      prompt.trim() || (phrases[visiblePhraseIdx] ?? "").trim();
     const artStyle = ART_STYLES[sel[1] ?? 0] ?? "自动";
     const plotStyle = PLOT_STYLES[sel[2] ?? 1] ?? "多线转折";
     const voice = OPTS[voiceRow]!.items[sel[voiceRow] ?? 1]!;
