@@ -43,6 +43,45 @@ function pushMissing(warnings: StoryProjectCompileWarning[], field: string, mess
   if (missing) warnings.push({ field, message });
 }
 
+function renderCharacterRelationships(project: StoryProject) {
+  return project.characters
+    .filter((character) => character.name.trim())
+    .map((character) =>
+      compactLines([
+        `${character.name}（${character.role}）`,
+        character.persona ? `性格/功能：${character.persona}` : "",
+        character.relationshipToPlayer ? `与玩家关系：${character.relationshipToPlayer}` : "",
+        character.visualNotes ? `视觉设定：${character.visualNotes}` : "",
+        character.referenceImageUrl ? `参考图：${character.referenceImageUrl}` : "",
+      ]),
+    )
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function renderPreparedAssets(project: StoryProject) {
+  const assetLines = project.assets
+    .filter((asset) => asset.url.trim())
+    .map((asset) => `${asset.kind}: ${asset.title || asset.url} (${asset.url})`);
+  const characterRefs = project.characters
+    .filter((character) => character.referenceImageUrl.trim())
+    .map((character) => `character-reference: ${character.name} (${character.referenceImageUrl})`);
+  return [...assetLines, ...characterRefs].join("\n");
+}
+
+function renderInteractionStrategy(project: StoryProject) {
+  return compactLines([
+    `玩法模式：${project.interaction.playMode}`,
+    `选项密度：${project.interaction.choiceDensity}`,
+    `分支策略：${project.interaction.branchingMode}`,
+    `自由输入：${project.interaction.freeformInputMode}`,
+    `视觉生成：${project.interaction.visualGenerationMode}`,
+    `兼容字段互动强度：${project.interaction.intensity}`,
+    project.interaction.choiceStyle,
+    project.interaction.branchNotes,
+  ]);
+}
+
 export function compileStoryProjectToStartRequest(project: StoryProject): StoryProjectPlaytestBuild {
   const warnings: StoryProjectCompileWarning[] = [];
   const selectedAct =
@@ -76,6 +115,12 @@ export function compileStoryProjectToStartRequest(project: StoryProject): StoryP
     section("关键谜题", listItems(project.narrative.keyMysteries)),
     section("章节目标", project.narrative.chapterGoals),
     section("剧情大纲护栏", renderStoryOutlineGuardrail(project)),
+    section("人物关系与配角", compactLines([
+      project.storyOutline.relationshipArc,
+      project.storyOutline.supportingCast,
+      renderCharacterRelationships(project),
+    ])),
+    section("预生产资产", renderPreparedAssets(project)),
     section("当前试玩幕", compactLines([
       selectedAct?.title,
       selectedAct?.goal ? `目标：${selectedAct.goal}` : "",
@@ -94,10 +139,8 @@ export function compileStoryProjectToStartRequest(project: StoryProject): StoryP
       selectedScene?.notes,
     ])),
     section("互动策略", compactLines([
-      `互动强度：${project.interaction.intensity}`,
-      project.interaction.freeformInput ? "允许玩家自由输入行动。" : "不鼓励玩家自由输入行动。",
-      project.interaction.choiceStyle,
-      project.interaction.branchNotes,
+      renderInteractionStrategy(project),
+      project.interaction.freeformInput ? "兼容字段：允许玩家自由输入行动。" : "兼容字段：不鼓励玩家自由输入行动。",
     ])),
     section("创作者备注", project.narrative.creatorNotes),
   ]);

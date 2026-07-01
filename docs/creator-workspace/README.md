@@ -4,6 +4,7 @@ Status: Partial MVP.
 
 Current priority:
 
+- [Asset, Blueprint, Fixed Runtime Roadmap](./asset-blueprint-fixed-runtime-roadmap.md)
 - [Creator MVP Publish Loop](./creator-mvp-publish-loop.md)
 - [Creator Story Assistant](./creator-story-assistant.md)
 - [Opening Package Editor](./opening-package-editor.md)
@@ -17,8 +18,10 @@ StoryProject -> publish as Story SKU -> homepage/story list -> player enters /pl
 The next creator MVP is:
 
 ```text
-StoryProject -> fixed Opening Package -> publish as Story SKU -> player starts from fixed first scene -> AI continues
+StoryProject -> asset preproduction + story blueprint -> playtest -> fixed runtime package -> publish as Story SKU
 ```
+
+The old fixed Opening Package remains as a compatibility layer. New product work should prefer Story Blueprint, Asset Library, and Fixed Runtime Package.
 
 The current creator MVP shape is:
 

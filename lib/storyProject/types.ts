@@ -5,6 +5,20 @@ export type StoryProjectSource = "manual" | "ai-generated" | "imported" | "playt
 export type StoryProjectGenerationStatus = "idle" | "generating" | "ready" | "failed";
 export type StoryProjectPlaytestStatus = "created" | "started" | "completed" | "discarded";
 export type StoryProjectOpeningStatus = "empty" | "draft" | "ready";
+export type StoryProjectAssetKind =
+  | "cover"
+  | "first-scene"
+  | "character-reference"
+  | "style-reference"
+  | "runtime-scene";
+export type StoryProjectAssetStatus = "empty" | "generating" | "ready" | "failed";
+export type StoryProjectAssetSource = StoryProjectSource | "uploaded" | "generated";
+export type StoryProjectPlayMode = "read-heavy" | "choice-driven" | "free-explore";
+export type StoryProjectChoiceDensity = "low" | "medium" | "high";
+export type StoryProjectBranchingMode = "convergent" | "short-branch" | "multi-ending";
+export type StoryProjectFreeformInputMode = "off" | "playtest-only" | "always";
+export type StoryProjectVisualGenerationMode = "first-scene-only" | "key-scenes" | "every-scene";
+export type StoryProjectFixedRuntimeStatus = "draft" | "ready" | "published" | "archived";
 
 export type StoryProjectScenePlaytestResult = {
   playtestId: string;
@@ -80,8 +94,30 @@ export type StoryProjectCharacter = {
   relationshipToPlayer: string;
   visualNotes: string;
   voiceNotes: string;
+  referenceImageUrl: string;
+  referenceImageKey: string;
+  referenceImagePrompt: string;
+  referenceImageSource: StoryProjectAssetSource;
+  referenceImageStatus: StoryProjectAssetStatus;
   source: StoryProjectSource;
   locked: boolean;
+};
+
+export type StoryProjectAsset = {
+  id: string;
+  kind: StoryProjectAssetKind;
+  title: string;
+  url: string;
+  key: string;
+  prompt: string;
+  source: StoryProjectAssetSource;
+  status: StoryProjectAssetStatus;
+  characterId: string;
+  provider: string;
+  model: string;
+  createdAt: string;
+  updatedAt: string;
+  notes: string;
 };
 
 export type StoryProjectOpeningChoice = {
@@ -147,8 +183,24 @@ export type StoryProjectStoryOutline = {
   phaseOutline: string;
   requiredBeats: string[];
   relationshipArc: string;
+  supportingCast: string;
   endingDirection: string;
   guardrails: string[];
+};
+
+export type StoryProjectFixedRuntimePackage = {
+  id: string;
+  status: StoryProjectFixedRuntimeStatus;
+  title: string;
+  summary: string;
+  sourcePlaytestId: string;
+  sceneCount: number;
+  beatCount: number;
+  imageCount: number;
+  shareEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+  notes: string;
 };
 
 export type StoryProject = {
@@ -182,12 +234,18 @@ export type StoryProject = {
     selectedSceneId: string;
   };
   characters: StoryProjectCharacter[];
+  assets: StoryProjectAsset[];
   openingPackage: StoryProjectOpeningPackage;
   interaction: {
     intensity: "light" | "medium" | "strong";
+    playMode: StoryProjectPlayMode;
+    choiceDensity: StoryProjectChoiceDensity;
+    branchingMode: StoryProjectBranchingMode;
     choiceStyle: string;
     branchNotes: string;
     freeformInput: boolean;
+    freeformInputMode: StoryProjectFreeformInputMode;
+    visualGenerationMode: StoryProjectVisualGenerationMode;
   };
   visual: {
     stylePrompt: string;
@@ -210,6 +268,7 @@ export type StoryProject = {
     status: Extract<StoryProjectStatus, "draft" | "playtest" | "published">;
     skuId: string;
   };
+  fixedRuntimePackages: StoryProjectFixedRuntimePackage[];
   playtests: StoryProjectPlaytestRecord[];
   createdAt: string;
   updatedAt: string;
@@ -229,6 +288,7 @@ export type StoryProjectCreateInput = {
   storyOutline?: Partial<StoryProjectStoryOutline>;
   interaction?: Partial<StoryProject["interaction"]>;
   visual?: Partial<StoryProject["visual"]>;
+  assets?: Partial<StoryProjectAsset>[];
 };
 
 export type StoryProjectValidationIssue = {
@@ -277,8 +337,40 @@ export function createStoryProjectCharacter(
     relationshipToPlayer: sanitizeString(input.relationshipToPlayer),
     visualNotes: sanitizeString(input.visualNotes),
     voiceNotes: sanitizeString(input.voiceNotes),
+    referenceImageUrl: sanitizeString(input.referenceImageUrl),
+    referenceImageKey: sanitizeString(input.referenceImageKey),
+    referenceImagePrompt: sanitizeString(input.referenceImagePrompt),
+    referenceImageSource: input.referenceImageSource ?? "manual",
+    referenceImageStatus: input.referenceImageStatus ?? (sanitizeString(input.referenceImageUrl) ? "ready" : "empty"),
     source: input.source ?? "manual",
     locked: Boolean(input.locked),
+  };
+}
+
+export function createStoryProjectAsset(input: Partial<StoryProjectAsset> = {}): StoryProjectAsset {
+  const now = new Date().toISOString();
+  return {
+    id: sanitizeString(input.id, createId("sp_asset")),
+    kind:
+      input.kind === "cover" ||
+      input.kind === "first-scene" ||
+      input.kind === "character-reference" ||
+      input.kind === "style-reference" ||
+      input.kind === "runtime-scene"
+        ? input.kind
+        : "cover",
+    title: sanitizeString(input.title),
+    url: sanitizeString(input.url),
+    key: sanitizeString(input.key),
+    prompt: sanitizeString(input.prompt),
+    source: input.source ?? "manual",
+    status: input.status ?? (sanitizeString(input.url) ? "ready" : "empty"),
+    characterId: sanitizeString(input.characterId),
+    provider: sanitizeString(input.provider),
+    model: sanitizeString(input.model),
+    createdAt: isNonEmptyString(input.createdAt) ? input.createdAt : now,
+    updatedAt: isNonEmptyString(input.updatedAt) ? input.updatedAt : now,
+    notes: sanitizeString(input.notes),
   };
 }
 
@@ -409,8 +501,35 @@ export function createStoryProjectStoryOutline(
     phaseOutline: sanitizeString(input.phaseOutline),
     requiredBeats: sanitizeStringArray(input.requiredBeats),
     relationshipArc: sanitizeString(input.relationshipArc),
+    supportingCast: sanitizeString(input.supportingCast),
     endingDirection: sanitizeString(input.endingDirection),
     guardrails: sanitizeStringArray(input.guardrails),
+  };
+}
+
+function createStoryProjectFixedRuntimePackage(
+  input: Partial<StoryProjectFixedRuntimePackage> = {},
+): StoryProjectFixedRuntimePackage {
+  const now = new Date().toISOString();
+  return {
+    id: sanitizeString(input.id, createId("sp_fixed_runtime")),
+    status:
+      input.status === "ready" ||
+      input.status === "published" ||
+      input.status === "archived" ||
+      input.status === "draft"
+        ? input.status
+        : "draft",
+    title: sanitizeString(input.title),
+    summary: sanitizeString(input.summary),
+    sourcePlaytestId: sanitizeString(input.sourcePlaytestId),
+    sceneCount: Number.isFinite(input.sceneCount) ? Math.max(0, Math.floor(input.sceneCount!)) : 0,
+    beatCount: Number.isFinite(input.beatCount) ? Math.max(0, Math.floor(input.beatCount!)) : 0,
+    imageCount: Number.isFinite(input.imageCount) ? Math.max(0, Math.floor(input.imageCount!)) : 0,
+    shareEnabled: Boolean(input.shareEnabled),
+    createdAt: isNonEmptyString(input.createdAt) ? input.createdAt : now,
+    updatedAt: isNonEmptyString(input.updatedAt) ? input.updatedAt : now,
+    notes: sanitizeString(input.notes),
   };
 }
 
@@ -501,12 +620,18 @@ export function createStoryProject(input: StoryProjectCreateInput = {}): StoryPr
       };
     })(),
     characters: [],
+    assets: Array.isArray(input.assets) ? input.assets.map((asset) => createStoryProjectAsset(asset)) : [],
     openingPackage: createStoryProjectOpeningPackage(),
     interaction: {
       intensity: input.interaction?.intensity ?? "medium",
+      playMode: input.interaction?.playMode ?? "choice-driven",
+      choiceDensity: input.interaction?.choiceDensity ?? "medium",
+      branchingMode: input.interaction?.branchingMode ?? "convergent",
       choiceStyle: sanitizeString(input.interaction?.choiceStyle, "关键选择推动故事"),
       branchNotes: sanitizeString(input.interaction?.branchNotes),
       freeformInput: input.interaction?.freeformInput ?? true,
+      freeformInputMode: input.interaction?.freeformInputMode ?? "playtest-only",
+      visualGenerationMode: input.interaction?.visualGenerationMode ?? "key-scenes",
     },
     visual: {
       stylePrompt: sanitizeString(input.visual?.stylePrompt),
@@ -529,6 +654,7 @@ export function createStoryProject(input: StoryProjectCreateInput = {}): StoryPr
       status: "draft",
       skuId: "",
     },
+    fixedRuntimePackages: [],
     playtests: [],
     createdAt: now,
     updatedAt: now,
@@ -601,11 +727,15 @@ export function normalizeStoryProject(
       phaseOutline: project.storyOutline?.phaseOutline,
       requiredBeats: project.storyOutline?.requiredBeats ?? project.narrative?.keyMysteries,
       relationshipArc: project.storyOutline?.relationshipArc,
+      supportingCast: project.storyOutline?.supportingCast,
       endingDirection: project.storyOutline?.endingDirection,
       guardrails: project.storyOutline?.guardrails,
     }),
     characters: Array.isArray(project.characters)
       ? project.characters.map((character) => createStoryProjectCharacter(character))
+      : [],
+    assets: Array.isArray(project.assets)
+      ? project.assets.map((asset) => createStoryProjectAsset(asset))
       : [],
     openingPackage: createStoryProjectOpeningPackage(project.openingPackage),
     structure: (() => {
@@ -626,9 +756,14 @@ export function normalizeStoryProject(
     })(),
     interaction: {
       intensity: project.interaction?.intensity ?? "medium",
+      playMode: project.interaction?.playMode ?? "choice-driven",
+      choiceDensity: project.interaction?.choiceDensity ?? "medium",
+      branchingMode: project.interaction?.branchingMode ?? "convergent",
       choiceStyle: sanitizeString(project.interaction?.choiceStyle, "关键选择推动故事"),
       branchNotes: sanitizeString(project.interaction?.branchNotes),
       freeformInput: project.interaction?.freeformInput ?? true,
+      freeformInputMode: project.interaction?.freeformInputMode ?? (project.interaction?.freeformInput === false ? "off" : "playtest-only"),
+      visualGenerationMode: project.interaction?.visualGenerationMode ?? "key-scenes",
     },
     visual: {
       stylePrompt: sanitizeString(project.visual?.stylePrompt),
@@ -651,6 +786,9 @@ export function normalizeStoryProject(
       status: project.publish?.status ?? "draft",
       skuId: sanitizeString(project.publish?.skuId),
     },
+    fixedRuntimePackages: Array.isArray(project.fixedRuntimePackages)
+      ? project.fixedRuntimePackages.map((pkg) => createStoryProjectFixedRuntimePackage(pkg))
+      : [],
     playtests: Array.isArray(project.playtests)
       ? project.playtests.map((record) => normalizePlaytestRecord(record))
       : [],

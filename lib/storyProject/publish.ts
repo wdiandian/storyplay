@@ -33,7 +33,13 @@ export function buildStorySkuFromProject(project: StoryProject): StoryProjectPub
   const tags = uniqueStrings([...project.genres, ...project.moods, ...project.tags]);
   const stylePrompt =
     project.visual.stylePrompt.trim() || project.runtimePolicy.styleGuide.trim() || build.startRequest.styleGuide || "auto";
-  const cover = project.visual.cover.trim() || "/home/storyplay-creator-cover.svg";
+  const assetCover = project.assets.find((asset) => asset.kind === "cover" && asset.url.trim())?.url.trim();
+  const assetFirstScene = project.assets.find((asset) => asset.kind === "first-scene" && asset.url.trim())?.url.trim();
+  const characterPortraits = project.characters
+    .map((character) => character.referenceImageUrl.trim())
+    .filter(Boolean);
+  const cover = project.visual.cover.trim() || assetCover || "/home/storyplay-creator-cover.svg";
+  const firstScene = project.visual.firstScene.trim() || assetFirstScene;
 
   return {
     sku: {
@@ -48,10 +54,10 @@ export function buildStorySkuFromProject(project: StoryProject): StoryProjectPub
       stylePrompt,
       assets: {
         cover,
-        firstScene: project.visual.firstScene.trim() || undefined,
-        firstScenePortrait: project.visual.firstScene.trim() || undefined,
-        portraits: [],
-        portraitsPortrait: [],
+        firstScene: firstScene || undefined,
+        firstScenePortrait: firstScene || undefined,
+        portraits: characterPortraits,
+        portraitsPortrait: characterPortraits,
       },
       firstAct: {},
       runtimeSummary: {

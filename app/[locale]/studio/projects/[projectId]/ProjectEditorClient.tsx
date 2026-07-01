@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { SettingsModal, readStoredVisionClick } from "@/components/SettingsModal";
 import { readStoredModelConfig, readStoredModelMode } from "@/lib/clientModelConfig";
 import { guestHeaders } from "@/lib/guestId";
@@ -18,11 +18,15 @@ import type {
 } from "@/lib/creatorAssistant/types";
 import {
   createStoryProjectAct,
+  createStoryProjectAsset,
+  createStoryProjectCharacter,
   createStoryProjectOpeningPackage,
   createStoryProjectScene,
   type StoryProject,
   type StoryProjectAct,
   type StoryProjectAudience,
+  type StoryProjectAsset,
+  type StoryProjectCharacter,
   type StoryProjectOpeningBeat,
   type StoryProjectScene,
 } from "@/lib/storyProject/types";
@@ -40,11 +44,51 @@ const intensityOptions: Array<{ value: StoryProject["interaction"]["intensity"];
   { value: "medium", label: "中互动" },
   { value: "strong", label: "强互动" },
 ];
+const playModeOptions: Array<{ value: StoryProject["interaction"]["playMode"]; label: string }> = [
+  { value: "read-heavy", label: "轻阅读" },
+  { value: "choice-driven", label: "选择推进" },
+  { value: "free-explore", label: "自由探索" },
+];
+const choiceDensityOptions: Array<{ value: StoryProject["interaction"]["choiceDensity"]; label: string }> = [
+  { value: "low", label: "低" },
+  { value: "medium", label: "中" },
+  { value: "high", label: "高" },
+];
+const branchingModeOptions: Array<{ value: StoryProject["interaction"]["branchingMode"]; label: string }> = [
+  { value: "convergent", label: "主线回收" },
+  { value: "short-branch", label: "短分支" },
+  { value: "multi-ending", label: "多结局" },
+];
+const freeformInputModeOptions: Array<{ value: StoryProject["interaction"]["freeformInputMode"]; label: string }> = [
+  { value: "off", label: "关闭" },
+  { value: "playtest-only", label: "仅试玩" },
+  { value: "always", label: "正式开放" },
+];
+const visualGenerationModeOptions: Array<{ value: StoryProject["interaction"]["visualGenerationMode"]; label: string }> = [
+  { value: "first-scene-only", label: "仅首图" },
+  { value: "key-scenes", label: "关键场景" },
+  { value: "every-scene", label: "每场生成" },
+];
 
 const SHOW_STORY_STRUCTURE_EDITOR = false;
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 type PublishState = "idle" | "publishing" | "published" | "unpublishing" | "error";
+type AssetGeneratorTarget =
+  | { kind: "cover"; characterId?: undefined }
+  | { kind: "first-scene"; characterId?: undefined }
+  | { kind: "character-reference"; characterId: string };
+type AssetGeneratorState = {
+  open: boolean;
+  target: AssetGeneratorTarget | null;
+  prompt: string;
+  loading: boolean;
+  error: string;
+  resultUrl: string;
+  resultUuid: string;
+  resultKey: string;
+  generatedPrompt: string;
+};
 
 const assistantActions: Array<{
   action: CreatorStoryAssistantAction;
@@ -263,6 +307,20 @@ export function ProjectEditorClient({
   const [assistantResult, setAssistantResult] = useState<CreatorStoryAssistantOutput | null>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantTarget, setAssistantTarget] = useState<CreatorStoryAssistantTargetSection>("project");
+  const [assetGenerator, setAssetGenerator] = useState<AssetGeneratorState>({
+    open: false,
+    target: null,
+    prompt: "",
+    loading: false,
+    error: "",
+    resultUrl: "",
+    resultUuid: "",
+    resultKey: "",
+    generatedPrompt: "",
+  });
+  const coverUploadRef = useRef<HTMLInputElement | null>(null);
+  const firstSceneUploadRef = useRef<HTMLInputElement | null>(null);
+  const characterUploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const dirty = useMemo(
     () => JSON.stringify(project) !== JSON.stringify(lastSavedProject),
@@ -360,11 +418,13 @@ export function ProjectEditorClient({
     : project.publish.status === "published"
       ? "已同步"
       : "未发布";
+  const coverAsset = getAssetSlot("cover");
+  const firstSceneAsset = getAssetSlot("first-scene");
   const publishPreview = {
     title: project.title.trim() || "未命名故事",
     logline: project.logline.trim() || project.synopsis.trim() || "还没有一句话卖点",
     synopsis: project.synopsis.trim() || project.logline.trim() || "还没有故事简介",
-    cover: project.visual.cover.trim() || "/home/storyplay-creator-cover.svg",
+    cover: project.visual.cover.trim() || coverAsset?.url.trim() || "/home/storyplay-creator-cover.svg",
     tags: [...project.genres, ...project.moods, ...project.tags].filter(Boolean).slice(0, 5),
     audience: projectAudienceLabel(project.audience),
     source: "创作者发布",
@@ -485,6 +545,266 @@ export function ProjectEditorClient({
             ? patch.stylePrompt
             : current.runtimePolicy.styleGuide,
       },
+    }));
+  }
+
+  function updateAssetSlot(kind: StoryProjectAsset["kind"], patch: Partial<StoryProjectAsset>) {
+    setSaveState("idle");
+    setNotice("");
+    setProject((current) => {
+      const existing = current.assets.find((asset) => asset.kind === kind && !asset.characterId);
+      const nextAsset = createStoryProjectAsset({
+        ...existing,
+        kind,
+        title:
+          patch.title ??
+          existing?.title ??
+          (kind === "cover" ? "封面图" : kind === "first-scene" ? "首场图" : "资产"),
+        ...patch,
+        status:
+          patch.status ??
+          (patch.url !== undefined
+            ? patch.url.trim()
+              ? "ready"
+              : "empty"
+            : existing?.status),
+        updatedAt: new Date().toISOString(),
+      });
+      const assets = existing
+        ? current.assets.map((asset) => (asset.id === existing.id ? nextAsset : asset))
+        : [...current.assets, nextAsset];
+      return { ...current, assets };
+    });
+  }
+
+  function getAssetSlot(kind: StoryProjectAsset["kind"]) {
+    return project.assets.find((asset) => asset.kind === kind && !asset.characterId);
+  }
+
+  function characterById(characterId: string) {
+    return project.characters.find((character) => character.id === characterId);
+  }
+
+  function defaultAssetPrompt(target: AssetGeneratorTarget) {
+    if (target.kind === "cover") {
+      return coverAsset?.prompt || [
+        project.logline || project.title,
+        project.synopsis,
+        project.visual.stylePrompt,
+        "突出作品卖点、人物关系和情绪钩子，不要文字。",
+      ].filter(Boolean).join("\n");
+    }
+    if (target.kind === "first-scene") {
+      return firstSceneAsset?.prompt || [
+        project.openingPackage.scene.scenePrompt,
+        project.world.setting,
+        project.storyOutline.mainGoal,
+        "作为玩家进入故事看到的第一张画面，强调场景氛围和悬念物件。",
+      ].filter(Boolean).join("\n");
+    }
+    const character = characterById(target.characterId);
+    return character?.referenceImagePrompt || [
+      character?.name,
+      character?.visualNotes,
+      character?.persona,
+      character?.relationshipToPlayer,
+      project.visual.stylePrompt,
+      "单人角色参考图，清晰展示脸、发型、服装和轮廓。",
+    ].filter(Boolean).join("\n");
+  }
+
+  function openAssetGenerator(target: AssetGeneratorTarget) {
+    setAssetGenerator({
+      open: true,
+      target,
+      prompt: defaultAssetPrompt(target),
+      loading: false,
+      error: "",
+      resultUrl: "",
+      resultUuid: "",
+      resultKey: "",
+      generatedPrompt: "",
+    });
+  }
+
+  function closeAssetGenerator() {
+    setAssetGenerator((current) => ({ ...current, open: false, loading: false }));
+  }
+
+  function applyGeneratedAsset() {
+    const target = assetGenerator.target;
+    if (!target || !assetGenerator.resultUrl) return;
+    if (target.kind === "cover") {
+      syncAssetToVisual("cover", assetGenerator.resultUrl);
+      updateAssetSlot("cover", {
+        prompt: assetGenerator.generatedPrompt || assetGenerator.prompt,
+        source: "generated",
+        status: "ready",
+        key: assetGenerator.resultKey,
+        model: assetGenerator.resultUuid,
+      });
+    } else if (target.kind === "first-scene") {
+      syncAssetToVisual("first-scene", assetGenerator.resultUrl);
+      updateAssetSlot("first-scene", {
+        prompt: assetGenerator.generatedPrompt || assetGenerator.prompt,
+        source: "generated",
+        status: "ready",
+        key: assetGenerator.resultKey,
+        model: assetGenerator.resultUuid,
+      });
+      updateOpeningScene({ backgroundImageUrl: assetGenerator.resultUrl, backgroundImageUuid: assetGenerator.resultUuid });
+    } else {
+      updateCharacter(target.characterId, {
+        referenceImageUrl: assetGenerator.resultUrl,
+        referenceImageKey: assetGenerator.resultKey,
+        referenceImagePrompt: assetGenerator.generatedPrompt || assetGenerator.prompt,
+        referenceImageSource: "generated",
+        referenceImageStatus: "ready",
+      });
+    }
+    setNotice("已回填生成图片到当前草稿，请保存工程。");
+    closeAssetGenerator();
+  }
+
+  async function generateAssetImage() {
+    const target = assetGenerator.target;
+    if (!target || !assetGenerator.prompt.trim()) return;
+    const character = target.kind === "character-reference" ? characterById(target.characterId) : undefined;
+    setAssetGenerator((current) => ({ ...current, loading: true, error: "", resultUrl: "", resultUuid: "", resultKey: "" }));
+    try {
+      const response = await fetch(`/api/studio/projects/${project.id}/assets/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...guestHeaders() },
+        body: JSON.stringify({
+          kind: target.kind,
+          prompt: assetGenerator.prompt,
+          title: project.title,
+          characterName: character?.name,
+          characterVisualNotes: character?.visualNotes,
+          stylePrompt: project.visual.stylePrompt || project.runtimePolicy.styleGuide,
+          orientation: project.runtimePolicy.orientation,
+        }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        asset?: {
+          imageUrl?: string;
+          imageUuid?: string;
+          key?: string;
+          prompt?: string;
+        };
+        error?: string;
+      };
+      if (!response.ok || !data.asset?.imageUrl) {
+        setAssetGenerator((current) => ({
+          ...current,
+          loading: false,
+          error: data.error || "图片生成失败，请检查模型配置后重试。",
+        }));
+        return;
+      }
+      setAssetGenerator((current) => ({
+        ...current,
+        loading: false,
+        resultUrl: data.asset?.imageUrl ?? "",
+        resultUuid: data.asset?.imageUuid ?? "",
+        resultKey: data.asset?.key ?? "",
+        generatedPrompt: data.asset?.prompt ?? current.prompt,
+      }));
+    } catch {
+      setAssetGenerator((current) => ({
+        ...current,
+        loading: false,
+        error: "图片生成请求失败，请稍后重试。",
+      }));
+    }
+  }
+
+  async function handleAssetUpload(target: AssetGeneratorTarget, file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setNotice("只支持图片文件。");
+      return;
+    }
+    try {
+      const formData = new FormData();
+      formData.set("kind", target.kind);
+      formData.set("name", file.name);
+      formData.set("file", file);
+      const response = await fetch(`/api/studio/projects/${project.id}/assets/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        asset?: { imageUrl?: string; key?: string };
+        error?: string;
+      };
+      if (!response.ok || !data.asset?.imageUrl) {
+        setNotice(data.error || "图片上传失败。");
+        return;
+      }
+      const uploadedUrl = data.asset.imageUrl;
+      const uploadedKey = data.asset.key ?? "";
+      if (target.kind === "cover") {
+        syncAssetToVisual("cover", uploadedUrl);
+        updateAssetSlot("cover", { source: "uploaded", status: "ready", key: uploadedKey });
+      } else if (target.kind === "first-scene") {
+        syncAssetToVisual("first-scene", uploadedUrl);
+        updateAssetSlot("first-scene", { source: "uploaded", status: "ready", key: uploadedKey });
+        updateOpeningScene({ backgroundImageUrl: uploadedUrl });
+      } else {
+        updateCharacter(target.characterId, {
+          referenceImageUrl: uploadedUrl,
+          referenceImageKey: uploadedKey,
+          referenceImageSource: "uploaded",
+          referenceImageStatus: "ready",
+        });
+      }
+      setNotice("已上传图片并回填到当前草稿，请保存工程。");
+    } catch {
+      setNotice("图片上传失败，请换一张图片重试。");
+    }
+  }
+
+  function syncAssetToVisual(kind: "cover" | "first-scene", url: string) {
+    updateVisual(kind === "cover" ? { cover: url } : { firstScene: url });
+    updateAssetSlot(kind, { url, status: url.trim() ? "ready" : "empty" });
+  }
+
+  function addCharacter() {
+    setSaveState("idle");
+    setNotice("");
+    setProject((current) => ({
+      ...current,
+      characters: [
+        ...current.characters,
+        createStoryProjectCharacter({
+          name: `角色 ${current.characters.length + 1}`,
+          role: current.characters.length === 0 ? "main" : "supporting",
+        }),
+      ],
+    }));
+  }
+
+  function updateCharacter(characterId: string, patch: Partial<StoryProjectCharacter>) {
+    setSaveState("idle");
+    setNotice("");
+    setProject((current) => ({
+      ...current,
+      characters: current.characters.map((character) =>
+        character.id === characterId
+          ? createStoryProjectCharacter({
+              ...character,
+              ...patch,
+              referenceImageStatus:
+                patch.referenceImageStatus ??
+                (patch.referenceImageUrl !== undefined
+                  ? patch.referenceImageUrl.trim()
+                    ? "ready"
+                    : "empty"
+                  : character.referenceImageStatus),
+            })
+          : character,
+      ),
     }));
   }
 
@@ -1221,7 +1541,7 @@ export function ProjectEditorClient({
               </div>
             </Section>
 
-            <Section title="后续规划" description="只保留 AI 续写需要理解的方向，不再重复编辑第一场。">
+            <Section title="故事蓝图" description="固定世界、人物关系和主线护栏；玩家可以改变过程，但故事要围绕蓝图推进。">
               <div className="grid gap-5 md:grid-cols-2">
                 <Field label="主线目标" hint="无论玩家怎么选，故事最终都要围绕这个目标推进。">
                   <TextArea
@@ -1252,6 +1572,14 @@ export function ProjectEditorClient({
                     value={project.storyOutline.relationshipArc}
                     onChange={(value) => updateStoryOutline({ relationshipArc: value })}
                     placeholder="主要角色和玩家的关系应该如何试探、升温、破裂或和解。"
+                    rows={4}
+                  />
+                </Field>
+                <Field label="配角与阵营描述">
+                  <TextArea
+                    value={project.storyOutline.supportingCast}
+                    onChange={(value) => updateStoryOutline({ supportingCast: value })}
+                    placeholder="补充配角、阵营、关系网和他们在主线里的作用。"
                     rows={4}
                   />
                 </Field>
@@ -1298,11 +1626,11 @@ export function ProjectEditorClient({
               </div>
             </Section>
 
-            <Section title="首场编辑" description="固定玩家进入故事后的第一场；发布后会优先使用这里的背景图、脚本和出口钩子。">
+            <Section title="首个可玩片段（兼容）" description="这块暂时保留旧发布链路；后续会被固定剧情包取代。优先把稳定内容沉淀到故事蓝图和资产库。">
               <div className="space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sp-border bg-sp-muted p-4">
                   <div>
-                    <div className="text-sm font-semibold text-sp-text">固定首场</div>
+                    <div className="text-sm font-semibold text-sp-text">旧首场运行包</div>
                     <p className="mt-1 text-xs leading-5 text-sp-subdued">
                       当前状态：{project.openingPackage.status === "ready" ? "已就绪" : project.openingPackage.status === "draft" ? "草稿" : "未启用"}
                       {project.openingPackage.status !== "empty" && `，${openingErrorCount} 个错误 / ${openingWarningCount} 个提示`}
@@ -1314,7 +1642,7 @@ export function ProjectEditorClient({
                       onClick={() => updateOpeningPackage({ status: project.openingPackage.status === "empty" ? "draft" : "empty" })}
                       className="inline-flex h-9 items-center rounded-xl border border-sp-border bg-sp-surface px-3 text-xs font-semibold text-sp-text transition-colors hover:border-sp-accent hover:text-sp-accent"
                     >
-                      {project.openingPackage.status === "empty" ? "启用固定首场" : "停用固定首场"}
+                      {project.openingPackage.status === "empty" ? "启用兼容首场" : "停用兼容首场"}
                     </button>
                     <button
                       type="button"
@@ -1531,6 +1859,253 @@ export function ProjectEditorClient({
                     )}
                   </>
                 )}
+              </div>
+            </Section>
+
+            <Section title="资产库" description="提前准备封面、首场图和主体角色参考图，用来加速首次游玩并稳定视觉一致性。">
+              <div className="space-y-5">
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div className="rounded-xl border border-sp-border bg-sp-muted p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-sp-text">封面图</div>
+                        <p className="mt-1 text-xs leading-5 text-sp-subdued">
+                          用于首页卡片和发布预览。后续接生成弹窗和上传。
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-sp-border bg-sp-surface px-2 py-0.5 text-[11px] text-sp-subdued">
+                        {coverAsset?.status ?? (project.visual.cover ? "ready" : "empty")}
+                      </span>
+                    </div>
+                    <div className="mt-4 space-y-4">
+                      <Field label="封面 URL">
+                        <TextInput
+                          value={project.visual.cover || coverAsset?.url || ""}
+                          onChange={(value) => syncAssetToVisual("cover", value)}
+                          placeholder="/home/example.webp"
+                        />
+                      </Field>
+                      <Field label="封面生成提示词">
+                        <TextArea
+                          value={coverAsset?.prompt ?? ""}
+                          onChange={(value) => updateAssetSlot("cover", { prompt: value })}
+                          placeholder="描述封面的主体、情绪、构图和卖点。"
+                          rows={3}
+                        />
+                      </Field>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openAssetGenerator({ kind: "cover" })}
+                          className="inline-flex h-9 items-center gap-2 rounded-xl border border-sp-border bg-sp-surface px-3 text-xs font-semibold text-sp-text transition-colors hover:border-sp-accent hover:text-sp-accent"
+                        >
+                          <i className="fa-regular fa-image text-[12px]" />
+                          生成封面
+                        </button>
+                        <input
+                          ref={coverUploadRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(event) => {
+                            void handleAssetUpload({ kind: "cover" }, event.target.files?.[0]);
+                            event.currentTarget.value = "";
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => coverUploadRef.current?.click()}
+                          className="inline-flex h-9 items-center gap-2 rounded-xl border border-sp-border bg-sp-surface px-3 text-xs font-semibold text-sp-text transition-colors hover:border-sp-accent hover:text-sp-accent"
+                        >
+                          <i className="fa-solid fa-upload text-[12px]" />
+                          上传
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-sp-border bg-sp-muted p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-sp-text">首场图</div>
+                        <p className="mt-1 text-xs leading-5 text-sp-subdued">
+                          玩家进入故事时优先展示，减少首次等待。
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-sp-border bg-sp-surface px-2 py-0.5 text-[11px] text-sp-subdued">
+                        {firstSceneAsset?.status ?? (project.visual.firstScene ? "ready" : "empty")}
+                      </span>
+                    </div>
+                    <div className="mt-4 space-y-4">
+                      <Field label="首场图 URL">
+                        <TextInput
+                          value={project.visual.firstScene || firstSceneAsset?.url || ""}
+                          onChange={(value) => syncAssetToVisual("first-scene", value)}
+                          placeholder="/home/firstscene/example.webp"
+                        />
+                      </Field>
+                      <Field label="首场图生成提示词">
+                        <TextArea
+                          value={firstSceneAsset?.prompt ?? ""}
+                          onChange={(value) => updateAssetSlot("first-scene", { prompt: value })}
+                          placeholder="描述第一眼看到的场景、光线、人物站位和悬念物件。"
+                          rows={3}
+                        />
+                      </Field>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openAssetGenerator({ kind: "first-scene" })}
+                          className="inline-flex h-9 items-center gap-2 rounded-xl border border-sp-border bg-sp-surface px-3 text-xs font-semibold text-sp-text transition-colors hover:border-sp-accent hover:text-sp-accent"
+                        >
+                          <i className="fa-regular fa-image text-[12px]" />
+                          生成首场图
+                        </button>
+                        <input
+                          ref={firstSceneUploadRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(event) => {
+                            void handleAssetUpload({ kind: "first-scene" }, event.target.files?.[0]);
+                            event.currentTarget.value = "";
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => firstSceneUploadRef.current?.click()}
+                          className="inline-flex h-9 items-center gap-2 rounded-xl border border-sp-border bg-sp-surface px-3 text-xs font-semibold text-sp-text transition-colors hover:border-sp-accent hover:text-sp-accent"
+                        >
+                          <i className="fa-solid fa-upload text-[12px]" />
+                          上传
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-sp-border bg-sp-muted p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-sp-text">主体角色参考图</div>
+                      <p className="mt-1 text-xs leading-5 text-sp-subdued">
+                        先锁定主角和核心角色。后续生图 agent 会优先使用这些参考图。
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addCharacter}
+                      className="inline-flex h-9 items-center gap-2 rounded-xl border border-sp-border bg-sp-surface px-3 text-xs font-semibold text-sp-text transition-colors hover:border-sp-accent hover:text-sp-accent"
+                    >
+                      <i className="fa-solid fa-plus text-[10px]" />
+                      新增角色
+                    </button>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {project.characters.length === 0 && (
+                      <div className="rounded-xl border border-dashed border-sp-border bg-sp-surface p-4 text-sm leading-6 text-sp-subdued">
+                        暂无角色。可以手动新增，或用 AI 创作助手生成角色卡后再补参考图。
+                      </div>
+                    )}
+                    {project.characters.map((character) => (
+                      <div key={character.id} className="grid gap-4 rounded-xl border border-sp-border bg-sp-surface p-4 md:grid-cols-[minmax(0,1fr)_160px]">
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <Field label="角色名">
+                            <TextInput
+                              value={character.name}
+                              onChange={(value) => updateCharacter(character.id, { name: value })}
+                              placeholder="角色名"
+                            />
+                          </Field>
+                          <Field label="角色关系">
+                            <TextInput
+                              value={character.relationshipToPlayer}
+                              onChange={(value) => updateCharacter(character.id, { relationshipToPlayer: value })}
+                              placeholder="与玩家/主角的关系"
+                            />
+                          </Field>
+                          <Field label="角色功能 / 性格">
+                            <TextArea
+                              value={character.persona}
+                              onChange={(value) => updateCharacter(character.id, { persona: value })}
+                              placeholder="她在故事里承担什么功能，性格和动机是什么。"
+                              rows={3}
+                            />
+                          </Field>
+                          <Field label="视觉设定">
+                            <TextArea
+                              value={character.visualNotes}
+                              onChange={(value) => updateCharacter(character.id, { visualNotes: value })}
+                              placeholder="外貌、服装、气质、识别点。"
+                              rows={3}
+                            />
+                          </Field>
+                          <Field label="参考图 URL">
+                            <TextInput
+                              value={character.referenceImageUrl}
+                              onChange={(value) => updateCharacter(character.id, { referenceImageUrl: value })}
+                              placeholder="https://..."
+                            />
+                          </Field>
+                          <Field label="参考图生成提示词">
+                            <TextInput
+                              value={character.referenceImagePrompt}
+                              onChange={(value) => updateCharacter(character.id, { referenceImagePrompt: value })}
+                              placeholder="角色立绘或概念图提示词"
+                            />
+                          </Field>
+                        </div>
+                        <div className="flex flex-col justify-between gap-3">
+                          <div className="overflow-hidden rounded-xl border border-sp-border bg-sp-muted">
+                            {character.referenceImageUrl ? (
+                              <img
+                                src={character.referenceImageUrl}
+                                alt=""
+                                className="aspect-[3/4] w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex aspect-[3/4] items-center justify-center text-xs text-sp-subdued">
+                                未绑定参考图
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openAssetGenerator({ kind: "character-reference", characterId: character.id })}
+                            className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-sp-border bg-sp-muted px-3 text-xs font-semibold text-sp-text transition-colors hover:border-sp-accent hover:text-sp-accent"
+                          >
+                            <i className="fa-regular fa-image text-[12px]" />
+                            生成参考图
+                          </button>
+                          <input
+                            ref={(node) => {
+                              characterUploadRefs.current[character.id] = node;
+                            }}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(event) => {
+                              void handleAssetUpload(
+                                { kind: "character-reference", characterId: character.id },
+                                event.target.files?.[0],
+                              );
+                              event.currentTarget.value = "";
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => characterUploadRefs.current[character.id]?.click()}
+                            className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-sp-border bg-sp-muted px-3 text-xs font-semibold text-sp-text transition-colors hover:border-sp-accent hover:text-sp-accent"
+                          >
+                            <i className="fa-solid fa-upload text-[12px]" />
+                            上传
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </Section>
 
@@ -1775,16 +2350,44 @@ export function ProjectEditorClient({
             </Section>
             )}
 
-            <Section title="互动与视觉" description="这些字段会直接影响后续试玩生成策略。">
+            <Section title="互动与视觉策略" description="用明确策略替代笼统互动强度，后续会直接映射到生成、固定剧情包和成本控制。">
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
-                  <div className="text-[11px] font-medium text-sp-subdued">互动强度</div>
+                  <div className="text-[11px] font-medium text-sp-subdued">玩法模式</div>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {intensityOptions.map((option) => (
+                    {playModeOptions.map((option) => (
                       <OptionButton
                         key={option.value}
-                        active={project.interaction.intensity === option.value}
-                        onClick={() => updateInteraction({ intensity: option.value })}
+                        active={project.interaction.playMode === option.value}
+                        onClick={() => updateInteraction({ playMode: option.value })}
+                      >
+                        {option.label}
+                      </OptionButton>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] font-medium text-sp-subdued">选项密度</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {choiceDensityOptions.map((option) => (
+                      <OptionButton
+                        key={option.value}
+                        active={project.interaction.choiceDensity === option.value}
+                        onClick={() => updateInteraction({ choiceDensity: option.value })}
+                      >
+                        {option.label}
+                      </OptionButton>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] font-medium text-sp-subdued">分支策略</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {branchingModeOptions.map((option) => (
+                      <OptionButton
+                        key={option.value}
+                        active={project.interaction.branchingMode === option.value}
+                        onClick={() => updateInteraction({ branchingMode: option.value })}
                       >
                         {option.label}
                       </OptionButton>
@@ -1793,15 +2396,35 @@ export function ProjectEditorClient({
                 </div>
                 <div>
                   <div className="text-[11px] font-medium text-sp-subdued">自由输入</div>
-                  <div className="mt-2">
-                    <OptionButton
-                      active={project.interaction.freeformInput}
-                      onClick={() =>
-                        updateInteraction({ freeformInput: !project.interaction.freeformInput })
-                      }
-                    >
-                      {project.interaction.freeformInput ? "已开启" : "已关闭"}
-                    </OptionButton>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {freeformInputModeOptions.map((option) => (
+                      <OptionButton
+                        key={option.value}
+                        active={project.interaction.freeformInputMode === option.value}
+                        onClick={() =>
+                          updateInteraction({
+                            freeformInputMode: option.value,
+                            freeformInput: option.value !== "off",
+                          })
+                        }
+                      >
+                        {option.label}
+                      </OptionButton>
+                    ))}
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <div className="text-[11px] font-medium text-sp-subdued">视觉生成策略</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {visualGenerationModeOptions.map((option) => (
+                      <OptionButton
+                        key={option.value}
+                        active={project.interaction.visualGenerationMode === option.value}
+                        onClick={() => updateInteraction({ visualGenerationMode: option.value })}
+                      >
+                        {option.label}
+                      </OptionButton>
+                    ))}
                   </div>
                 </div>
                 <Field label="选择风格">
@@ -1820,6 +2443,23 @@ export function ProjectEditorClient({
                     rows={4}
                   />
                 </Field>
+                <div>
+                  <div className="text-[11px] font-medium text-sp-subdued">兼容互动强度</div>
+                  <p className="mt-1 text-xs leading-5 text-sp-subdued">
+                    旧字段仍会保存并进入编译，但后续优先使用上面的具体策略。
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {intensityOptions.map((option) => (
+                      <OptionButton
+                        key={option.value}
+                        active={project.interaction.intensity === option.value}
+                        onClick={() => updateInteraction({ intensity: option.value })}
+                      >
+                        {option.label}
+                      </OptionButton>
+                    ))}
+                  </div>
+                </div>
                 <Field label="视觉风格提示">
                   <TextArea
                     value={project.visual.stylePrompt}
@@ -1831,15 +2471,15 @@ export function ProjectEditorClient({
                 <div className="space-y-5">
                   <Field label="封面路径">
                     <TextInput
-                      value={project.visual.cover}
-                      onChange={(value) => updateVisual({ cover: value })}
+                      value={project.visual.cover || coverAsset?.url || ""}
+                      onChange={(value) => syncAssetToVisual("cover", value)}
                       placeholder="/home/example.webp"
                     />
                   </Field>
                   <Field label="首图路径">
                     <TextInput
-                      value={project.visual.firstScene}
-                      onChange={(value) => updateVisual({ firstScene: value })}
+                      value={project.visual.firstScene || firstSceneAsset?.url || ""}
+                      onChange={(value) => syncAssetToVisual("first-scene", value)}
                       placeholder="/home/firstscene/example.webp"
                     />
                   </Field>
@@ -2366,6 +3006,95 @@ export function ProjectEditorClient({
           setSaveState("idle");
         }}
       />
+    )}
+    {assetGenerator.open && assetGenerator.target && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+        <div className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-sp-border bg-sp-surface shadow-2xl shadow-black/25">
+          <div className="flex items-start justify-between gap-3 border-b border-sp-border p-5">
+            <div>
+              <h2 className="font-serif text-2xl font-semibold text-sp-text">
+                {assetGenerator.target.kind === "cover"
+                  ? "生成封面图"
+                  : assetGenerator.target.kind === "first-scene"
+                    ? "生成首场图"
+                    : "生成角色参考图"}
+              </h2>
+              <p className="mt-1 text-xs leading-5 text-sp-subdued">
+                生成结果会先预览，点击回填后才写入当前草稿。
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={closeAssetGenerator}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-sp-border bg-sp-muted text-sp-subdued hover:border-sp-accent hover:text-sp-accent"
+            >
+              <i className="fa-solid fa-xmark text-[12px]" />
+            </button>
+          </div>
+
+          <div className="grid max-h-[calc(90vh-82px)] gap-5 overflow-y-auto p-5 md:grid-cols-[minmax(0,1fr)_260px]">
+            <div className="space-y-4">
+              <Field label="生成提示词">
+                <TextArea
+                  value={assetGenerator.prompt}
+                  onChange={(value) =>
+                    setAssetGenerator((current) => ({ ...current, prompt: value }))
+                  }
+                  placeholder="描述你想生成的画面。"
+                  rows={10}
+                />
+              </Field>
+              {assetGenerator.error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">
+                  {assetGenerator.error}
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={generateAssetImage}
+                  disabled={assetGenerator.loading || !assetGenerator.prompt.trim()}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-sp-accent px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <i className="fa-solid fa-wand-magic-sparkles text-[12px]" />
+                  {assetGenerator.loading ? "生成中" : "开始生成"}
+                </button>
+                {assetGenerator.resultUrl && (
+                  <button
+                    type="button"
+                    onClick={applyGeneratedAsset}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-sp-border bg-sp-muted px-4 text-sm font-semibold text-sp-text hover:border-sp-accent hover:text-sp-accent"
+                  >
+                    <i className="fa-solid fa-check text-[12px]" />
+                    回填到草稿
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <div className="overflow-hidden rounded-xl border border-sp-border bg-sp-muted">
+                {assetGenerator.resultUrl ? (
+                  <img
+                    src={assetGenerator.resultUrl}
+                    alt=""
+                    className="aspect-[3/4] w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-[3/4] items-center justify-center p-6 text-center text-sm leading-6 text-sp-subdued">
+                    {assetGenerator.loading ? "正在生成图片..." : "生成后会在这里预览"}
+                  </div>
+                )}
+              </div>
+              {assetGenerator.resultUuid && (
+                <div className="mt-2 truncate font-mono text-[11px] text-sp-subdued">
+                  {assetGenerator.resultUuid}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     )}
     </>
   );

@@ -187,11 +187,27 @@ STUDIO_STORE_PROVIDER=file | d1 | supabase
 
 ### Phase 3: Asset Storage
 
-Needed before serious creator workflows.
+Initial local provider implemented for the single-server MVP.
 
-- Store images/audio in R2 or Supabase Storage.
+- Generated/uploaded creator images are stored under `public/studio-assets`.
+- The public URL is `/studio-assets/...`.
+- Docker deployment should mount `/app/public/studio-assets` as a persistent volume.
+- Future production providers should move these objects to Tencent COS, R2, or Supabase Storage.
+- Store images/audio in object storage for multi-instance production.
 - Keep StoryProject fields as asset references, not inline base64.
 - Add cleanup rules for deleted projects and discarded generations.
+
+Current env:
+
+```text
+STUDIO_ASSET_PUBLIC_BASE_URL=/studio-assets
+```
+
+Current local storage code:
+
+```text
+lib/storyProject/assetStorage.ts
+```
 
 ### Phase 4: Publish Bridge
 

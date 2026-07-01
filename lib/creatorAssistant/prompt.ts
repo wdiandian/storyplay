@@ -10,9 +10,9 @@ const actionGuidance: Record<CreatorStoryAssistantAction, string> = {
   "expand-concept":
     "Strengthen the concept, world, genre tags, tone, protagonist position, conflict, mysteries, and visual direction without writing a full story script.",
   "build-outline":
-    "Create or improve the main goal, phase outline, required beats, relationship arc, ending direction, guardrails, and act/scene planning.",
+    "Create or improve the main goal, phase outline, required beats, relationship arc, supporting cast, ending direction, guardrails, and act/scene planning.",
   "create-characters":
-    "Create or improve character cards. Respect locked characters and avoid overwriting creator-authored identity choices.",
+    "Create or improve character cards, relationship positions, visual notes, and image prompts. Respect locked characters and avoid overwriting creator-authored identity choices.",
   "improve-playtest":
     "Use the selected playtest context if present to improve the next testable draft. Focus on clearer setup, player choice quality, pacing, and guardrails.",
 };
@@ -22,10 +22,10 @@ const sectionGuidance = {
   basics: "Focus only on title, logline, synopsis, audience, genres, moods, and tags.",
   world: "Focus only on world setting, rules, tone, and locations.",
   narrative: "Focus only on protagonist, core conflict, key mysteries, chapter goals, and creator notes.",
-  outline: "Focus only on storyOutline and structure.acts/scenes.",
-  characters: "Focus only on characters. Respect locked characters.",
-  interaction: "Focus only on interaction design and choice style.",
-  visual: "Focus only on visual style, first scene visual direction, cover notes, and runtime styleGuide.",
+  outline: "Focus only on storyOutline and structure.acts/scenes, including supporting cast and relationship rails.",
+  characters: "Focus only on characters, character relationships, visual notes, voice notes, and reference image prompts. Respect locked characters.",
+  interaction: "Focus only on concrete play mode, choice density, branching mode, freeform input policy, and choice style.",
+  visual: "Focus only on visual style, asset prompts, first scene visual direction, cover notes, and runtime styleGuide.",
 } as const;
 
 function compactProjectForPrompt(input: CreatorStoryAssistantInput) {
@@ -58,6 +58,16 @@ function compactProjectForPrompt(input: CreatorStoryAssistantInput) {
     storyOutline: project.storyOutline,
     interaction: project.interaction,
     visual: project.visual,
+    assets: project.assets.map((asset) => ({
+      id: asset.id,
+      kind: asset.kind,
+      title: asset.title,
+      url: asset.url,
+      prompt: asset.prompt,
+      status: asset.status,
+      characterId: asset.characterId,
+      notes: asset.notes,
+    })),
     runtimePolicy: {
       orientation: project.runtimePolicy.orientation,
       styleGuide: project.runtimePolicy.styleGuide,
@@ -72,6 +82,9 @@ function compactProjectForPrompt(input: CreatorStoryAssistantInput) {
       relationshipToPlayer: character.relationshipToPlayer,
       visualNotes: character.visualNotes,
       voiceNotes: character.voiceNotes,
+      referenceImageUrl: character.referenceImageUrl,
+      referenceImagePrompt: character.referenceImagePrompt,
+      referenceImageStatus: character.referenceImageStatus,
       locked: character.locked,
     })),
     recentPlaytest: selectedPlaytest
@@ -137,6 +150,7 @@ export function buildCreatorStoryAssistantMessages(
         phaseOutline: "optional string",
         requiredBeats: ["optional strings"],
         relationshipArc: "optional string",
+        supportingCast: "optional string",
         endingDirection: "optional string",
         guardrails: ["optional strings"],
       },
@@ -174,14 +188,33 @@ export function buildCreatorStoryAssistantMessages(
           relationshipToPlayer: "string",
           visualNotes: "string",
           voiceNotes: "string",
+          referenceImageUrl: "optional string",
+          referenceImagePrompt: "optional string",
           locked: false,
+        },
+      ],
+      assets: [
+        {
+          id: "optional existing id only when updating an existing asset",
+          kind: "cover | first-scene | character-reference | style-reference | runtime-scene",
+          title: "optional string",
+          url: "optional string",
+          prompt: "optional string",
+          status: "optional empty | generating | ready | failed",
+          characterId: "optional character id",
+          notes: "optional string",
         },
       ],
       interaction: {
         intensity: "optional light | medium | strong",
+        playMode: "optional read-heavy | choice-driven | free-explore",
+        choiceDensity: "optional low | medium | high",
+        branchingMode: "optional convergent | short-branch | multi-ending",
         choiceStyle: "optional string",
         branchNotes: "optional string",
         freeformInput: "optional boolean",
+        freeformInputMode: "optional off | playtest-only | always",
+        visualGenerationMode: "optional first-scene-only | key-scenes | every-scene",
       },
       visual: {
         stylePrompt: "optional string",

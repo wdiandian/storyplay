@@ -32,7 +32,11 @@ users.md
 
 pitch/
 
-# OpenDeploy-only build with hardcoded public proxy URL — local, never commit
+# Runtime-generated creator assets. Keep only source code and docs in git.
+public/studio-assets/*
+!public/studio-assets/.gitkeep
+
+# OpenDeploy-only build with hardcoded public proxy URL - local, never commit
 # (a public fork would route image traffic through our Cloudflare Worker).
 Dockerfile.opendeploy
 

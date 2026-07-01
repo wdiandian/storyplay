@@ -2,6 +2,7 @@ import type {
   StoryProject,
   StoryProjectAct,
   StoryProjectAudience,
+  StoryProjectAsset,
   StoryProjectCharacter,
   StoryProjectLanguage,
   StoryProjectScene,
@@ -54,6 +55,11 @@ export type CreatorStoryAssistantCharacterPatch =
     source?: "ai-generated";
   };
 
+export type CreatorStoryAssistantAssetPatch =
+  Partial<Omit<StoryProjectAsset, "source">> & {
+    source?: "ai-generated" | "generated" | "uploaded";
+  };
+
 export type CreatorStoryAssistantScenePatch =
   Partial<Omit<StoryProjectScene, "source" | "lastPlaytest">> & {
     source?: "ai-generated";
@@ -82,6 +88,7 @@ export type StoryProjectPatch = {
     selectedSceneId?: string;
   };
   characters?: CreatorStoryAssistantCharacterPatch[];
+  assets?: CreatorStoryAssistantAssetPatch[];
   interaction?: Partial<StoryProject["interaction"]>;
   visual?: Partial<StoryProject["visual"]>;
   runtimePolicy?: Pick<Partial<StoryProject["runtimePolicy"]>, "orientation" | "styleGuide">;

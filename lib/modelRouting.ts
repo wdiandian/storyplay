@@ -84,6 +84,9 @@ const DEFAULT_ROUTE_PROFILES: Record<ModelScenario, ModelRouteProfiles> = {
   "studio-assistant": {
     text: "text-main",
   },
+  "studio-asset-image": {
+    image: "image-character",
+  },
 };
 
 function readOptionalVar(name: string): string | undefined {

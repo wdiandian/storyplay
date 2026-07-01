@@ -26,6 +26,7 @@ export function renderStoryOutlineGuardrail(project: StoryProject) {
     trim(outline.phaseOutline) ? `阶段大纲：\n${outline.phaseOutline}` : "",
     outline.requiredBeats.length ? `必达剧情节点：\n${listItems(outline.requiredBeats)}` : "",
     trim(outline.relationshipArc) ? `角色关系走向：${outline.relationshipArc}` : "",
+    trim(outline.supportingCast) ? `配角与阵营：${outline.supportingCast}` : "",
     trim(outline.endingDirection) ? `结局方向：${outline.endingDirection}` : "",
     outline.guardrails.length ? `禁止跑偏：\n${listItems(outline.guardrails)}` : "",
     "无论玩家如何选择或自由输入，后续剧情都必须围绕以上大纲推进；可以改变过程、顺序和细节，但不要脱离主线目标和结局方向。",

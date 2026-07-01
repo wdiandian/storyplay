@@ -1,15 +1,18 @@
 import {
   createStoryProjectAct,
+  createStoryProjectAsset,
   createStoryProjectCharacter,
   createStoryProjectScene,
   normalizeStoryProject,
   type StoryProject,
   type StoryProjectAct,
+  type StoryProjectAsset,
   type StoryProjectCharacter,
   type StoryProjectScene,
 } from "@/lib/storyProject/types";
 import type {
   CreatorStoryAssistantActPatch,
+  CreatorStoryAssistantAssetPatch,
   CreatorStoryAssistantCharacterPatch,
   CreatorStoryAssistantScenePatch,
   StoryProjectPatch,
@@ -105,11 +108,65 @@ function mergeCharacters(
       relationshipToPlayer: stringPatch(patch.relationshipToPlayer, existing?.relationshipToPlayer ?? ""),
       visualNotes: stringPatch(patch.visualNotes, existing?.visualNotes ?? ""),
       voiceNotes: stringPatch(patch.voiceNotes, existing?.voiceNotes ?? ""),
+      referenceImageUrl: stringPatch(patch.referenceImageUrl, existing?.referenceImageUrl ?? ""),
+      referenceImagePrompt: stringPatch(patch.referenceImagePrompt, existing?.referenceImagePrompt ?? ""),
+      referenceImageSource: existing?.referenceImageSource ?? "ai-generated",
+      referenceImageStatus:
+        patch.referenceImageStatus === "empty" ||
+        patch.referenceImageStatus === "generating" ||
+        patch.referenceImageStatus === "ready" ||
+        patch.referenceImageStatus === "failed"
+          ? patch.referenceImageStatus
+          : existing?.referenceImageStatus,
       source: existing?.source ?? "ai-generated",
       locked: patch.locked ?? existing?.locked ?? false,
     });
 
     if (!next.name) continue;
+    if (existingIndex >= 0) {
+      merged[existingIndex] = next;
+    } else {
+      merged.push(next);
+    }
+  }
+
+  return merged;
+}
+
+function mergeAssets(
+  currentAssets: StoryProjectAsset[],
+  incomingAssets: CreatorStoryAssistantAssetPatch[] | undefined,
+): StoryProjectAsset[] {
+  if (!incomingAssets || incomingAssets.length === 0) return currentAssets;
+
+  const merged = [...currentAssets];
+  for (const patch of incomingAssets) {
+    const existingIndex = merged.findIndex((asset) =>
+      (patch.id && asset.id === patch.id) ||
+      (!!patch.kind && asset.kind === patch.kind && (patch.characterId ?? "") === asset.characterId)
+    );
+    const existing = existingIndex >= 0 ? merged[existingIndex] : undefined;
+    const next = createStoryProjectAsset({
+      ...existing,
+      id: existing?.id,
+      kind: patch.kind ?? existing?.kind,
+      title: stringPatch(patch.title, existing?.title ?? ""),
+      url: stringPatch(patch.url, existing?.url ?? ""),
+      prompt: stringPatch(patch.prompt, existing?.prompt ?? ""),
+      source: existing?.source ?? patch.source ?? "ai-generated",
+      status:
+        patch.status === "empty" ||
+        patch.status === "generating" ||
+        patch.status === "ready" ||
+        patch.status === "failed"
+          ? patch.status
+          : existing?.status,
+      characterId: stringPatch(patch.characterId, existing?.characterId ?? ""),
+      provider: stringPatch(patch.provider, existing?.provider ?? ""),
+      model: stringPatch(patch.model, existing?.model ?? ""),
+      notes: stringPatch(patch.notes, existing?.notes ?? ""),
+    });
+
     if (existingIndex >= 0) {
       merged[existingIndex] = next;
     } else {
@@ -167,10 +224,12 @@ export function mergeCreatorStoryAssistantPatch(
       phaseOutline: stringPatch(patch.storyOutline?.phaseOutline, project.storyOutline.phaseOutline),
       requiredBeats: stringArrayPatch(patch.storyOutline?.requiredBeats, project.storyOutline.requiredBeats),
       relationshipArc: stringPatch(patch.storyOutline?.relationshipArc, project.storyOutline.relationshipArc),
+      supportingCast: stringPatch(patch.storyOutline?.supportingCast, project.storyOutline.supportingCast),
       endingDirection: stringPatch(patch.storyOutline?.endingDirection, project.storyOutline.endingDirection),
       guardrails: stringArrayPatch(patch.storyOutline?.guardrails, project.storyOutline.guardrails),
     },
     characters: mergeCharacters(project.characters, patch.characters),
+    assets: mergeAssets(project.assets, patch.assets),
     interaction: {
       ...project.interaction,
       intensity:
@@ -179,11 +238,41 @@ export function mergeCreatorStoryAssistantPatch(
         patch.interaction?.intensity === "strong"
           ? patch.interaction.intensity
           : project.interaction.intensity,
+      playMode:
+        patch.interaction?.playMode === "read-heavy" ||
+        patch.interaction?.playMode === "choice-driven" ||
+        patch.interaction?.playMode === "free-explore"
+          ? patch.interaction.playMode
+          : project.interaction.playMode,
+      choiceDensity:
+        patch.interaction?.choiceDensity === "low" ||
+        patch.interaction?.choiceDensity === "medium" ||
+        patch.interaction?.choiceDensity === "high"
+          ? patch.interaction.choiceDensity
+          : project.interaction.choiceDensity,
+      branchingMode:
+        patch.interaction?.branchingMode === "convergent" ||
+        patch.interaction?.branchingMode === "short-branch" ||
+        patch.interaction?.branchingMode === "multi-ending"
+          ? patch.interaction.branchingMode
+          : project.interaction.branchingMode,
       choiceStyle: stringPatch(patch.interaction?.choiceStyle, project.interaction.choiceStyle),
       branchNotes: stringPatch(patch.interaction?.branchNotes, project.interaction.branchNotes),
       freeformInput: hasOwn(patch.interaction ?? {}, "freeformInput")
         ? Boolean(patch.interaction?.freeformInput)
         : project.interaction.freeformInput,
+      freeformInputMode:
+        patch.interaction?.freeformInputMode === "off" ||
+        patch.interaction?.freeformInputMode === "playtest-only" ||
+        patch.interaction?.freeformInputMode === "always"
+          ? patch.interaction.freeformInputMode
+          : project.interaction.freeformInputMode,
+      visualGenerationMode:
+        patch.interaction?.visualGenerationMode === "first-scene-only" ||
+        patch.interaction?.visualGenerationMode === "key-scenes" ||
+        patch.interaction?.visualGenerationMode === "every-scene"
+          ? patch.interaction.visualGenerationMode
+          : project.interaction.visualGenerationMode,
     },
     visual: {
       ...project.visual,

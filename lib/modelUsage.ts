@@ -14,7 +14,8 @@ export type OfficialModelFeature =
   | "insert-beat"
   | "parse-style-image"
   | "beat-audio"
-  | "studio-assistant";
+  | "studio-assistant"
+  | "studio-asset-image";
 
 type UsageStatus = "success" | "error";
 
@@ -44,6 +45,7 @@ export const OFFICIAL_CREDIT_PRICE: Record<OfficialModelFeature, number> = {
   "parse-style-image": 1,
   "beat-audio": 1,
   "studio-assistant": 5,
+  "studio-asset-image": 8,
 };
 
 export function officialCreditPrice(

@@ -72,6 +72,9 @@ export function diagnoseStoryProjectLocally(project: StoryProject): CreatorStory
   if (project.storyOutline.guardrails.length === 0) {
     suggestions.push(info("storyOutline.guardrails", "建议补禁止跑偏规则，例如不要突然换题材、不要杀死关键角色。"));
   }
+  if (!hasText(project.storyOutline.supportingCast)) {
+    suggestions.push(info("storyOutline.supportingCast", "建议补配角、阵营和关系网，方便后续剧情围绕人物关系推进。"));
+  }
 
   if (project.characters.length === 0) {
     suggestions.push(warning("characters", "当前没有角色卡。至少建议补主角和一个关键关系角色。"));
@@ -83,18 +86,35 @@ export function diagnoseStoryProjectLocally(project: StoryProject): CreatorStory
     if (emptyCharacters.length > 0) {
       suggestions.push(info("characters", `${emptyCharacters.length} 个角色缺少人格或关系定位，建议补齐后再试玩。`));
     }
+    const missingRefs = project.characters.filter((character) =>
+      character.role !== "temporary" && !hasText(character.referenceImageUrl)
+    );
+    if (missingRefs.length > 0) {
+      suggestions.push(info("characters.referenceImageUrl", `${missingRefs.length} 个核心角色还没有参考图，后续场景图的一致性会偏弱。`));
+    }
   }
 
   if (!hasText(project.visual.stylePrompt) && !hasText(project.runtimePolicy.styleGuide)) {
     suggestions.push(info("visual.stylePrompt", "建议补视觉风格，避免首图和后续背景图风格漂移。"));
   }
+  if (!hasText(project.visual.cover) && !project.assets.some((asset) => asset.kind === "cover" && hasText(asset.url))) {
+    suggestions.push(info("assets.cover", "建议提前准备封面图，发布到首页时会更完整。"));
+  }
+  if (!hasText(project.visual.firstScene) && !project.assets.some((asset) => asset.kind === "first-scene" && hasText(asset.url))) {
+    suggestions.push(info("assets.firstScene", "建议提前准备首场图，能减少首次游玩的等待和视觉漂移。"));
+  }
 
-  if (project.openingPackage.status === "empty") {
-    suggestions.push(info("openingPackage", "当前未启用固定首场。MVP 可先依赖模型生成首场，但上线前建议补固定开场以稳定首屏体验。"));
+  if (project.fixedRuntimePackages.length === 0) {
+    suggestions.push(info("fixedRuntimePackages", "后续试玩满意后可固定成剧情包，让正式用户优先体验已生成内容，降低模型成本。"));
   }
 
   if (!project.interaction.choiceStyle.trim()) {
     patch.interaction = {
+      playMode: "choice-driven",
+      choiceDensity: "medium",
+      branchingMode: "convergent",
+      freeformInputMode: "playtest-only",
+      visualGenerationMode: "key-scenes",
       choiceStyle: "关键选择推动剧情，普通选择用于探索关系、线索和情绪变化。",
     };
     patchNotes.push({
