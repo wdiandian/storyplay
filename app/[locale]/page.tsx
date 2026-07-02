@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { StartRequest } from "@storyplay/types";
+import type { PublishedFixedRuntimePackage } from "@/lib/storyProject/fixedRuntime";
 import type { PublishedOpeningPackage } from "@/lib/storyProject/openingPackage";
+import type { StoryProject } from "@/lib/storyProject/types";
 import { track } from "@/lib/analytics";
 import {
   ART_STYLES,
@@ -147,6 +149,8 @@ type FeaturedCard = {
   sourceProjectId?: string;
   startRequest?: StartRequest;
   openingPackage?: PublishedOpeningPackage;
+  fixedRuntimePackage?: PublishedFixedRuntimePackage;
+  interactionPolicy?: StoryProject["interaction"];
 };
 
 // D1 featured API 的响应行（与 lib/db/schema.ts FeaturedStory 对应的线上子集）。
@@ -167,6 +171,8 @@ type FeaturedStoryRow = {
   sourceProjectId?: string;
   startRequest?: StartRequest;
   openingPackage?: PublishedOpeningPackage;
+  fixedRuntimePackage?: PublishedFixedRuntimePackage;
+  interactionPolicy?: StoryProject["interaction"];
 };
 
 const HOME_COVER_VERSION = "20260629c";
@@ -205,6 +211,8 @@ function rowToFeaturedCard(row: FeaturedStoryRow): FeaturedCard {
     sourceProjectId: row.sourceProjectId,
     startRequest: row.startRequest,
     openingPackage: row.openingPackage,
+    fixedRuntimePackage: row.fixedRuntimePackage,
+    interactionPolicy: row.interactionPolicy,
   };
 }
 
@@ -1985,6 +1993,8 @@ export default function HomePage() {
           projectId: card.sourceProjectId,
           projectTitle: card.title,
           openingPackage: card.openingPackage,
+          fixedRuntimePackage: card.fixedRuntimePackage,
+          interactionPolicy: card.interactionPolicy,
         }),
       );
       track("game_start", {

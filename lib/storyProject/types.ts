@@ -1,3 +1,5 @@
+import type { SceneHistoryEntry, StoryState } from "@storyplay/types";
+
 export type StoryProjectAudience = "male" | "female" | "universal";
 export type StoryProjectStatus = "draft" | "playtest" | "published" | "archived";
 export type StoryProjectLanguage = "zh-CN" | "en" | "ja";
@@ -83,6 +85,8 @@ export type StoryProjectPlaytestRecord = {
   firstSceneImageUrl: string;
   sceneCount: number;
   characterCount: number;
+  recordedHistory: SceneHistoryEntry[];
+  finalStoryState?: StoryState;
   notes: string;
 };
 
@@ -197,6 +201,8 @@ export type StoryProjectFixedRuntimePackage = {
   sceneCount: number;
   beatCount: number;
   imageCount: number;
+  history: SceneHistoryEntry[];
+  storyState?: StoryState;
   shareEnabled: boolean;
   createdAt: string;
   updatedAt: string;
@@ -312,6 +318,27 @@ function sanitizeStringArray(value: unknown, fallback: string[] = []) {
     .filter((item): item is string => typeof item === "string")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function sanitizeRecordedHistory(value: unknown): SceneHistoryEntry[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is SceneHistoryEntry => {
+    if (!entry || typeof entry !== "object") return false;
+    const candidate = entry as Partial<SceneHistoryEntry>;
+    return Boolean(
+      candidate.scene &&
+        typeof candidate.scene === "object" &&
+        typeof candidate.scene.id === "string" &&
+        Array.isArray(candidate.scene.beats) &&
+        typeof candidate.scene.entryBeatId === "string" &&
+        Array.isArray(candidate.visitedBeatIds),
+    );
+  });
+}
+
+function sanitizeStoryState(value: unknown): StoryState | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  return value as StoryState;
 }
 
 function createId(prefix: string) {
@@ -526,6 +553,8 @@ function createStoryProjectFixedRuntimePackage(
     sceneCount: Number.isFinite(input.sceneCount) ? Math.max(0, Math.floor(input.sceneCount!)) : 0,
     beatCount: Number.isFinite(input.beatCount) ? Math.max(0, Math.floor(input.beatCount!)) : 0,
     imageCount: Number.isFinite(input.imageCount) ? Math.max(0, Math.floor(input.imageCount!)) : 0,
+    history: sanitizeRecordedHistory(input.history),
+    storyState: sanitizeStoryState(input.storyState),
     shareEnabled: Boolean(input.shareEnabled),
     createdAt: isNonEmptyString(input.createdAt) ? input.createdAt : now,
     updatedAt: isNonEmptyString(input.updatedAt) ? input.updatedAt : now,
@@ -690,6 +719,8 @@ function normalizePlaytestRecord(record: StoryProjectPlaytestRecord): StoryProje
     firstSceneImageUrl: sanitizeString(record.firstSceneImageUrl),
     sceneCount: Number.isFinite(record.sceneCount) ? Math.max(0, Math.floor(record.sceneCount)) : 0,
     characterCount: Number.isFinite(record.characterCount) ? Math.max(0, Math.floor(record.characterCount)) : 0,
+    recordedHistory: sanitizeRecordedHistory(record.recordedHistory),
+    finalStoryState: sanitizeStoryState(record.finalStoryState),
     notes: sanitizeString(record.notes),
   };
 }

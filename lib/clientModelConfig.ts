@@ -12,6 +12,7 @@ const VALID_PROTOCOLS: ProviderProtocol[] = [
   "openai_compatible",
   "openai",
   "runware",
+  "openrouter_image",
 ];
 
 export type StoredModelConfig = {

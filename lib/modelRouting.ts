@@ -53,6 +53,7 @@ const VALID_PROTOCOLS = [
   "openai_compatible",
   "openai",
   "runware",
+  "openrouter_image",
 ] as const;
 
 const DEFAULT_ROUTE_PROFILES: Record<ModelScenario, ModelRouteProfiles> = {
@@ -229,6 +230,10 @@ export function loadEngineConfigForScenario(
         lite: resolveTextConfig(base, "text-lite"),
       },
       image: imageProfile ? resolveImageConfig(base, imageProfile) : base.image,
+      imageProfiles: {
+        scene: resolveImageConfig(base, "image-scene"),
+        character: resolveImageConfig(base, "image-character"),
+      },
       vision: visionProfile ? resolveVisionConfig(base, visionProfile) : base.vision,
       tts: ttsProfile ? applyTtsProfile(base.tts, ttsProfile) : base.tts,
     },

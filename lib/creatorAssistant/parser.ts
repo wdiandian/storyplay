@@ -42,6 +42,31 @@ function cleanSuggestion(value: unknown): CreatorStoryAssistantSuggestion | unde
   return { severity, field, message };
 }
 
+function cleanAssetPatch(value: unknown): NonNullable<StoryProjectPatch["assets"]>[number] {
+  const item = objectValue(value);
+  const clean: NonNullable<StoryProjectPatch["assets"]>[number] = {};
+  const id = stringValue(item.id);
+  const title = stringValue(item.title);
+  const prompt = stringValue(item.prompt);
+  const characterId = stringValue(item.characterId);
+  const notes = stringValue(item.notes);
+  if (id) clean.id = id;
+  if (
+    item.kind === "cover" ||
+    item.kind === "first-scene" ||
+    item.kind === "character-reference" ||
+    item.kind === "style-reference" ||
+    item.kind === "runtime-scene"
+  ) {
+    clean.kind = item.kind;
+  }
+  if (title) clean.title = title;
+  if (prompt) clean.prompt = prompt;
+  if (characterId) clean.characterId = characterId;
+  if (notes) clean.notes = notes;
+  return clean;
+}
+
 function cleanPatch(rawPatch: unknown): StoryProjectPatch {
   const patch = objectValue(rawPatch);
   const clean: StoryProjectPatch = {};
@@ -78,6 +103,10 @@ function cleanPatch(rawPatch: unknown): StoryProjectPatch {
 
   if (Array.isArray(patch.characters)) {
     clean.characters = patch.characters.map((character) => objectValue(character));
+  }
+
+  if (Array.isArray(patch.assets)) {
+    clean.assets = patch.assets.map(cleanAssetPatch);
   }
 
   return clean;

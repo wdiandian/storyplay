@@ -19,11 +19,12 @@ const actionGuidance: Record<CreatorStoryAssistantAction, string> = {
 
 const sectionGuidance = {
   project: "You may suggest improvements across the whole StoryProject.",
-  basics: "Focus only on title, logline, synopsis, audience, genres, moods, and tags.",
+  basics: "Focus only on title, synopsis, audience, genres, moods, tags, narrative.protagonist, and narrative.coreConflict. In the current editor, these fields form the basic positioning section.",
   world: "Focus only on world setting, rules, tone, and locations.",
   narrative: "Focus only on protagonist, core conflict, key mysteries, chapter goals, and creator notes.",
-  outline: "Focus only on storyOutline and structure.acts/scenes, including supporting cast and relationship rails.",
+  outline: "Focus only on logline, storyOutline, and structure.acts/scenes, including supporting cast and relationship rails. In the current editor, logline is treated as the core promise of the story blueprint.",
   characters: "Focus only on characters, character relationships, visual notes, voice notes, and reference image prompts. Respect locked characters.",
+  assets: "Focus only on asset prompts and metadata for cover, first-scene, character-reference, style-reference, and runtime-scene assets. Only provide id, kind, title, prompt, characterId, and notes. Never provide url, status, provider, model, key, or generated image identifiers.",
   interaction: "Focus only on concrete play mode, choice density, branching mode, freeform input policy, and choice style.",
   visual: "Focus only on visual style, asset prompts, first scene visual direction, cover notes, and runtime styleGuide.",
 } as const;
@@ -198,9 +199,7 @@ export function buildCreatorStoryAssistantMessages(
           id: "optional existing id only when updating an existing asset",
           kind: "cover | first-scene | character-reference | style-reference | runtime-scene",
           title: "optional string",
-          url: "optional string",
           prompt: "optional string",
-          status: "optional empty | generating | ready | failed",
           characterId: "optional character id",
           notes: "optional string",
         },
@@ -243,6 +242,7 @@ export function buildCreatorStoryAssistantMessages(
     targetSection: input.targetSection ?? "project",
     sectionGuidance: sectionGuidance[input.targetSection ?? "project"],
     creatorInstruction: input.userInstruction ?? "",
+    recentConversation: (input.conversation ?? []).slice(-8),
     locale: input.locale,
     outputSchema: schema,
     project: compactProjectForPrompt(input),

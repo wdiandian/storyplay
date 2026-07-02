@@ -1,4 +1,5 @@
 import { compileStoryProjectToStartRequest } from "@/lib/storyProject/compiler";
+import { publishFixedRuntimePackage, selectPublishedFixedRuntimePackage } from "@/lib/storyProject/fixedRuntime";
 import { compileOpeningPackage } from "@/lib/storyProject/openingPackage";
 import type { StoryProject } from "@/lib/storyProject/types";
 import type { StorySku, StorySkuGender } from "@/lib/storySku/manifest";
@@ -28,6 +29,7 @@ export function createStorySkuIdFromProject(project: StoryProject) {
 export function buildStorySkuFromProject(project: StoryProject): StoryProjectPublishBuild {
   const build = compileStoryProjectToStartRequest(project);
   const openingPackage = compileOpeningPackage(project);
+  const fixedRuntimePackage = publishFixedRuntimePackage(selectPublishedFixedRuntimePackage(project));
   const now = new Date().toISOString();
   const skuId = createStorySkuIdFromProject(project);
   const tags = uniqueStrings([...project.genres, ...project.moods, ...project.tags]);
@@ -61,9 +63,16 @@ export function buildStorySkuFromProject(project: StoryProject): StoryProjectPub
       },
       firstAct: {},
       runtimeSummary: {
-        sceneKey: openingPackage?.scene.sceneKey,
-        beatsCount: openingPackage?.scene.beats.length ?? 0,
-        choicesCount: openingPackage?.scene.beats.reduce(
+        sceneKey: fixedRuntimePackage?.history[0]?.scene.sceneKey ?? openingPackage?.scene.sceneKey,
+        beatsCount: fixedRuntimePackage?.beatCount ?? openingPackage?.scene.beats.length ?? 0,
+        choicesCount: fixedRuntimePackage?.history.reduce(
+          (sum, entry) =>
+            sum + entry.scene.beats.reduce(
+              (beatSum, beat) => beatSum + (beat.next.type === "choice" ? beat.next.choices.length : 0),
+              0,
+            ),
+          0,
+        ) ?? openingPackage?.scene.beats.reduce(
           (sum, beat) => sum + (beat.next.type === "choice" ? beat.next.choices.length : 0),
           0,
         ) ?? 0,
@@ -78,6 +87,8 @@ export function buildStorySkuFromProject(project: StoryProject): StoryProjectPub
           skuId,
         },
         openingPackage,
+        fixedRuntimePackage,
+        interactionPolicy: project.interaction,
         sourceActId: build.sourceActId,
         sourceSceneId: build.sourceSceneId,
         publishedAt: now,

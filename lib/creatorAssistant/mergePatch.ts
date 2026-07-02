@@ -151,19 +151,13 @@ function mergeAssets(
       id: existing?.id,
       kind: patch.kind ?? existing?.kind,
       title: stringPatch(patch.title, existing?.title ?? ""),
-      url: stringPatch(patch.url, existing?.url ?? ""),
+      url: existing?.url ?? "",
       prompt: stringPatch(patch.prompt, existing?.prompt ?? ""),
       source: existing?.source ?? patch.source ?? "ai-generated",
-      status:
-        patch.status === "empty" ||
-        patch.status === "generating" ||
-        patch.status === "ready" ||
-        patch.status === "failed"
-          ? patch.status
-          : existing?.status,
+      status: existing?.status,
       characterId: stringPatch(patch.characterId, existing?.characterId ?? ""),
-      provider: stringPatch(patch.provider, existing?.provider ?? ""),
-      model: stringPatch(patch.model, existing?.model ?? ""),
+      provider: existing?.provider ?? "",
+      model: existing?.model ?? "",
       notes: stringPatch(patch.notes, existing?.notes ?? ""),
     });
 

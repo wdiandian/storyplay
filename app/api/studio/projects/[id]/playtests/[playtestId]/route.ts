@@ -3,6 +3,7 @@ import {
   getStoredStoryProject,
   saveStoredStoryProject,
 } from "@/lib/storyProject/store";
+import type { SceneHistoryEntry, StoryState } from "@storyplay/types";
 import type { StoryProjectPlaytestRecord, StoryProjectPlaytestStatus } from "@/lib/storyProject/types";
 
 export const runtime = "nodejs";
@@ -20,6 +21,8 @@ type PlaytestResultPayload = {
   firstSceneImageUrl?: string;
   sceneCount?: number;
   characterCount?: number;
+  recordedHistory?: SceneHistoryEntry[];
+  finalStoryState?: StoryState;
   notes?: string;
 };
 
@@ -33,6 +36,29 @@ function sanitizeString(value: unknown) {
 
 function sanitizeCount(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+}
+
+function sanitizeRecordedHistory(value: unknown): SceneHistoryEntry[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value
+    .filter((entry): entry is SceneHistoryEntry => {
+      if (!entry || typeof entry !== "object") return false;
+      const candidate = entry as Partial<SceneHistoryEntry>;
+      return Boolean(
+        candidate.scene &&
+          typeof candidate.scene === "object" &&
+          typeof candidate.scene.id === "string" &&
+          Array.isArray(candidate.scene.beats) &&
+          typeof candidate.scene.entryBeatId === "string" &&
+          Array.isArray(candidate.visitedBeatIds),
+      );
+    })
+    .slice(0, 20);
+}
+
+function sanitizeStoryState(value: unknown): StoryState | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  return value as StoryState;
 }
 
 function sanitizeStatus(value: unknown): StoryProjectPlaytestStatus {
@@ -71,6 +97,8 @@ export async function PATCH(req: Request, context: ProjectPlaytestResultRouteCon
     sceneCount: payload.sceneCount === undefined ? current.sceneCount : sanitizeCount(payload.sceneCount),
     characterCount:
       payload.characterCount === undefined ? current.characterCount : sanitizeCount(payload.characterCount),
+    recordedHistory: sanitizeRecordedHistory(payload.recordedHistory) ?? current.recordedHistory,
+    finalStoryState: sanitizeStoryState(payload.finalStoryState) ?? current.finalStoryState,
     notes: sanitizeString(payload.notes) || current.notes,
   };
   nextPlaytests[playtestIndex] = updatedPlaytest;

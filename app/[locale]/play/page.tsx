@@ -51,10 +51,13 @@ import type {
   SceneResponse,
   Session,
   StartResponse,
+  StoryState,
   TtsConfig,
   TtsProvider,
 } from "@storyplay/types";
+import type { PublishedFixedRuntimePackage } from "@/lib/storyProject/fixedRuntime";
 import type { PublishedOpeningPackage } from "@/lib/storyProject/openingPackage";
+import type { StoryProject } from "@/lib/storyProject/types";
 import { track } from "@/lib/analytics";
 import { AUTH_ENABLED } from "@/lib/supabase/config";
 import { writeResumeSnapshot, consumeResumeSnapshot } from "@/lib/authResume";
@@ -102,6 +105,27 @@ type PlayResumeSnapshot = {
   imageOriginalUrl: string;
   pendingAction?: PendingResumeAction;
 };
+
+type PlayInteractionPolicy = Pick<
+  StoryProject["interaction"],
+  "freeformInputMode" | "visualGenerationMode" | "choiceDensity" | "branchingMode" | "playMode"
+>;
+
+type StoryProjectPlaytestContext = {
+  projectId: string;
+  playtestId: string;
+  projectTitle: string;
+};
+
+function isFreeformAllowedByPolicy(
+  policy: PlayInteractionPolicy | undefined,
+  context: "playtest" | "published" | "direct",
+) {
+  if (!policy) return true;
+  if (policy.freeformInputMode === "off") return false;
+  if (policy.freeformInputMode === "playtest-only") return context === "playtest";
+  return true;
+}
 
 // Consecutive silent (no-audio) beats before we surface the BYO-key nudge to a
 // non-BYO, unmuted player. Set high enough that one transient miss won't trip
@@ -664,6 +688,10 @@ function PlayInner() {
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [visionClickEnabled, setVisionClickEnabled] = useState(() => readStoredVisionClick());
+  const [interactionPolicy, setInteractionPolicy] = useState<PlayInteractionPolicy | undefined>(undefined);
+  const [playContext, setPlayContext] = useState<"playtest" | "published" | "direct">("direct");
+  const storyProjectPlaytestRef = useRef<StoryProjectPlaytestContext | null>(null);
+  const playtestWriteBackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const authResolveRef = useRef<(() => void) | null>(null);
   // Serializable description of the action that hit the 401 (choice / freeform
@@ -849,6 +877,72 @@ function PlayInner() {
     imageReadyResolverRef.current?.();
   }, []);
 
+  function snapshotSessionForPlaytest(sessionValue: Session) {
+    const history = sessionValue.history.map((entry, index, entries) =>
+      index === entries.length - 1
+        ? { ...entry, visitedBeatIds: [...visitedBeatsRef.current] }
+        : entry,
+    );
+    return {
+      history,
+      storyState: sessionValue.storyState as StoryState | undefined,
+    };
+  }
+
+  function writeBackPlaytestSnapshot(
+    sessionValue: Session,
+    options: {
+      status?: "started" | "completed";
+      summary?: string;
+      notes?: string;
+      delayMs?: number;
+    } = {},
+  ) {
+    const context = storyProjectPlaytestRef.current;
+    if (!context) return;
+    if (playtestWriteBackTimerRef.current) {
+      clearTimeout(playtestWriteBackTimerRef.current);
+      playtestWriteBackTimerRef.current = null;
+    }
+
+    const run = () => {
+      const snapshot = snapshotSessionForPlaytest(sessionValue);
+      const firstHistory = snapshot.history[0];
+      void fetch(
+        `/api/studio/projects/${encodeURIComponent(context.projectId)}/playtests/${encodeURIComponent(context.playtestId)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: options.status ?? "started",
+            sessionId: sessionValue.id,
+            summary:
+              options.summary ||
+              sessionValue.storyState?.synopsis ||
+              firstHistory?.scene.scenePrompt ||
+              context.projectTitle,
+            firstSceneId: firstHistory?.scene.id || "",
+            firstSceneKey: firstHistory?.scene.sceneKey || "",
+            firstSceneImageUrl: firstHistory?.scene.imageUrl || "",
+            sceneCount: snapshot.history.length,
+            characterCount: sessionValue.characters.length,
+            recordedHistory: snapshot.history,
+            finalStoryState: snapshot.storyState,
+            notes: options.notes || "试玩记录已回收，可用于固定剧情包。",
+          }),
+        },
+      ).catch((error) => {
+        console.warn("[playtest] failed to write back playtest result", error);
+      });
+    };
+
+    if (options.delayMs && options.delayMs > 0) {
+      playtestWriteBackTimerRef.current = setTimeout(run, options.delayMs);
+    } else {
+      run();
+    }
+  }
+
   const currentBeat = useMemo<Beat | null>(() => {
     if (!currentScene || !currentBeatId) return null;
     return currentScene.beats.find((b) => b.id === currentBeatId) ?? null;
@@ -953,6 +1047,11 @@ function PlayInner() {
     visitedBeatsRef.current = [...visitedBeatsRef.current, currentBeatId];
     setSession((s) => {
       if (!s) return s;
+      writeBackPlaytestSnapshot(s, {
+        status: "started",
+        notes: "试玩路径已更新，可固定为剧情包。",
+        delayMs: 1200,
+      });
       return {
         ...s,
         history: s.history.map((h, i, arr) =>
@@ -1672,14 +1771,11 @@ function PlayInner() {
       playerName?: string;
       language?: string;
       openingPackage?: PublishedOpeningPackage;
+      fixedRuntimePackage?: PublishedFixedRuntimePackage;
+      interactionPolicy?: PlayInteractionPolicy;
+      playContext?: "playtest" | "published" | "direct";
     } | null = null;
-    let storyProjectPlaytest: {
-      projectId: string;
-      playtestId: string;
-      projectTitle?: string;
-      sourceActId?: string;
-      sourceSceneId?: string;
-    } | null = null;
+    let storyProjectPlaytest: StoryProjectPlaytestContext | null = null;
     if (!cardName) {
       if (presetId) {
         const p = PRESETS.find((x) => x.id === presetId);
@@ -1702,7 +1798,14 @@ function PlayInner() {
               sourceActId?: string;
               sourceSceneId?: string;
               openingPackage?: PublishedOpeningPackage;
+              fixedRuntimePackage?: PublishedFixedRuntimePackage;
+              interactionPolicy?: PlayInteractionPolicy;
             };
+            const playContext = parsed.playtestId
+              ? "playtest"
+              : parsed.source === "creator-sku"
+                ? "published"
+                : "direct";
             livePayload = {
               worldSetting: parsed.worldSetting,
               styleGuide: parsed.styleGuide,
@@ -1710,15 +1813,21 @@ function PlayInner() {
               playerName: parsed.playerName || undefined,
               language: locale,
               openingPackage: parsed.openingPackage,
+              fixedRuntimePackage: parsed.fixedRuntimePackage,
+              interactionPolicy: parsed.interactionPolicy,
+              playContext,
             };
+            setInteractionPolicy(parsed.interactionPolicy);
+            setPlayContext(playContext);
             if (parsed.projectId && parsed.playtestId) {
               storyProjectPlaytest = {
                 projectId: parsed.projectId,
                 playtestId: parsed.playtestId,
-                projectTitle: parsed.projectTitle,
-                sourceActId: parsed.sourceActId,
-                sourceSceneId: parsed.sourceSceneId,
+                projectTitle: parsed.projectTitle || "",
               };
+              storyProjectPlaytestRef.current = storyProjectPlaytest;
+            } else {
+              storyProjectPlaytestRef.current = null;
             }
             // audioEnabled 已在 useState 初始化时反向投射到 muted；这里无需再额外存。
           } catch {
@@ -1740,6 +1849,65 @@ function PlayInner() {
 
     if (!cardName && !livePayload && !storyId) {
       router.replace(lp("/"));
+      return;
+    }
+
+    if (livePayload?.fixedRuntimePackage?.history.length) {
+      const fixedPackage = livePayload.fixedRuntimePackage;
+      const first = fixedPackage.history[0];
+      if (!first?.scene.imageUrl) {
+        setError(t("play.shareErrors.noImage"));
+        return;
+      }
+      (async () => {
+        try {
+          const blobUrl = await getOrCreateBlobUrl(first.scene.imageUrl ?? "");
+          lastImageOriginalUrlRef.current = first.scene.imageUrl ?? "";
+          const initialStoryState = first.storyStateAfter ?? fixedPackage.storyState;
+          const initial: Session = {
+            id: `fixed_${fixedPackage.id}_${Date.now().toString(36)}`,
+            createdAt: Date.now(),
+            worldSetting: livePayload!.worldSetting,
+            styleGuide: livePayload!.styleGuide,
+            history: [
+              {
+                ...first,
+                visitedBeatIds: [first.scene.entryBeatId],
+                exit: undefined,
+              },
+            ],
+            characters: [],
+            storyState: initialStoryState,
+            orientation: first.scene.orientation ?? sessionOrientation,
+            playerName: livePayload!.playerName || readStoredPlayerName() || undefined,
+            language: sessionLanguage,
+          };
+          replaySourceRef.current = {
+            ...initial,
+            history: fixedPackage.history,
+            storyState: fixedPackage.storyState ?? initialStoryState,
+          };
+          replayIndexRef.current = 0;
+          replayActiveRef.current = fixedPackage.history.length > 1;
+          visitedBeatsRef.current = [first.scene.entryBeatId];
+          setInteractionPolicy(livePayload?.interactionPolicy);
+          setPlayContext(livePayload?.playContext ?? "published");
+          setSession(initial);
+          setCurrentScene(first.scene);
+          setCurrentBeatId(first.scene.entryBeatId);
+          setOrientation(first.scene.orientation ?? sessionOrientation);
+          const ready = waitForImageReady();
+          setImageUrl(blobUrl);
+          await ready;
+          setPhase("ready");
+          track("scene_reached", { scene_index: 1 });
+        } catch (e) {
+          if (!handleAuthError(e)) {
+            trackPlayError("start", e, Date.now());
+            setError(e instanceof Error ? e.message : String(e));
+          }
+        }
+      })();
       return;
     }
 
@@ -1872,31 +2040,15 @@ function PlayInner() {
           playerName: livePayload?.playerName || readStoredPlayerName() || undefined,
           language: sessionLanguage,
         };
-        if (storyProjectPlaytest) {
-          const { projectId, playtestId, projectTitle } = storyProjectPlaytest;
-          void fetch(
-            `/api/studio/projects/${encodeURIComponent(projectId)}/playtests/${encodeURIComponent(playtestId)}`,
-            {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                status: "started",
-                sessionId: initial.id,
-                summary: data.storyState?.synopsis || data.scene.scenePrompt || projectTitle || "",
-                firstSceneId: data.scene.id,
-                firstSceneKey: data.scene.sceneKey || "",
-                firstSceneImageUrl: data.imageUrl,
-                sceneCount: initial.history.length,
-                characterCount: data.characters.length,
-                notes: "首场景生成成功，已进入试玩。",
-              }),
-            },
-          ).catch((error) => {
-            console.warn("[playtest] failed to write back playtest result", error);
-          });
-        }
+        setInteractionPolicy(livePayload?.interactionPolicy);
+        setPlayContext(livePayload?.playContext ?? "direct");
         visitedBeatsRef.current = [data.scene.entryBeatId];
         setSession(initial);
+        writeBackPlaytestSnapshot(initial, {
+          status: "started",
+          summary: data.storyState?.synopsis || data.scene.scenePrompt || storyProjectPlaytest?.projectTitle || "",
+          notes: "首场景生成成功，已进入试玩。",
+        });
         setCurrentScene(data.scene);
         setCurrentBeatId(data.scene.entryBeatId);
         const ready = waitForImageReady();
@@ -2052,6 +2204,11 @@ function PlayInner() {
       };
       visitedBeatsRef.current = [result.scene.entryBeatId];
       setSession(newSession);
+      writeBackPlaytestSnapshot(newSession, {
+        status: "started",
+        notes: "试玩路径已更新，可固定为剧情包。",
+        delayMs: 800,
+      });
       setCurrentScene(result.scene);
       setCurrentBeatId(result.scene.entryBeatId);
       const ready = waitForImageReady();
@@ -2539,6 +2696,8 @@ function PlayInner() {
           .map((choice) => choice.id)
       : [];
   const replayLocked = isRecordedReplayLockedAt(currentBeat);
+  const freeformDisabled =
+    replayLocked || !isFreeformAllowedByPolicy(interactionPolicy, playContext);
 
   if (error) {
     return (
@@ -2590,7 +2749,7 @@ function PlayInner() {
           fullViewport
           dialogueHistory={dialogueHistory}
           disabledChoiceIds={disabledReplayChoiceIds}
-          freeformDisabled={replayLocked}
+          freeformDisabled={freeformDisabled}
         />
         {orientation === "portrait" && (
           <div
@@ -2713,7 +2872,7 @@ function PlayInner() {
           onImageReady={handleImageReady}
           dialogueHistory={dialogueHistory}
           disabledChoiceIds={disabledReplayChoiceIds}
-          freeformDisabled={replayLocked}
+          freeformDisabled={freeformDisabled}
           aboveCanvas={
             <button
               type="button"

@@ -107,9 +107,10 @@ async function renderPortraitImage(
     visualDescription,
     styleGuide,
   );
+  const imageConfig = config.imageProfiles?.character ?? config.image;
   // Portraits get the hard timeout but are never hedged: a scene already runs
   // several portrait paints in parallel, so hedging would multiply concurrency.
-  const { imageUrl, imageUuid } = await generateImage(config.image, prompt, {
+  const { imageUrl, imageUuid } = await generateImage(imageConfig, prompt, {
     timeoutMs: config.imageTimeoutMs,
   });
   return { basePortraitUrl: imageUrl, basePortraitUuid: imageUuid };
@@ -225,10 +226,11 @@ async function _renderCharacterPortraitLegacy(
       visualDescription,
       styleGuide,
     );
+    const imageConfig = config.imageProfiles?.character ?? config.image;
     // Portraits get the hard timeout but are never hedged — a scene already
     // runs several portrait paints in parallel, and hedging those would push
     // burst concurrency past Runware's recommended 2-4 in-flight requests.
-    const { imageUrl, imageUuid } = await generateImage(config.image, prompt, {
+    const { imageUrl, imageUuid } = await generateImage(imageConfig, prompt, {
       timeoutMs: config.imageTimeoutMs,
     });
     return { basePortraitUrl: imageUrl, basePortraitUuid: imageUuid };

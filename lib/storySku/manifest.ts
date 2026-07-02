@@ -1,7 +1,9 @@
 import manifest from "@/public/home/manifest.json";
 import type { StartRequest } from "@storyplay/types";
 import type { Gender } from "@/lib/options";
+import type { PublishedFixedRuntimePackage } from "@/lib/storyProject/fixedRuntime";
 import type { PublishedOpeningPackage } from "@/lib/storyProject/openingPackage";
+import type { StoryProject } from "@/lib/storyProject/types";
 import { inferStorySkuTaxonomy } from "@/lib/storySku/taxonomy";
 
 export type StorySkuGender = "male" | "female";
@@ -33,6 +35,8 @@ export type StorySku = {
   creatorRuntime?: {
     startRequest: StartRequest;
     openingPackage?: PublishedOpeningPackage;
+    fixedRuntimePackage?: PublishedFixedRuntimePackage;
+    interactionPolicy?: StoryProject["interaction"];
     sourceActId?: string;
     sourceSceneId?: string;
     publishedAt: string;
@@ -89,6 +93,8 @@ export function storySkuToCard(story: StorySku) {
     sourceProjectId: story.publish.sourceProjectId,
     startRequest: story.creatorRuntime?.startRequest,
     openingPackage: story.creatorRuntime?.openingPackage,
+    fixedRuntimePackage: story.creatorRuntime?.fixedRuntimePackage,
+    interactionPolicy: story.creatorRuntime?.interactionPolicy,
   };
 }
 
@@ -107,6 +113,8 @@ export function storySkuToFeaturedRow(story: StorySku) {
     sourceProjectId: story.publish.sourceProjectId,
     startRequest: story.creatorRuntime?.startRequest,
     openingPackage: story.creatorRuntime?.openingPackage,
+    fixedRuntimePackage: story.creatorRuntime?.fixedRuntimePackage,
+    interactionPolicy: story.creatorRuntime?.interactionPolicy,
     sortOrder: story.curation.sortOrder,
     isActive: story.publish?.status === "archived" ? 0 : 1,
     clickCount: 0,

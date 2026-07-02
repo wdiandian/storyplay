@@ -20,6 +20,7 @@ import { normalizeBaseUrl } from "./normalizeUrl";
 // future referenceImages.
 const DEFAULT_IMG2IMG_STRENGTH = 0.85;
 const MAX_REFERENCE_IMAGES = 4;
+const MAX_OPENROUTER_REFERENCE_IMAGES = 14;
 
 type RunwareImageResult = {
   imageURL?: string;
@@ -33,6 +34,17 @@ type RunwareError = {
 type RunwareResponse = {
   data?: RunwareImageResult[];
   errors?: RunwareError[];
+};
+
+type OpenRouterImageData = {
+  url?: string;
+  b64_json?: string;
+  image_url?: string | { url?: string };
+};
+
+type OpenRouterImageResponse = {
+  data?: OpenRouterImageData[];
+  error?: { message?: string } | string;
 };
 
 export type GenerateImageOptions = {
@@ -127,6 +139,8 @@ export async function generateImage(
       return generateImageOpenAi(config, prompt, options);
     case "runware":
       return generateImageRunware(config, prompt, options);
+    case "openrouter_image":
+      return generateImageOpenRouter(config, prompt, options);
     case "openai_compatible":
     default:
       return generateImageOpenAiCompatible(config, prompt, options);
@@ -248,6 +262,82 @@ function extensionFromMediaType(mediaType: string): string {
   if (mediaType.includes("jpeg") || mediaType.includes("jpg")) return "jpg";
   if (mediaType.includes("webp")) return "webp";
   return "png";
+}
+
+function orientationToAspectRatio(orientation: Orientation | undefined): "16:9" | "9:16" {
+  return orientation === "portrait" ? "9:16" : "16:9";
+}
+
+function openRouterDataToResult(json: OpenRouterImageResponse, rawText: string): GenerateImageResult {
+  const data = json.data?.[0];
+  const rawImageUrl = data?.image_url;
+  const imageUrl =
+    typeof rawImageUrl === "string"
+      ? rawImageUrl
+      : rawImageUrl?.url ?? data?.url;
+  if (imageUrl) {
+    return { imageUrl, imageUuid: crypto.randomUUID() };
+  }
+
+  if (data?.b64_json) {
+    return {
+      imageUrl: `data:image/png;base64,${data.b64_json}`,
+      imageUuid: crypto.randomUUID(),
+    };
+  }
+
+  throw new Error(`No image URL/base64 in OpenRouter image response: ${rawText.slice(0, 300)}`);
+}
+
+async function generateImageOpenRouter(
+  config: ProviderConfig,
+  prompt: string,
+  options?: GenerateImageOptions,
+): Promise<GenerateImageResult> {
+  const base = normalizeBaseUrl(config.baseUrl, "openrouter_image");
+  const endpoint = `${base}/images`;
+  const refs = (options?.referenceImages ?? []).slice(0, MAX_OPENROUTER_REFERENCE_IMAGES);
+
+  const body: Record<string, unknown> = {
+    model: config.model,
+    prompt,
+    n: 1,
+    aspect_ratio: orientationToAspectRatio(options?.orientation),
+    resolution: "1K",
+  };
+  if (refs.length > 0) {
+    body.input_references = refs;
+  }
+
+  const res = await fetchWithRetry(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${config.apiKey}`,
+    },
+    body: JSON.stringify(body),
+    retries: options?.retries,
+    timeoutMs: options?.timeoutMs,
+    signal: options?.signal,
+  });
+
+  const text = await res.text();
+  let json: OpenRouterImageResponse;
+  try {
+    json = JSON.parse(text) as OpenRouterImageResponse;
+  } catch {
+    throw new Error(`OpenRouter Image API error ${res.status}: ${text.slice(0, 500)}`);
+  }
+
+  if (!res.ok || json.error) {
+    const message =
+      typeof json.error === "string"
+        ? json.error
+        : json.error?.message ?? text.slice(0, 500);
+    throw new Error(`OpenRouter Image API error ${res.status}: ${message}`);
+  }
+
+  return openRouterDataToResult(json, text);
 }
 
 // OpenAI-compatible REST route (GPTGod, DALL-E proxies, etc.). Basic

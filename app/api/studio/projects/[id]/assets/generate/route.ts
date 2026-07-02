@@ -111,6 +111,13 @@ function resolveConfig(base: EngineConfig, body: GenerateAssetBody) {
   return base;
 }
 
+function resolveAssetImageConfig(config: EngineConfig, kind: StoryProjectAssetKind) {
+  if (kind === "character-reference") {
+    return config.imageProfiles?.character ?? config.image;
+  }
+  return config.imageProfiles?.scene ?? config.image;
+}
+
 async function persistGeneratedAsset(input: {
   projectId: string;
   kind: StoryProjectAssetKind;
@@ -186,8 +193,9 @@ export async function POST(req: Request, context: RouteContext) {
 
   try {
     const config = resolveConfig(routed.config, body);
+    const imageConfig = resolveAssetImageConfig(config, kind);
     const fullPrompt = buildPrompt(project.title, body, kind);
-    const result = await generateImage(config.image, fullPrompt, {
+    const result = await generateImage(imageConfig, fullPrompt, {
       orientation: body.orientation ?? project.runtimePolicy.orientation,
       referenceImages: readReferenceImages(body.referenceImages),
       timeoutMs: config.imageTimeoutMs,

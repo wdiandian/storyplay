@@ -447,7 +447,8 @@ export type VisionClassify = "insert-beat" | "change-scene";
 export type ProviderProtocol =
   | "openai_compatible"
   | "openai"
-  | "runware";
+  | "runware"
+  | "openrouter_image";
 
 export type ProviderConfig = {
   baseUrl: string;
@@ -490,9 +491,10 @@ export type EngineConfig = {
   /**
    * Optional internal text profiles for official-mode agent routing.
    * When absent, all text agents fall back to `text`.
-   */
+  */
   textProfiles?: Partial<Record<"main" | "fast" | "lite", ProviderConfig>>;
   image: ProviderConfig;
+  imageProfiles?: Partial<Record<"scene" | "character", ProviderConfig>>;
   vision: ProviderConfig;
   /** Optional — when missing the game runs silently (no TTS). */
   tts?: TtsConfig;

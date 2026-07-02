@@ -13,6 +13,7 @@ import {
 } from "@/lib/creatorAssistant/mergePatch";
 import type {
   CreatorStoryAssistantAction,
+  CreatorStoryAssistantConversationMessage,
   CreatorStoryAssistantOutput,
   CreatorStoryAssistantTargetSection,
 } from "@/lib/creatorAssistant/types";
@@ -38,11 +39,6 @@ const audienceOptions: Array<{ value: StoryProjectAudience; label: string }> = [
   { value: "universal", label: "通用" },
   { value: "female", label: "女性向" },
   { value: "male", label: "男性向" },
-];
-const intensityOptions: Array<{ value: StoryProject["interaction"]["intensity"]; label: string }> = [
-  { value: "light", label: "轻互动" },
-  { value: "medium", label: "中互动" },
-  { value: "strong", label: "强互动" },
 ];
 const playModeOptions: Array<{ value: StoryProject["interaction"]["playMode"]; label: string }> = [
   { value: "read-heavy", label: "轻阅读" },
@@ -74,6 +70,7 @@ const SHOW_STORY_STRUCTURE_EDITOR = false;
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 type PublishState = "idle" | "publishing" | "published" | "unpublishing" | "error";
+type FixedRuntimeState = "idle" | "creating" | "created" | "error";
 type AssetGeneratorTarget =
   | { kind: "cover"; characterId?: undefined }
   | { kind: "first-scene"; characterId?: undefined }
@@ -90,38 +87,6 @@ type AssetGeneratorState = {
   generatedPrompt: string;
 };
 
-const assistantActions: Array<{
-  action: CreatorStoryAssistantAction;
-  label: string;
-  description: string;
-  icon: string;
-}> = [
-  {
-    action: "diagnose",
-    label: "诊断工程",
-    description: "检查缺口、跑偏风险和试玩前需要补齐的字段。",
-    icon: "fa-stethoscope",
-  },
-  {
-    action: "expand-concept",
-    label: "扩展设定",
-    description: "补强概念、世界观、冲突、标签和视觉方向。",
-    icon: "fa-wand-magic-sparkles",
-  },
-  {
-    action: "build-outline",
-    label: "生成大纲",
-    description: "生成主线目标、阶段推进、必达节点和章节规划。",
-    icon: "fa-list-check",
-  },
-  {
-    action: "create-characters",
-    label: "生成角色",
-    description: "补齐角色卡、关系定位、视觉和声音描述。",
-    icon: "fa-users",
-  },
-];
-
 const assistantTargets: Array<{
   value: CreatorStoryAssistantTargetSection;
   label: string;
@@ -133,6 +98,7 @@ const assistantTargets: Array<{
   { value: "narrative", label: "叙事核心", action: "expand-concept" },
   { value: "outline", label: "大纲", action: "build-outline" },
   { value: "characters", label: "角色", action: "create-characters" },
+  { value: "assets", label: "资产库", action: "expand-concept" },
   { value: "interaction", label: "互动", action: "expand-concept" },
   { value: "visual", label: "视觉", action: "expand-concept" },
 ];
@@ -269,16 +235,35 @@ function Section({
   title,
   description,
   children,
+  assistantTarget,
+  onAssistant,
+  assistantLoading,
 }: {
   title: string;
   description?: string;
   children: React.ReactNode;
+  assistantTarget?: CreatorStoryAssistantTargetSection;
+  onAssistant?: (target: CreatorStoryAssistantTargetSection) => void;
+  assistantLoading?: boolean;
 }) {
   return (
     <section className="rounded-2xl border border-sp-border bg-sp-surface p-5 shadow-sm shadow-black/[0.04]">
-      <div className="flex flex-col gap-1">
-        <h2 className="font-serif text-xl font-semibold text-sp-text">{title}</h2>
-        {description && <p className="text-xs leading-5 text-sp-subdued">{description}</p>}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="font-serif text-xl font-semibold text-sp-text">{title}</h2>
+          {description && <p className="mt-1 text-xs leading-5 text-sp-subdued">{description}</p>}
+        </div>
+        {assistantTarget && onAssistant && (
+          <button
+            type="button"
+            onClick={() => onAssistant(assistantTarget)}
+            disabled={assistantLoading}
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-xl border border-sp-border bg-sp-muted px-3 text-xs font-semibold text-sp-text transition-colors hover:border-sp-accent hover:text-sp-accent disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <i className="fa-solid fa-wand-magic-sparkles text-[11px]" />
+            {assistantLoading ? "生成中" : "AI 补全"}
+          </button>
+        )}
       </div>
       <div className="mt-5">{children}</div>
     </section>
@@ -297,12 +282,14 @@ export function ProjectEditorClient({
   const [lastSavedProject, setLastSavedProject] = useState<StoryProject>(() => cloneProject(initialProject));
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [publishState, setPublishState] = useState<PublishState>("idle");
+  const [fixedRuntimeState, setFixedRuntimeState] = useState<FixedRuntimeState>("idle");
   const [buildingPlaytest, setBuildingPlaytest] = useState(false);
   const [selectedPlaytestId, setSelectedPlaytestId] = useState(initialProject.playtests[0]?.id ?? "");
   const [notice, setNotice] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [visionClickEnabled, setVisionClickEnabled] = useState(() => readStoredVisionClick());
   const [assistantInstruction, setAssistantInstruction] = useState("");
+  const [assistantConversation, setAssistantConversation] = useState<CreatorStoryAssistantConversationMessage[]>([]);
   const [assistantLoadingAction, setAssistantLoadingAction] = useState<CreatorStoryAssistantAction | "">("");
   const [assistantResult, setAssistantResult] = useState<CreatorStoryAssistantOutput | null>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -447,6 +434,8 @@ export function ProjectEditorClient({
     () => assistantResult ? previewCreatorStoryAssistantPatch(project, assistantResult.patch) : [],
     [assistantResult, project],
   );
+  const assistantTargetMeta =
+    assistantTargets.find((target) => target.value === assistantTarget) ?? assistantTargets[0]!;
 
   function updateProject(patch: Partial<StoryProject>) {
     setSaveState("idle");
@@ -457,7 +446,17 @@ export function ProjectEditorClient({
   async function runAssistant(
     action: CreatorStoryAssistantAction,
     targetSection: CreatorStoryAssistantTargetSection = assistantTarget,
+    instruction = assistantInstruction,
   ) {
+    const trimmedInstruction = instruction.trim();
+    const requestConversation = assistantConversation.slice(-8);
+    if (trimmedInstruction) {
+      setAssistantConversation((current) => [
+        ...current,
+        { role: "creator" as const, content: trimmedInstruction },
+      ].slice(-10));
+      setAssistantInstruction("");
+    }
     setAssistantLoadingAction(action);
     setAssistantResult(null);
     setNotice("");
@@ -468,7 +467,8 @@ export function ProjectEditorClient({
         body: JSON.stringify({
           action,
           project,
-          userInstruction: assistantInstruction,
+          userInstruction: trimmedInstruction,
+          conversation: requestConversation,
           targetSection,
           selectedActId: selectedAct?.id,
           selectedSceneId: selectedScene?.id,
@@ -488,6 +488,10 @@ export function ProjectEditorClient({
       }
 
       setAssistantResult(data.result);
+      setAssistantConversation((current) => [
+        ...current,
+        { role: "assistant" as const, content: data.result!.summary },
+      ].slice(-10));
       setAssistantOpen(true);
       setNotice("AI 创作助手已生成建议；应用后仍需手动保存工程。");
     } catch {
@@ -496,6 +500,17 @@ export function ProjectEditorClient({
     } finally {
       setAssistantLoadingAction("");
     }
+  }
+
+  function openAssistantForSection(targetSection: CreatorStoryAssistantTargetSection) {
+    const target = assistantTargets.find((item) => item.value === targetSection);
+    setAssistantTarget(targetSection);
+    setAssistantOpen(true);
+    void runAssistant(
+      target?.action ?? "expand-concept",
+      targetSection,
+      `请根据当前草稿补全并优化“${target?.label ?? "当前"}”板块，保持可直接回填。`,
+    );
   }
 
   function applyAssistantPatch() {
@@ -1110,6 +1125,7 @@ export function ProjectEditorClient({
           playtestId: data.playtest?.id,
           sourceActId: data.playtest?.sourceActId,
           sourceSceneId: data.playtest?.sourceSceneId,
+          interactionPolicy: savedProject.interaction,
         }),
       );
       router.push(localePath("/play?custom=1", locale));
@@ -1165,6 +1181,49 @@ export function ProjectEditorClient({
     } catch {
       setPublishState("error");
       setNotice("发布接口不可用，请稍后重试。");
+    }
+  }
+
+  async function createFixedRuntimeFromPlaytest(playtestId: string) {
+    if (!playtestId || fixedRuntimeState === "creating") return;
+
+    setFixedRuntimeState("creating");
+    setNotice("");
+    try {
+      const savedProject = dirty ? await saveProject() : project;
+      if (!savedProject) {
+        setFixedRuntimeState("error");
+        return;
+      }
+
+      const response = await fetch(`/api/studio/projects/${savedProject.id}/fixed-runtime`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playtestId }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        fixedRuntimePackage?: StoryProject["fixedRuntimePackages"][number];
+        project?: StoryProject;
+        error?: string;
+      };
+
+      if (!response.ok || !data.fixedRuntimePackage || !data.project) {
+        setFixedRuntimeState("error");
+        setNotice(data.error || "固定剧情包创建失败。请先完成一次试玩并回到后台刷新记录。");
+        return;
+      }
+
+      setProject(cloneProject(data.project));
+      setLastSavedProject(cloneProject(data.project));
+      setSelectedPlaytestId(playtestId);
+      setSaveState("saved");
+      setFixedRuntimeState("created");
+      setNotice(
+        `已固定剧情包：${data.fixedRuntimePackage.sceneCount} 场 / ${data.fixedRuntimePackage.beatCount} beat。重新发布后玩家会优先体验固定内容。`,
+      );
+    } catch {
+      setFixedRuntimeState("error");
+      setNotice("固定剧情包接口不可用，请稍后重试。");
     }
   }
 
@@ -1296,13 +1355,9 @@ export function ProjectEditorClient({
                 className="mt-3 w-full border-0 bg-transparent p-0 font-serif text-3xl font-black leading-tight text-sp-text outline-none placeholder:text-sp-subdued md:text-5xl"
                 placeholder="未命名故事工程"
               />
-              <textarea
-                value={project.logline}
-                onChange={(event) => updateProject({ logline: event.target.value })}
-                rows={2}
-                className="mt-3 w-full resize-none border-0 bg-transparent p-0 text-sm leading-7 text-sp-subdued outline-none placeholder:text-sp-subdued/70 md:text-[15px]"
-                placeholder="写下一句话故事概念，后续会作为试玩生成的核心输入。"
-              />
+              <p className="mt-3 text-sm leading-7 text-sp-subdued md:text-[15px]">
+                在下方故事蓝图里定义核心承诺、主线目标和必达节点；顶部只保留工程识别信息。
+              </p>
             </div>
             <div className="flex shrink-0 flex-wrap gap-2">
               <span className="rounded-full bg-sp-accentSoft px-3 py-1 text-xs font-medium text-sp-accent">
@@ -1328,146 +1383,15 @@ export function ProjectEditorClient({
           )}
         </header>
 
-        <section className="hidden mt-6 rounded-2xl border border-sp-border bg-sp-surface p-5 shadow-sm shadow-black/[0.04]">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <i className="fa-solid fa-sparkles text-sm text-sp-accent" />
-                <h2 className="font-serif text-xl font-semibold text-sp-text">AI 创作助手</h2>
-              </div>
-              <p className="mt-1 text-xs leading-5 text-sp-subdued">
-                面向创作者后台的故事辅助 Agent。它只读取当前 StoryProject 草稿，输出诊断、建议和可选 patch，不会修改内部 agent / skill 基建，也不会自动保存。
-              </p>
-              <textarea
-                value={assistantInstruction}
-                onChange={(event) => setAssistantInstruction(event.target.value)}
-                rows={3}
-                placeholder="可选：告诉助手这次重点处理什么，例如“更偏悬疑恋爱”“先补完前三幕大纲”“不要改女主设定”。"
-                className="mt-4 w-full resize-none rounded-xl border border-sp-border bg-sp-muted px-3 py-2 text-sm leading-6 text-sp-text outline-none transition-colors placeholder:text-sp-subdued/70 focus:border-sp-accent"
-              />
-            </div>
-            <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:w-[420px]">
-              {assistantActions.map((item) => (
-                <button
-                  key={item.action}
-                  type="button"
-                  onClick={() => runAssistant(item.action)}
-                  disabled={Boolean(assistantLoadingAction)}
-                  className="min-h-[84px] rounded-xl border border-sp-border bg-sp-muted p-3 text-left transition-colors hover:border-sp-accent disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <span className="flex items-center gap-2 text-sm font-semibold text-sp-text">
-                    <i className={`fa-solid ${item.icon} text-[12px] text-sp-accent`} />
-                    {assistantLoadingAction === item.action ? "生成中" : item.label}
-                  </span>
-                  <span className="mt-1 block text-xs leading-5 text-sp-subdued">{item.description}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {assistantResult && (
-            <div className="mt-5 rounded-xl border border-sp-border bg-sp-muted p-4">
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-sp-text">助手结果</div>
-                  <p className="mt-1 text-sm leading-6 text-sp-subdued">{assistantResult.summary}</p>
-                </div>
-                {assistantPatchPreview.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={applyAssistantPatch}
-                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-sp-accent px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                  >
-                    <i className="fa-solid fa-check text-[12px]" />
-                    应用建议
-                  </button>
-                )}
-              </div>
-
-              {assistantResult.suggestions.length > 0 && (
-                <div className="mt-4 grid gap-2 md:grid-cols-2">
-                  {assistantResult.suggestions.slice(0, 6).map((suggestion, index) => (
-                    <div
-                      key={`${suggestion.field}-${index}`}
-                      className="rounded-xl border border-sp-border bg-sp-surface p-3 text-xs leading-5"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-[11px] text-sp-subdued">{suggestion.field}</span>
-                        <span
-                          className={
-                            "rounded-full px-2 py-0.5 text-[10px] font-semibold " +
-                            (suggestion.severity === "critical"
-                              ? "bg-sp-accentSoft text-sp-accent"
-                              : suggestion.severity === "warning"
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-sp-accentSoft text-sp-accent")
-                          }
-                        >
-                          {suggestion.severity}
-                        </span>
-                      </div>
-                      <div className="mt-1 text-sp-text">{suggestion.message}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {(assistantPatchPreview.length > 0 ||
-                assistantResult.patchNotes.length > 0 ||
-                assistantResult.nextActions.length > 0) && (
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  {assistantPatchPreview.length > 0 && (
-                    <div>
-                      <div className="text-xs font-semibold text-sp-text">修改预览</div>
-                      <ul className="mt-2 space-y-2 text-xs leading-5 text-sp-subdued">
-                        {assistantPatchPreview.map((item) => (
-                          <li key={item.field} className="rounded-lg bg-sp-surface px-3 py-2">
-                            <span className="font-mono text-[11px]">{item.field}</span>
-                            <span className="mt-1 block text-sp-subdued line-through">
-                              {item.before || "空"}
-                            </span>
-                            <span className="mt-1 block text-sp-text">
-                              {item.after || "空"}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {assistantResult.patchNotes.length > 0 && (
-                    <div>
-                      <div className="text-xs font-semibold text-sp-text">将要修改</div>
-                      <ul className="mt-2 space-y-2 text-xs leading-5 text-sp-subdued">
-                        {assistantResult.patchNotes.slice(0, 6).map((note, index) => (
-                          <li key={`${note.field}-${index}`} className="rounded-lg bg-sp-surface px-3 py-2">
-                            <span className="font-mono text-[11px]">{note.field}</span>
-                            <span className="block text-sp-text">{note.reason}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {assistantPatchPreview.length === 0 && assistantResult.nextActions.length > 0 && (
-                    <div>
-                      <div className="text-xs font-semibold text-sp-text">下一步</div>
-                      <ul className="mt-2 space-y-2 text-xs leading-5 text-sp-subdued">
-                        {assistantResult.nextActions.slice(0, 6).map((item, index) => (
-                          <li key={`${item}-${index}`} className="rounded-lg bg-sp-surface px-3 py-2">
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </section>
-
         <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-6">
-            <Section title="基础信息" description="定义作品在创作台和后续分发中的基础定位。">
+            <Section
+              title="基础信息"
+              description="定义作品在创作台和后续分发中的基础定位。"
+              assistantTarget="basics"
+              onAssistant={openAssistantForSection}
+              assistantLoading={Boolean(assistantLoadingAction)}
+            >
               <div className="grid gap-5 md:grid-cols-2">
                 <Field label="故事简介">
                   <TextArea
@@ -1478,6 +1402,20 @@ export function ProjectEditorClient({
                   />
                 </Field>
                 <div className="space-y-5">
+                  <Field label="主角 / 玩家位置">
+                    <TextInput
+                      value={project.narrative.protagonist}
+                      onChange={(value) => updateNarrative({ protagonist: value })}
+                      placeholder="例如：刚搬来的夜班店员"
+                    />
+                  </Field>
+                  <Field label="核心冲突">
+                    <TextInput
+                      value={project.narrative.coreConflict}
+                      onChange={(value) => updateNarrative({ coreConflict: value })}
+                      placeholder="玩家必须解决什么问题？"
+                    />
+                  </Field>
                   <div>
                     <div className="text-[11px] font-medium text-sp-subdued">目标受众</div>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -1504,7 +1442,13 @@ export function ProjectEditorClient({
               </div>
             </Section>
 
-            <Section title="世界观" description="给生成链路稳定的规则、地点和调性约束。">
+            <Section
+              title="世界观"
+              description="给生成链路稳定的规则、地点和调性约束。"
+              assistantTarget="world"
+              onAssistant={openAssistantForSection}
+              assistantLoading={Boolean(assistantLoadingAction)}
+            >
               <div className="grid gap-5 md:grid-cols-2">
                 <Field label="世界设定">
                   <TextArea
@@ -1541,8 +1485,22 @@ export function ProjectEditorClient({
               </div>
             </Section>
 
-            <Section title="故事蓝图" description="固定世界、人物关系和主线护栏；玩家可以改变过程，但故事要围绕蓝图推进。">
+            <Section
+              title="故事蓝图"
+              description="这里只定义故事推进契约：玩家可以改变过程，但剧情要围绕这些目标、节点和边界前进。"
+              assistantTarget="outline"
+              onAssistant={openAssistantForSection}
+              assistantLoading={Boolean(assistantLoadingAction)}
+            >
               <div className="grid gap-5 md:grid-cols-2">
+                <Field label="核心承诺" hint="对应首页和试玩生成的核心卖点。">
+                  <TextArea
+                    value={project.logline}
+                    onChange={(value) => updateProject({ logline: value })}
+                    placeholder="例如：在一场无法停止的雨夜循环里，玩家要决定救下谁、放弃谁。"
+                    rows={3}
+                  />
+                </Field>
                 <Field label="主线目标" hint="无论玩家怎么选，故事最终都要围绕这个目标推进。">
                   <TextArea
                     value={project.storyOutline.mainGoal}
@@ -1567,30 +1525,6 @@ export function ProjectEditorClient({
                     rows={4}
                   />
                 </Field>
-                <Field label="角色关系走向">
-                  <TextArea
-                    value={project.storyOutline.relationshipArc}
-                    onChange={(value) => updateStoryOutline({ relationshipArc: value })}
-                    placeholder="主要角色和玩家的关系应该如何试探、升温、破裂或和解。"
-                    rows={4}
-                  />
-                </Field>
-                <Field label="配角与阵营描述">
-                  <TextArea
-                    value={project.storyOutline.supportingCast}
-                    onChange={(value) => updateStoryOutline({ supportingCast: value })}
-                    placeholder="补充配角、阵营、关系网和他们在主线里的作用。"
-                    rows={4}
-                  />
-                </Field>
-                <Field label="结局方向">
-                  <TextArea
-                    value={project.storyOutline.endingDirection}
-                    onChange={(value) => updateStoryOutline({ endingDirection: value })}
-                    placeholder="例如：开放式结局；玩家可以打破循环，但必须付出关系代价。"
-                    rows={3}
-                  />
-                </Field>
                 <Field label="禁止跑偏" hint="用换行分隔。">
                   <TextArea
                     value={joinLines(project.storyOutline.guardrails)}
@@ -1599,30 +1533,14 @@ export function ProjectEditorClient({
                     rows={3}
                   />
                 </Field>
-                <div className="md:col-span-2 grid gap-5 md:grid-cols-2">
-                  <Field label="主角 / 玩家位置">
-                    <TextInput
-                      value={project.narrative.protagonist}
-                      onChange={(value) => updateNarrative({ protagonist: value })}
-                      placeholder="例如：刚搬来的夜班店员"
-                    />
-                  </Field>
-                  <Field label="核心冲突">
-                    <TextInput
-                      value={project.narrative.coreConflict}
-                      onChange={(value) => updateNarrative({ coreConflict: value })}
-                      placeholder="玩家必须解决什么问题？"
-                    />
-                  </Field>
-                  <Field label="创作者备注">
-                    <TextArea
-                      value={project.narrative.creatorNotes}
-                      onChange={(value) => updateNarrative({ creatorNotes: value })}
-                      placeholder="只给创作者和后续生成链路看的备注。"
-                      rows={4}
-                    />
-                  </Field>
-                </div>
+                <Field label="结局方向" hint="可选。只写故事最终要抵达的情绪或代价，不写完整剧情树。">
+                  <TextArea
+                    value={project.storyOutline.endingDirection}
+                    onChange={(value) => updateStoryOutline({ endingDirection: value })}
+                    placeholder="例如：开放式结局；玩家可以打破循环，但必须付出关系代价。"
+                    rows={3}
+                  />
+                </Field>
               </div>
             </Section>
 
@@ -1862,7 +1780,13 @@ export function ProjectEditorClient({
               </div>
             </Section>
 
-            <Section title="资产库" description="提前准备封面、首场图和主体角色参考图，用来加速首次游玩并稳定视觉一致性。">
+            <Section
+              title="资产库"
+              description="提前准备封面、首场图和主体角色参考图，用来加速首次游玩并稳定视觉一致性。"
+              assistantTarget="assets"
+              onAssistant={openAssistantForSection}
+              assistantLoading={Boolean(assistantLoadingAction)}
+            >
               <div className="space-y-5">
                 <div className="grid gap-5 md:grid-cols-2">
                   <div className="rounded-xl border border-sp-border bg-sp-muted p-4">
@@ -1878,13 +1802,19 @@ export function ProjectEditorClient({
                       </span>
                     </div>
                     <div className="mt-4 space-y-4">
-                      <Field label="封面 URL">
-                        <TextInput
-                          value={project.visual.cover || coverAsset?.url || ""}
-                          onChange={(value) => syncAssetToVisual("cover", value)}
-                          placeholder="/home/example.webp"
-                        />
-                      </Field>
+                      <div className="overflow-hidden rounded-xl border border-sp-border bg-sp-surface">
+                        {project.visual.cover || coverAsset?.url ? (
+                          <img
+                            src={project.visual.cover || coverAsset?.url || ""}
+                            alt=""
+                            className="aspect-[4/5] w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex aspect-[4/5] items-center justify-center px-4 text-center text-xs leading-5 text-sp-subdued">
+                            尚未准备封面图，请生成或上传。
+                          </div>
+                        )}
+                      </div>
                       <Field label="封面生成提示词">
                         <TextArea
                           value={coverAsset?.prompt ?? ""}
@@ -1937,13 +1867,19 @@ export function ProjectEditorClient({
                       </span>
                     </div>
                     <div className="mt-4 space-y-4">
-                      <Field label="首场图 URL">
-                        <TextInput
-                          value={project.visual.firstScene || firstSceneAsset?.url || ""}
-                          onChange={(value) => syncAssetToVisual("first-scene", value)}
-                          placeholder="/home/firstscene/example.webp"
-                        />
-                      </Field>
+                      <div className="overflow-hidden rounded-xl border border-sp-border bg-sp-surface">
+                        {project.visual.firstScene || firstSceneAsset?.url ? (
+                          <img
+                            src={project.visual.firstScene || firstSceneAsset?.url || ""}
+                            alt=""
+                            className="aspect-[4/5] w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex aspect-[4/5] items-center justify-center px-4 text-center text-xs leading-5 text-sp-subdued">
+                            尚未准备首场图，请生成或上传。
+                          </div>
+                        )}
+                      </div>
                       <Field label="首场图生成提示词">
                         <TextArea
                           value={firstSceneAsset?.prompt ?? ""}
@@ -2350,10 +2286,16 @@ export function ProjectEditorClient({
             </Section>
             )}
 
-            <Section title="互动与视觉策略" description="用明确策略替代笼统互动强度，后续会直接映射到生成、固定剧情包和成本控制。">
+            <Section
+              title="互动策略"
+              description="控制玩家怎么参与故事。自由输入已经硬生效；玩法、选项和分支会进入生成约束。"
+              assistantTarget="interaction"
+              onAssistant={openAssistantForSection}
+              assistantLoading={Boolean(assistantLoadingAction)}
+            >
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
-                  <div className="text-[11px] font-medium text-sp-subdued">玩法模式</div>
+                  <div className="text-[11px] font-medium text-sp-subdued">玩法模式 · 生成约束</div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {playModeOptions.map((option) => (
                       <OptionButton
@@ -2367,7 +2309,7 @@ export function ProjectEditorClient({
                   </div>
                 </div>
                 <div>
-                  <div className="text-[11px] font-medium text-sp-subdued">选项密度</div>
+                  <div className="text-[11px] font-medium text-sp-subdued">选项密度 · 生成约束</div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {choiceDensityOptions.map((option) => (
                       <OptionButton
@@ -2381,7 +2323,7 @@ export function ProjectEditorClient({
                   </div>
                 </div>
                 <div>
-                  <div className="text-[11px] font-medium text-sp-subdued">分支策略</div>
+                  <div className="text-[11px] font-medium text-sp-subdued">分支策略 · 生成约束</div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {branchingModeOptions.map((option) => (
                       <OptionButton
@@ -2395,7 +2337,7 @@ export function ProjectEditorClient({
                   </div>
                 </div>
                 <div>
-                  <div className="text-[11px] font-medium text-sp-subdued">自由输入</div>
+                  <div className="text-[11px] font-medium text-sp-subdued">自由输入 · 硬生效</div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {freeformInputModeOptions.map((option) => (
                       <OptionButton
@@ -2412,20 +2354,9 @@ export function ProjectEditorClient({
                       </OptionButton>
                     ))}
                   </div>
-                </div>
-                <div className="md:col-span-2">
-                  <div className="text-[11px] font-medium text-sp-subdued">视觉生成策略</div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {visualGenerationModeOptions.map((option) => (
-                      <OptionButton
-                        key={option.value}
-                        active={project.interaction.visualGenerationMode === option.value}
-                        onClick={() => updateInteraction({ visualGenerationMode: option.value })}
-                      >
-                        {option.label}
-                      </OptionButton>
-                    ))}
-                  </div>
+                  <p className="mt-2 text-xs leading-5 text-sp-subdued">
+                    仅试玩表示创作者测试时可自由输入，发布到首页后玩家只看到选项。
+                  </p>
                 </div>
                 <Field label="选择风格">
                   <TextArea
@@ -2443,22 +2374,33 @@ export function ProjectEditorClient({
                     rows={4}
                   />
                 </Field>
-                <div>
-                  <div className="text-[11px] font-medium text-sp-subdued">兼容互动强度</div>
-                  <p className="mt-1 text-xs leading-5 text-sp-subdued">
-                    旧字段仍会保存并进入编译，但后续优先使用上面的具体策略。
-                  </p>
+              </div>
+            </Section>
+
+            <Section
+              title="视觉策略"
+              description="控制作品的视觉方向和生成成本。封面、首场图和角色参考图统一在资产库维护。"
+              assistantTarget="visual"
+              onAssistant={openAssistantForSection}
+              assistantLoading={Boolean(assistantLoadingAction)}
+            >
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <div className="text-[11px] font-medium text-sp-subdued">视觉生成频率 · 生成偏好</div>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {intensityOptions.map((option) => (
+                    {visualGenerationModeOptions.map((option) => (
                       <OptionButton
                         key={option.value}
-                        active={project.interaction.intensity === option.value}
-                        onClick={() => updateInteraction({ intensity: option.value })}
+                        active={project.interaction.visualGenerationMode === option.value}
+                        onClick={() => updateInteraction({ visualGenerationMode: option.value })}
                       >
                         {option.label}
                       </OptionButton>
                     ))}
                   </div>
+                  <p className="mt-2 text-xs leading-5 text-sp-subdued">
+                    当前会进入运行时策略和生成上下文；是否真正跳过后续场景生图，还需要下一步接入引擎级图片调度。
+                  </p>
                 </div>
                 <Field label="视觉风格提示">
                   <TextArea
@@ -2468,21 +2410,11 @@ export function ProjectEditorClient({
                     rows={4}
                   />
                 </Field>
-                <div className="space-y-5">
-                  <Field label="封面路径">
-                    <TextInput
-                      value={project.visual.cover || coverAsset?.url || ""}
-                      onChange={(value) => syncAssetToVisual("cover", value)}
-                      placeholder="/home/example.webp"
-                    />
-                  </Field>
-                  <Field label="首图路径">
-                    <TextInput
-                      value={project.visual.firstScene || firstSceneAsset?.url || ""}
-                      onChange={(value) => syncAssetToVisual("first-scene", value)}
-                      placeholder="/home/firstscene/example.webp"
-                    />
-                  </Field>
+                <div className="rounded-xl border border-sp-border bg-sp-muted p-4 text-xs leading-5 text-sp-subdued">
+                  <div className="text-sm font-semibold text-sp-text">资产入口</div>
+                  <p className="mt-2">
+                    封面图、首场图和主体角色参考图已经移到资产库。发布预览和首场生成会优先读取这些资产。
+                  </p>
                 </div>
               </div>
             </Section>
@@ -2645,6 +2577,41 @@ export function ProjectEditorClient({
               </div>
             </Section>
 
+            <Section title="固定剧情包" description="玩家发布后会优先体验这里固定下来的试玩内容，再进入 AI 续写。">
+              {project.fixedRuntimePackages.length > 0 ? (
+                <div className="space-y-3">
+                  {project.fixedRuntimePackages.slice(0, 3).map((pkg) => (
+                    <div key={pkg.id} className="rounded-xl border border-sp-border bg-sp-muted p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold text-sp-text">{pkg.title}</div>
+                          <div className="mt-1 font-mono text-[11px] text-sp-subdued">{pkg.id}</div>
+                        </div>
+                        <span className="rounded-full border border-sp-border bg-sp-surface px-2 py-0.5 text-[11px] text-sp-subdued">
+                          {pkg.status}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-sp-subdued">
+                        <span>{pkg.sceneCount} 场</span>
+                        <span>{pkg.beatCount} beat</span>
+                        <span>{pkg.imageCount} 图</span>
+                      </div>
+                      {pkg.summary && (
+                        <p className="mt-2 line-clamp-3 text-xs leading-5 text-sp-subdued">{pkg.summary}</p>
+                      )}
+                    </div>
+                  ))}
+                  <p className="text-xs leading-5 text-sp-subdued">
+                    重新发布后，首页玩家会优先进入最新 ready / published 固定剧情包。
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-sp-border bg-sp-muted p-4 text-sm leading-6 text-sp-subdued">
+                  暂无固定剧情包。完成一次试玩后，在试玩记录中点击“固定为剧情包”。
+                </div>
+              )}
+            </Section>
+
             <Section title="试玩记录" description="优先显示当前选中场景的试玩构建，后续会在这里接收试玩结果。">
               {visiblePlaytests.length > 0 ? (
                 <div className="space-y-4">
@@ -2717,6 +2684,12 @@ export function ProjectEditorClient({
                             {selectedPlaytest.sceneCount || 0} / {selectedPlaytest.characterCount || 0}
                           </strong>
                         </div>
+                        <div className="flex justify-between gap-3">
+                          <span>可固定场景</span>
+                          <strong className="font-medium text-sp-text">
+                            {selectedPlaytest.recordedHistory.length}
+                          </strong>
+                        </div>
                         {selectedPlaytest.firstSceneKey && (
                           <div className="flex justify-between gap-3">
                             <span>首场景</span>
@@ -2744,6 +2717,27 @@ export function ProjectEditorClient({
                         <div className="mt-3 rounded-lg border border-sp-accent bg-sp-accentSoft p-2 text-xs leading-5 text-sp-accent">
                           {selectedPlaytest.warnings.map((warning) => warning.message).join("；")}
                         </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => createFixedRuntimeFromPlaytest(selectedPlaytest.id)}
+                        disabled={
+                          fixedRuntimeState === "creating" ||
+                          selectedPlaytest.recordedHistory.length === 0 ||
+                          saveState === "saving"
+                        }
+                        className="mt-3 flex w-full items-center justify-between gap-3 rounded-lg border border-sp-accent bg-sp-accentSoft px-3 py-2 text-left text-xs font-semibold text-sp-accent transition-colors hover:bg-sp-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <span>
+                          {fixedRuntimeState === "creating" ? "固定中" : "固定为剧情包"}
+                        </span>
+                        <i className="fa-solid fa-lock text-[11px]" />
+                      </button>
+                      {selectedPlaytest.recordedHistory.length === 0 && (
+                        <p className="mt-2 text-xs leading-5 text-sp-subdued">
+                          需要先完成一次试玩并等待记录回收，才可以固定剧情包。
+                        </p>
                       )}
 
                       <details className="mt-3">
@@ -2865,18 +2859,22 @@ export function ProjectEditorClient({
         </section>
       </div>
     </main>
-    <div className={assistantOpen ? "fixed inset-y-0 right-0 z-40 flex w-full max-w-[640px] flex-col items-stretch bg-sp-surface shadow-2xl shadow-black/25 sm:w-[min(640px,calc(100vw-3rem))]" : "fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3"}>
+    <div className={assistantOpen ? "fixed inset-y-0 right-0 z-40 flex w-full max-w-[720px] flex-col items-stretch bg-sp-surface shadow-2xl shadow-black/25 sm:w-[min(720px,calc(100vw-3rem))]" : "fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3"}>
       {assistantOpen && (
         <div className="flex h-full flex-col overflow-hidden border-l border-sp-border bg-sp-surface p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
                 <i className="fa-solid fa-sparkles text-sm text-sp-accent" />
-                <h2 className="font-serif text-2xl font-semibold text-sp-text">创作助手</h2>
+              <h2 className="font-serif text-2xl font-semibold text-sp-text">创作助手</h2>
               </div>
               <p className="mt-1 text-xs leading-5 text-sp-subdued">
-                选择要回填的板块，生成后先预览，再应用到当前草稿。
+                选择一个板块，像聊天一样提出细微调整；结果会先生成预览，再由你确认回填。
               </p>
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-sp-border bg-sp-muted px-3 py-1 text-[11px] font-medium text-sp-subdued">
+                <i className="fa-solid fa-location-crosshairs text-[10px] text-sp-accent" />
+                当前板块：{assistantTargetMeta.label}
+              </div>
             </div>
             <button
               type="button"
@@ -2908,13 +2906,63 @@ export function ProjectEditorClient({
             </div>
           </div>
 
-          <textarea
-            value={assistantInstruction}
-            onChange={(event) => setAssistantInstruction(event.target.value)}
-            rows={3}
-            placeholder="可选：告诉助手怎么改，例如“更悬疑”“补女主关系”“只补世界规则”。"
-            className="mt-4 w-full resize-none rounded-xl border border-sp-border bg-sp-muted px-3 py-2 text-sm leading-6 text-sp-text outline-none transition-colors placeholder:text-sp-subdued/70 focus:border-sp-accent"
-          />
+          {assistantConversation.length > 0 && (
+            <div className="mt-4 max-h-44 space-y-2 overflow-y-auto rounded-xl border border-sp-border bg-sp-muted p-3">
+              {assistantConversation.slice(-6).map((message, index) => (
+                <div
+                  key={`${message.role}-${index}-${message.content.slice(0, 12)}`}
+                  className={
+                    "rounded-lg px-3 py-2 text-xs leading-5 " +
+                    (message.role === "creator"
+                      ? "ml-8 bg-sp-accent text-white"
+                      : "mr-8 bg-sp-surface text-sp-text")
+                  }
+                >
+                  {message.content}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-4 rounded-xl border border-sp-border bg-sp-muted p-3">
+            <textarea
+              value={assistantInstruction}
+              onChange={(event) => setAssistantInstruction(event.target.value)}
+              rows={4}
+              placeholder="和助手说要怎么微调，例如：更悬疑一点；保留女主设定，只补冲突；把世界规则写得更适合短篇试玩。"
+              className="w-full resize-none border-0 bg-transparent text-sm leading-6 text-sp-text outline-none placeholder:text-sp-subdued/70"
+            />
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap gap-2">
+                {["更悬疑", "更适合试玩", "更强互动", "缩短文案"].map((text) => (
+                  <button
+                    key={text}
+                    type="button"
+                    onClick={() =>
+                      setAssistantInstruction((current) =>
+                        current.trim() ? `${current.trim()}，${text}` : text,
+                      )
+                    }
+                    className="inline-flex h-7 items-center rounded-full border border-sp-border bg-sp-surface px-2.5 text-[11px] font-medium text-sp-subdued hover:border-sp-accent hover:text-sp-accent"
+                  >
+                    {text}
+                  </button>
+                ))}
+              </div>
+              {assistantConversation.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssistantConversation([]);
+                    setAssistantResult(null);
+                  }}
+                  className="text-[11px] font-medium text-sp-subdued hover:text-sp-accent"
+                >
+                  清空对话
+                </button>
+              )}
+            </div>
+          </div>
 
           <div className="mt-3 grid grid-cols-2 gap-2">
             <button
@@ -2936,7 +2984,7 @@ export function ProjectEditorClient({
               className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-sp-accent text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <i className="fa-solid fa-wand-magic-sparkles text-[12px]" />
-              {assistantLoadingAction ? "生成中" : "生成并预览"}
+              {assistantLoadingAction ? "生成中" : "发送并预览"}
             </button>
           </div>
 
@@ -2945,7 +2993,8 @@ export function ProjectEditorClient({
               <div className="text-sm font-semibold text-sp-text">{assistantResult.summary}</div>
               {assistantResult.suggestions.length > 0 && (
                 <div className="mt-3 space-y-2">
-                  {assistantResult.suggestions.slice(0, 4).map((suggestion, index) => (
+                  <div className="text-xs font-semibold text-sp-text">诊断建议</div>
+                  {assistantResult.suggestions.slice(0, 6).map((suggestion, index) => (
                     <div key={`${suggestion.field}-${index}`} className="rounded-lg bg-sp-surface px-3 py-2 text-xs leading-5">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-mono text-[11px] text-sp-subdued">{suggestion.field}</span>
@@ -2968,20 +3017,46 @@ export function ProjectEditorClient({
                   ))}
                 </div>
               )}
-              {assistantPatchPreview.length > 0 && (
-                <button
-                  type="button"
-                  onClick={applyAssistantPatch}
-                  className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-sp-accent text-sm font-semibold text-white hover:opacity-90"
-                >
-                  <i className="fa-solid fa-check text-[12px]" />
-                  一键回填到当前草稿
-                </button>
+              {assistantResult.patchNotes.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <div className="text-xs font-semibold text-sp-text">修改理由</div>
+                  {assistantResult.patchNotes.slice(0, 6).map((note, index) => (
+                    <div key={`${note.field}-${index}`} className="rounded-lg bg-sp-surface px-3 py-2 text-xs leading-5">
+                      <div className="font-mono text-[11px] text-sp-subdued">{note.field}</div>
+                      <div className="mt-1 text-sp-text">{note.reason}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {assistantPatchPreview.length === 0 && assistantResult.nextActions.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <div className="text-xs font-semibold text-sp-text">下一步</div>
+                  {assistantResult.nextActions.slice(0, 6).map((item, index) => (
+                    <div key={`${item}-${index}`} className="rounded-lg bg-sp-surface px-3 py-2 text-xs leading-5 text-sp-text">
+                      {item}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           ) : (
             <div className="mt-4 flex min-h-0 flex-1 items-center justify-center rounded-xl border border-dashed border-sp-border bg-sp-muted p-6 text-center text-sm leading-6 text-sp-subdued">
               选择一个板块并生成建议。结果会先显示在这里，不会自动覆盖当前工程。
+            </div>
+          )}
+          {assistantResult && assistantPatchPreview.length > 0 && (
+            <div className="mt-3 border-t border-sp-border pt-3">
+              <button
+                type="button"
+                onClick={applyAssistantPatch}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-sp-accent text-sm font-semibold text-white hover:opacity-90"
+              >
+                <i className="fa-solid fa-check text-[12px]" />
+                一键回填到当前草稿
+              </button>
+              <p className="mt-2 text-center text-[11px] leading-5 text-sp-subdued">
+                回填只更新当前草稿，仍需要点击保存工程。
+              </p>
             </div>
           )}
         </div>

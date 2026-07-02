@@ -64,7 +64,7 @@ This prepares the product for object storage. Local URL fields remain supported 
 
 ### 3. Interaction And Visual Strategy
 
-The current "interaction intensity" is too vague. It should be replaced in the creator UI by operational settings:
+The current "interaction intensity" is too vague. It should stay as a compatibility field in schema, but it should not be the primary creator control. Creator UI should expose operational settings:
 
 - Play mode: read-heavy, choice-driven, free-explore.
 - Choice density: low, medium, high.
@@ -73,6 +73,21 @@ The current "interaction intensity" is too vague. It should be replaced in the c
 - Visual generation mode: first-scene-only, key-scenes, every-scene.
 
 These settings can map to runtime policy and prompt constraints. They are also easier for creators to understand than "light/medium/strong interaction".
+
+Current effectiveness:
+
+| Field | Product meaning | Current behavior | Level |
+| --- | --- | --- | --- |
+| `freeformInputMode` | Whether players can type custom actions | Hard controls the play page input. `playtest-only` allows creator playtests and disables published player runs. | Hard |
+| `playMode` | Reading-heavy, choice-led, or exploratory experience | Enters the compiled generation context and published SKU runtime metadata. | Prompt/runtime policy |
+| `choiceDensity` | How often choices should appear | Enters the compiled generation context and published SKU runtime metadata. | Prompt/runtime policy |
+| `branchingMode` | Whether branches return to mainline, stay short, or support multiple endings | Enters the compiled generation context and published SKU runtime metadata. | Prompt/runtime policy |
+| `choiceStyle` | How choices should be written | Enters the compiled generation context. | Prompt |
+| `branchNotes` | Creator notes for meaningful branches | Enters the compiled generation context. | Prompt |
+| `visualGenerationMode` | Cost and image frequency preference | Stored in runtime metadata and visible to the play flow, but the engine still needs image scheduling work before it can hard-skip scene images. | Partial |
+| `visual.stylePrompt` | Visual style for generated cover, first scene, and runtime images | Used as `styleGuide` in playtest generation and asset prompts. | Prompt |
+| `visual.cover` / `visual.firstScene` | Prepared images | Maintained through the asset library and publish preview. Manual URL fields are no longer primary UI. | Asset metadata |
+| `interaction.intensity` | Legacy broad intensity | Kept only for old projects/import compatibility. It should not be edited in the main UI. | Legacy |
 
 ### 4. Fixed Runtime Package
 
@@ -103,6 +118,29 @@ Do not immediately delete the old opening package runtime path. It is already pa
 3. Add UI for cover / first scene / character reference assets.
 4. Replace the visible "interaction intensity" control with concrete strategy controls.
 5. Keep the old `openingPackage` schema as a compatibility layer until fixed runtime package exists.
+
+## Creator Editor IA After Cleanup
+
+The editor should avoid making creators fill the same intent in multiple places.
+
+Main flow:
+
+1. Basic info: title, core promise, synopsis, protagonist/player position, core conflict, audience, tags.
+2. World: setting, rules, locations, tone.
+3. Story Blueprint: main goal, phase outline, required beats, ending direction, guardrails.
+4. Opening playable slice: compatibility layer for the current first-scene publishing path.
+5. Asset Library: cover, first scene image, main character references.
+6. Interaction Strategy: play mode, choice density, branching mode, free input mode, choice style, branch notes.
+7. Visual Strategy: visual generation frequency and style prompt.
+
+Fields that are still useful but should not dominate the MVP editing flow:
+
+- Relationship arc.
+- Supporting cast / factions.
+- Creator notes.
+- Full act / scene structure editor.
+
+These can remain in the schema and compiler, and can return later as advanced panels or AI assistant targets.
 
 ## Roadmap
 
@@ -159,6 +197,11 @@ Tasks:
 - Publish SKU with fixed package metadata.
 - `/play` loads fixed package first.
 - AI continuation starts only after the fixed package ends or when the player takes an unsupported path.
+
+MVP status:
+
+- Implemented: playtest writes back recorded runtime history, selected playtest can be fixed into a runtime package, publish includes the package, and `/play` loads it before live generation.
+- Current limitation: fixed package stores the accepted linear path and replays recorded choices. Full package versioning, share links, analytics, and creator-side branch editing remain deferred.
 
 ### Phase E: Sharing And Cost Control
 

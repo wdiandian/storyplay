@@ -10,6 +10,7 @@ import { checkOfficialQuota } from "@/lib/officialQuota";
 import { resolveBillingUserId } from "@/lib/serverIdentity";
 import type {
   CreatorStoryAssistantAction,
+  CreatorStoryAssistantConversationMessage,
   CreatorStoryAssistantTargetSection,
 } from "@/lib/creatorAssistant/types";
 import { getStoredStoryProject } from "@/lib/storyProject/store";
@@ -39,6 +40,7 @@ const targetSections = new Set<CreatorStoryAssistantTargetSection>([
   "narrative",
   "outline",
   "characters",
+  "assets",
   "interaction",
   "visual",
 ]);
@@ -55,6 +57,21 @@ function readAction(value: unknown): CreatorStoryAssistantAction | undefined {
 
 function readOptionalString(value: unknown) {
   return typeof value === "string" ? value.trim() : undefined;
+}
+
+function readConversation(value: unknown): CreatorStoryAssistantConversationMessage[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item): CreatorStoryAssistantConversationMessage | undefined => {
+      if (!item || typeof item !== "object") return undefined;
+      const candidate = item as Record<string, unknown>;
+      const role = candidate.role === "assistant" ? "assistant" : candidate.role === "creator" ? "creator" : undefined;
+      const content = readOptionalString(candidate.content);
+      if (!role || !content) return undefined;
+      return { role, content: content.slice(0, 800) };
+    })
+    .filter((item): item is CreatorStoryAssistantConversationMessage => Boolean(item))
+    .slice(-8);
 }
 
 function readTargetSection(value: unknown): CreatorStoryAssistantTargetSection | undefined {
@@ -137,6 +154,7 @@ export async function POST(req: Request, context: ProjectAssistantRouteContext) 
       action,
       project: inputProject,
       userInstruction: readOptionalString(body.userInstruction),
+      conversation: readConversation(body.conversation),
       targetSection: readTargetSection(body.targetSection),
       selectedActId: readOptionalString(body.selectedActId),
       selectedSceneId: readOptionalString(body.selectedSceneId),

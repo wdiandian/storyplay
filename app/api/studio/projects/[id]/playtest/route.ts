@@ -40,6 +40,8 @@ export async function POST(_req: Request, context: ProjectPlaytestRouteContext) 
     firstSceneImageUrl: "",
     sceneCount: 0,
     characterCount: 0,
+    recordedHistory: [],
+    finalStoryState: undefined,
     notes: "",
   };
   const savedProject = await saveStoredStoryProject({

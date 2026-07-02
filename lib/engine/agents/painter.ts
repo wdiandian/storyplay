@@ -253,6 +253,7 @@ export async function runPainter(
   }
 
   const prompt = painterContract.buildPrompt!(input);
+  const sceneImageConfig = config.imageProfiles?.scene ?? config.image;
 
   const refs = collectReferenceImages(
     input.onStageCharacters,
@@ -275,13 +276,13 @@ export async function runPainter(
     const r =
       config.imageHedgeMs && config.imageHedgeMs > 0
         ? await tryGenerateHedged(
-            config.image,
+            sceneImageConfig,
             prompt,
             tierAOptions,
             label,
             config.imageHedgeMs,
           )
-        : await tryGenerate(config.image, prompt, tierAOptions, label);
+        : await tryGenerate(sceneImageConfig, prompt, tierAOptions, label);
     if (r) {
       return {
         output: {
@@ -297,7 +298,7 @@ export async function runPainter(
   // there are no references to send (first scene with no characters yet).
   // Errors here propagate to the caller.
   const r = await tryGenerate(
-    config.image,
+    sceneImageConfig,
     prompt,
     {
       orientation: input.orientation,

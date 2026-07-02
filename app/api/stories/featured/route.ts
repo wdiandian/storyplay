@@ -24,6 +24,8 @@ function dbStoryToFeaturedRow(story: FeaturedStory): FeaturedRow {
     sourceProjectId: undefined,
     startRequest: undefined,
     openingPackage: undefined,
+    fixedRuntimePackage: undefined,
+    interactionPolicy: undefined,
     sortOrder: story.sortOrder,
     isActive: story.isActive,
     clickCount: story.clickCount,

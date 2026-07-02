@@ -20,11 +20,17 @@ export type CreatorStoryAssistantInput = {
   action: CreatorStoryAssistantAction;
   project: StoryProject;
   userInstruction?: string;
+  conversation?: CreatorStoryAssistantConversationMessage[];
   targetSection?: CreatorStoryAssistantTargetSection;
   selectedActId?: string;
   selectedSceneId?: string;
   playtestId?: string;
   locale: StoryProjectLanguage;
+};
+
+export type CreatorStoryAssistantConversationMessage = {
+  role: "creator" | "assistant";
+  content: string;
 };
 
 export type CreatorStoryAssistantTargetSection =
@@ -34,6 +40,7 @@ export type CreatorStoryAssistantTargetSection =
   | "narrative"
   | "outline"
   | "characters"
+  | "assets"
   | "interaction"
   | "visual";
 
@@ -55,10 +62,11 @@ export type CreatorStoryAssistantCharacterPatch =
     source?: "ai-generated";
   };
 
-export type CreatorStoryAssistantAssetPatch =
-  Partial<Omit<StoryProjectAsset, "source">> & {
-    source?: "ai-generated" | "generated" | "uploaded";
-  };
+export type CreatorStoryAssistantAssetPatch = Partial<
+  Pick<StoryProjectAsset, "id" | "kind" | "title" | "prompt" | "characterId" | "notes">
+> & {
+  source?: "ai-generated";
+};
 
 export type CreatorStoryAssistantScenePatch =
   Partial<Omit<StoryProjectScene, "source" | "lastPlaytest">> & {
