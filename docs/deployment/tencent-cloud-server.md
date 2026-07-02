@@ -130,10 +130,12 @@ services:
       - .env.local
     volumes:
       - storyplay_data:/app/.storyplay
+      - storyplay_assets:/app/public/studio-assets
     restart: unless-stopped
 
 volumes:
   storyplay_data:
+  storyplay_assets:
 ```
 
 Start:

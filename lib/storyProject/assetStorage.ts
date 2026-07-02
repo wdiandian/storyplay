@@ -43,8 +43,19 @@ function assertImage(contentType: string, size: number) {
   }
 }
 
-function localAssetRoot() {
+export function localAssetRoot() {
   return path.resolve(process.cwd(), "public", "studio-assets");
+}
+
+export function resolveStudioAssetPath(key: string | string[]) {
+  const root = localAssetRoot();
+  const segments = Array.isArray(key) ? key : key.split(/[\\/]+/);
+  const relativePath = segments.filter(Boolean).join(path.sep);
+  const absolutePath = path.resolve(root, relativePath);
+  if (absolutePath !== root && !absolutePath.startsWith(`${root}${path.sep}`)) {
+    throw new Error("Invalid asset key.");
+  }
+  return { root, absolutePath };
 }
 
 function publicBaseUrl() {
@@ -80,11 +91,7 @@ export async function storeStudioAsset(input: {
 }): Promise<StoredStudioAsset> {
   assertImage(input.contentType, input.data.byteLength);
 
-  const root = localAssetRoot();
-  const absolutePath = path.resolve(root, input.key);
-  if (absolutePath !== root && !absolutePath.startsWith(`${root}${path.sep}`)) {
-    throw new Error("Invalid asset key.");
-  }
+  const { absolutePath } = resolveStudioAssetPath(input.key);
 
   await mkdir(path.dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, input.data);
