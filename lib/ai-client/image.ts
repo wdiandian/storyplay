@@ -47,6 +47,10 @@ type OpenRouterImageResponse = {
   error?: { message?: string } | string;
 };
 
+type OpenRouterResultCandidate =
+  | { kind: "url"; url: string }
+  | { kind: "base64"; b64: string };
+
 export type GenerateImageOptions = {
   /**
    * Reference image (UUID, public URL, or base64) for img2img. When set,
@@ -268,7 +272,10 @@ function orientationToAspectRatio(orientation: Orientation | undefined): "16:9" 
   return orientation === "portrait" ? "9:16" : "16:9";
 }
 
-function openRouterDataToResult(json: OpenRouterImageResponse, rawText: string): GenerateImageResult {
+function openRouterDataToCandidate(
+  json: OpenRouterImageResponse,
+  rawText: string,
+): OpenRouterResultCandidate {
   const data = json.data?.[0];
   const rawImageUrl = data?.image_url;
   const imageUrl =
@@ -276,17 +283,37 @@ function openRouterDataToResult(json: OpenRouterImageResponse, rawText: string):
       ? rawImageUrl
       : rawImageUrl?.url ?? data?.url;
   if (imageUrl) {
-    return { imageUrl, imageUuid: crypto.randomUUID() };
+    return { kind: "url", url: imageUrl };
   }
 
   if (data?.b64_json) {
-    return {
-      imageUrl: `data:image/png;base64,${data.b64_json}`,
-      imageUuid: crypto.randomUUID(),
-    };
+    return { kind: "base64", b64: data.b64_json };
   }
 
   throw new Error(`No image URL/base64 in OpenRouter image response: ${rawText.slice(0, 300)}`);
+}
+
+async function fetchImageUrlAsDataUrl(
+  url: string,
+  timeoutMs?: number,
+  signal?: AbortSignal,
+): Promise<string> {
+  const requestSignal =
+    timeoutMs
+      ? signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])
+        : AbortSignal.timeout(timeoutMs)
+      : signal;
+  const res = await fetch(url, {
+    headers: { Accept: "image/*" },
+    signal: requestSignal,
+  });
+  if (!res.ok) {
+    throw new Error(`OpenRouter image URL fetch failed ${res.status}`);
+  }
+  const contentType = res.headers.get("content-type") ?? "image/png";
+  const bytes = Buffer.from(await res.arrayBuffer());
+  return `data:${contentType};base64,${bytes.toString("base64")}`;
 }
 
 async function generateImageOpenRouter(
@@ -337,7 +364,28 @@ async function generateImageOpenRouter(
     throw new Error(`OpenRouter Image API error ${res.status}: ${message}`);
   }
 
-  return openRouterDataToResult(json, text);
+  const candidate = openRouterDataToCandidate(json, text);
+  if (candidate.kind === "base64") {
+    return {
+      imageUrl: `data:image/png;base64,${candidate.b64}`,
+      imageUuid: crypto.randomUUID(),
+    };
+  }
+
+  try {
+    return {
+      imageUrl: await fetchImageUrlAsDataUrl(
+        candidate.url,
+        options?.timeoutMs,
+        options?.signal,
+      ),
+      imageUuid: crypto.randomUUID(),
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[openrouter-image] failed to inline returned URL, falling back to raw URL: ${message}`);
+    return { imageUrl: candidate.url, imageUuid: crypto.randomUUID() };
+  }
 }
 
 // OpenAI-compatible REST route (GPTGod, DALL-E proxies, etc.). Basic
