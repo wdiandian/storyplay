@@ -14,6 +14,7 @@ const VALID_PROTOCOLS = [
   "openai",
   "runware",
   "openrouter_image",
+  "fal_image",
 ] as const;
 
 function readVar(name: string): string {

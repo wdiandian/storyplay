@@ -448,7 +448,8 @@ export type ProviderProtocol =
   | "openai_compatible"
   | "openai"
   | "runware"
-  | "openrouter_image";
+  | "openrouter_image"
+  | "fal_image";
 
 export type ProviderConfig = {
   baseUrl: string;

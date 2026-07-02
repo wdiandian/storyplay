@@ -21,6 +21,7 @@ import { normalizeBaseUrl } from "./normalizeUrl";
 const DEFAULT_IMG2IMG_STRENGTH = 0.85;
 const MAX_REFERENCE_IMAGES = 4;
 const MAX_OPENROUTER_REFERENCE_IMAGES = 14;
+const MAX_FAL_REFERENCE_IMAGES = 14;
 
 type RunwareImageResult = {
   imageURL?: string;
@@ -50,6 +51,17 @@ type OpenRouterImageResponse = {
 type OpenRouterResultCandidate =
   | { kind: "url"; url: string }
   | { kind: "base64"; b64: string };
+
+type FalImageFile = {
+  url?: string;
+  content_type?: string;
+};
+
+type FalImageResponse = {
+  images?: FalImageFile[];
+  error?: string | { message?: string };
+  detail?: unknown;
+};
 
 export type GenerateImageOptions = {
   /**
@@ -145,6 +157,8 @@ export async function generateImage(
       return generateImageRunware(config, prompt, options);
     case "openrouter_image":
       return generateImageOpenRouter(config, prompt, options);
+    case "fal_image":
+      return generateImageFal(config, prompt, options);
     case "openai_compatible":
     default:
       return generateImageOpenAiCompatible(config, prompt, options);
@@ -314,6 +328,131 @@ async function fetchImageUrlAsDataUrl(
   const contentType = res.headers.get("content-type") ?? "image/png";
   const bytes = Buffer.from(await res.arrayBuffer());
   return `data:${contentType};base64,${bytes.toString("base64")}`;
+}
+
+function cleanFalModelPath(value: string): string {
+  return value.trim().replace(/^\/+|\/+$/g, "");
+}
+
+function falBaseAndModel(config: ProviderConfig): { base: string; model: string } {
+  const base = normalizeBaseUrl(config.baseUrl, "fal_image");
+  const model = cleanFalModelPath(config.model);
+
+  try {
+    const url = new URL(base);
+    const pathModel = cleanFalModelPath(url.pathname);
+    if (url.hostname === "fal.run" && pathModel) {
+      url.pathname = "";
+      url.search = "";
+      url.hash = "";
+      return {
+        base: url.toString().replace(/\/+$/, ""),
+        model: model === pathModel ? pathModel : model,
+      };
+    }
+  } catch {
+    // Fall through to the normal base + model join below.
+  }
+
+  return { base, model };
+}
+
+function falEditModel(defaultModel: string): string {
+  const configured = process.env.FAL_IMAGE_EDIT_MODEL;
+  if (configured?.trim()) {
+    return cleanFalModelPath(configured);
+  }
+  if (defaultModel.endsWith("/edit")) return defaultModel;
+  if (defaultModel === "google/nano-banana-2-lite") {
+    return "google/nano-banana-lite/edit";
+  }
+  return `${defaultModel}/edit`;
+}
+
+function falGenerateModel(model: string): string {
+  return model.endsWith("/edit") ? model.slice(0, -"/edit".length) : model;
+}
+
+function falEndpoint(config: ProviderConfig, edit: boolean): string {
+  const { base, model } = falBaseAndModel(config);
+  const targetModel = edit ? falEditModel(model) : falGenerateModel(model);
+  return `${base}/${targetModel}`;
+}
+
+function falOutputToResult(json: FalImageResponse, rawText: string): GenerateImageResult {
+  const imageUrl = json.images?.[0]?.url;
+  if (!imageUrl) {
+    throw new Error(`No image URL/data URI in fal image response: ${rawText.slice(0, 300)}`);
+  }
+  return { imageUrl, imageUuid: crypto.randomUUID() };
+}
+
+function falErrorMessage(json: FalImageResponse, rawText: string): string {
+  if (typeof json.error === "string") return json.error;
+  if (json.error?.message) return json.error.message;
+  if (json.detail) return JSON.stringify(json.detail).slice(0, 500);
+  return rawText.slice(0, 500);
+}
+
+async function generateImageFal(
+  config: ProviderConfig,
+  prompt: string,
+  options?: GenerateImageOptions,
+): Promise<GenerateImageResult> {
+  const refs = options?.referenceImages?.filter((r) => /^https?:\/\//i.test(r) || r.startsWith("data:image/")) ?? [];
+  const endpoint = falEndpoint(config, refs.length > 0);
+  const body: Record<string, unknown> = {
+    prompt,
+    num_images: 1,
+    aspect_ratio: orientationToAspectRatio(options?.orientation),
+    output_format: "png",
+    sync_mode: true,
+  };
+  if (refs.length > 0) {
+    body.image_urls = refs.slice(0, MAX_FAL_REFERENCE_IMAGES);
+  }
+
+  const res = await fetchWithRetry(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Key ${config.apiKey}`,
+    },
+    body: JSON.stringify(body),
+    retries: options?.retries,
+    timeoutMs: options?.timeoutMs,
+    signal: options?.signal,
+  });
+
+  const text = await res.text();
+  let json: FalImageResponse;
+  try {
+    json = JSON.parse(text) as FalImageResponse;
+  } catch {
+    throw new Error(`fal Image API error ${res.status}: ${text.slice(0, 500)}`);
+  }
+
+  if (!res.ok || json.error || json.detail) {
+    throw new Error(`fal Image API error ${res.status}: ${falErrorMessage(json, text)}`);
+  }
+
+  const result = falOutputToResult(json, text);
+  if (result.imageUrl.startsWith("data:image/")) return result;
+
+  try {
+    return {
+      imageUrl: await fetchImageUrlAsDataUrl(
+        result.imageUrl,
+        options?.timeoutMs,
+        options?.signal,
+      ),
+      imageUuid: result.imageUuid,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[fal-image] failed to inline returned URL, falling back to raw URL: ${message}`);
+    return result;
+  }
 }
 
 async function generateImageOpenRouter(

@@ -1,8 +1,49 @@
-# 图片模型路由与 OpenRouter 配置
+# 图片模型路由与 fal.ai / OpenRouter 配置
 
-本文档说明 StoryPlay 图片生成目前的路由关系，以及如何接入 OpenRouter 图片模型。
+本文档说明 StoryPlay 图片生成目前的路由关系，以及如何接入 fal.ai / OpenRouter 图片模型。
 
-## 推荐配置
+## fal.ai 推荐配置
+
+如果使用 fal.ai 的 Nano Banana 2 Lite：
+
+```text
+google/nano-banana-2-lite
+```
+
+推荐配置：
+
+```env
+IMAGE_BASE_URL=https://fal.run
+IMAGE_API_KEY=fal-xxx
+IMAGE_MODEL=google/nano-banana-2-lite
+IMAGE_PROVIDER=fal_image
+# 可选：参考图编辑模型。默认会按 fal 当前 endpoint 走 google/nano-banana-lite/edit。
+# FAL_IMAGE_EDIT_MODEL=google/nano-banana-lite/edit
+```
+
+项目会根据是否有参考图自动选择 fal endpoint：
+
+| 场景 | fal endpoint |
+| --- | --- |
+| 无参考图 | `https://fal.run/google/nano-banana-2-lite` |
+| 有参考图 | `https://fal.run/google/nano-banana-lite/edit`，可用 `FAL_IMAGE_EDIT_MODEL` 覆盖 |
+
+当前传给 fal 的主要参数：
+
+| 参数 | 当前值 |
+| --- | --- |
+| `prompt` | 场景图 / 角色图提示词 |
+| `num_images` | `1` |
+| `aspect_ratio` | 横屏 `16:9`，竖屏 `9:16` |
+| `output_format` | `png` |
+| `sync_mode` | `true`，优先让 fal 返回 data URI，避免临时 URL 404 |
+| `image_urls` | 仅参考图生成时传入 |
+
+fal 如果仍返回远程 URL，服务端会立刻下载并转成 `data:image/...;base64,...` 返回给前端。
+
+如果误把 `IMAGE_BASE_URL` 填成完整模型地址，例如 `https://fal.run/google/nano-banana-2-lite`，代码会自动拆回 `https://fal.run` + 模型路径，避免重复拼接。
+
+## OpenRouter 配置
 
 如果使用 OpenRouter 的图片模型：
 
@@ -99,4 +140,3 @@ MODEL_PROFILE_IMAGE_CHARACTER_PROVIDER=openrouter_image
 2. OpenRouter 图片返回 URL 或 base64 都兼容，但不同上游的 URL 保留时长可能不同。
 3. 参考图传入 URL 或 data URL。若上游不接受某种 URL 形态，会自动降级为直接文生图。
 4. `IMAGE_HEDGE_MS` 不建议用于 OpenRouter/Gemini 图片模型，先留空；只建议给 Runware 这类快模型使用。
-

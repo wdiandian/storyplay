@@ -32,6 +32,7 @@ const DEFAULT_VERSION_SEGMENT: Record<ProviderProtocol, string | null> = {
   openai_compatible: "v1",
   openai: "v1",
   openrouter_image: "v1",
+  fal_image: null,
   // Runware posts to the bare base URL with no version-pathed sub-resource,
   // so never inject a segment for it.
   runware: null,

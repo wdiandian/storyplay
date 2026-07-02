@@ -54,6 +54,7 @@ const VALID_PROTOCOLS = [
   "openai",
   "runware",
   "openrouter_image",
+  "fal_image",
 ] as const;
 
 const DEFAULT_ROUTE_PROFILES: Record<ModelScenario, ModelRouteProfiles> = {
