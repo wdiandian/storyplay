@@ -6,6 +6,7 @@ import { useMemo, useRef, useState } from "react";
 import { SettingsModal, readStoredVisionClick } from "@/components/SettingsModal";
 import { readStoredModelConfig, readStoredModelMode } from "@/lib/clientModelConfig";
 import { guestHeaders } from "@/lib/guestId";
+import { creatorAssistantSkills } from "@/lib/creatorAssistant/skills/registry";
 import {
   hasCreatorStoryAssistantPatch,
   mergeCreatorStoryAssistantPatch,
@@ -16,6 +17,7 @@ import type {
   CreatorStoryAssistantConversationMessage,
   CreatorStoryAssistantOutput,
   CreatorStoryAssistantTargetSection,
+  StoryProjectPatch,
 } from "@/lib/creatorAssistant/types";
 import {
   createStoryProjectAct,
@@ -87,21 +89,12 @@ type AssetGeneratorState = {
   generatedPrompt: string;
 };
 
-const assistantTargets: Array<{
-  value: CreatorStoryAssistantTargetSection;
-  label: string;
-  action: CreatorStoryAssistantAction;
-}> = [
-  { value: "project", label: "全工程", action: "expand-concept" },
-  { value: "basics", label: "基础信息", action: "expand-concept" },
-  { value: "world", label: "世界观", action: "expand-concept" },
-  { value: "narrative", label: "叙事核心", action: "expand-concept" },
-  { value: "outline", label: "大纲", action: "build-outline" },
-  { value: "characters", label: "角色", action: "create-characters" },
-  { value: "assets", label: "资产库", action: "expand-concept" },
-  { value: "interaction", label: "互动", action: "expand-concept" },
-  { value: "visual", label: "视觉", action: "expand-concept" },
-];
+const assistantTargets = creatorAssistantSkills.map((skill) => ({
+  value: skill.id,
+  label: skill.label,
+  action: skill.defaultAction,
+  quickActions: skill.quickActions,
+}));
 
 function localePath(path: string, locale: string) {
   if (locale === "zh-CN") return path;
@@ -125,6 +118,68 @@ function splitLines(value: string) {
 
 function joinLines(values: string[]) {
   return values.join("\n");
+}
+
+function pickAssistantPatchField(patch: StoryProjectPatch, field: string): StoryProjectPatch {
+  const [root, ...segments] = field.split(".");
+  if (!root || !(root in patch)) return {};
+  const rootKey = root as keyof StoryProjectPatch;
+  const rootValue = patch[rootKey];
+  if (rootValue === undefined) return {};
+  if (segments.length === 0 || Array.isArray(rootValue) || rootValue === null || typeof rootValue !== "object") {
+    return { [rootKey]: rootValue } as StoryProjectPatch;
+  }
+
+  let source: unknown = rootValue;
+  const picked: Record<string, unknown> = {};
+  let cursor: Record<string, unknown> = picked;
+  for (let index = 0; index < segments.length; index += 1) {
+    const segment = segments[index]!;
+    if (!source || typeof source !== "object" || Array.isArray(source)) return {};
+    const value = (source as Record<string, unknown>)[segment];
+    if (value === undefined) return {};
+    if (index === segments.length - 1) {
+      cursor[segment] = value;
+      break;
+    }
+    cursor[segment] = {};
+    cursor = cursor[segment] as Record<string, unknown>;
+    source = value;
+  }
+
+  return { [rootKey]: picked } as StoryProjectPatch;
+}
+
+function removeAssistantPatchField(patch: StoryProjectPatch, field: string): StoryProjectPatch {
+  const [root, ...segments] = field.split(".");
+  if (!root || !(root in patch)) return patch;
+  const rootKey = root as keyof StoryProjectPatch;
+  if (segments.length === 0) {
+    const { [rootKey]: _removed, ...rest } = patch;
+    return rest;
+  }
+
+  const rootValue = patch[rootKey];
+  if (!rootValue || typeof rootValue !== "object" || Array.isArray(rootValue)) return patch;
+  const nextRoot = { ...(rootValue as Record<string, unknown>) };
+  let cursor: Record<string, unknown> = nextRoot;
+  for (let index = 0; index < segments.length - 1; index += 1) {
+    const segment = segments[index]!;
+    const value = cursor[segment];
+    if (!value || typeof value !== "object" || Array.isArray(value)) return patch;
+    cursor[segment] = { ...(value as Record<string, unknown>) };
+    cursor = cursor[segment] as Record<string, unknown>;
+  }
+  delete cursor[segments.at(-1)!];
+  return { ...patch, [rootKey]: nextRoot } as StoryProjectPatch;
+}
+
+function filterAssistantPatchFields(patch: StoryProjectPatch, ignoredFields: string[]): StoryProjectPatch {
+  return ignoredFields.reduce((current, field) => removeAssistantPatchField(current, field), patch);
+}
+
+function proposalReasonForField(notes: CreatorStoryAssistantOutput["patchNotes"], field: string) {
+  return notes.find((note) => note.field === field || field.startsWith(`${note.field}.`))?.reason;
 }
 
 function projectAudienceLabel(audience: StoryProjectAudience) {
@@ -151,14 +206,36 @@ function Field({
   label,
   children,
   hint,
+  assistantLabel,
+  onAssistant,
+  assistantLoading,
 }: {
   label: string;
   children: React.ReactNode;
   hint?: string;
+  assistantLabel?: string;
+  onAssistant?: () => void;
+  assistantLoading?: boolean;
 }) {
   return (
     <label className="block">
-      <span className="text-[11px] font-medium text-sp-subdued">{label}</span>
+      <span className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-medium text-sp-subdued">{label}</span>
+        {onAssistant && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              onAssistant();
+            }}
+            disabled={assistantLoading}
+            className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-sp-border bg-sp-surface px-2 text-[11px] font-medium text-sp-subdued hover:border-sp-accent hover:text-sp-accent disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <i className="fa-solid fa-wand-magic-sparkles text-[10px]" />
+            {assistantLoading ? "生成中" : assistantLabel ?? "AI 优化"}
+          </button>
+        )}
+      </span>
       <div className="mt-1.5">{children}</div>
       {hint && <span className="mt-1.5 block text-xs leading-5 text-sp-subdued">{hint}</span>}
     </label>
@@ -292,6 +369,7 @@ export function ProjectEditorClient({
   const [assistantConversation, setAssistantConversation] = useState<CreatorStoryAssistantConversationMessage[]>([]);
   const [assistantLoadingAction, setAssistantLoadingAction] = useState<CreatorStoryAssistantAction | "">("");
   const [assistantResult, setAssistantResult] = useState<CreatorStoryAssistantOutput | null>(null);
+  const [ignoredAssistantFields, setIgnoredAssistantFields] = useState<string[]>([]);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantTarget, setAssistantTarget] = useState<CreatorStoryAssistantTargetSection>("project");
   const [assetGenerator, setAssetGenerator] = useState<AssetGeneratorState>({
@@ -431,8 +509,14 @@ export function ProjectEditorClient({
   const selectedPlaytest =
     visiblePlaytests.find((playtest) => playtest.id === selectedPlaytestId) ?? visiblePlaytests[0];
   const assistantPatchPreview = useMemo(
-    () => assistantResult ? previewCreatorStoryAssistantPatch(project, assistantResult.patch) : [],
-    [assistantResult, project],
+    () =>
+      assistantResult
+        ? previewCreatorStoryAssistantPatch(
+            project,
+            filterAssistantPatchFields(assistantResult.patch, ignoredAssistantFields),
+          )
+        : [],
+    [assistantResult, ignoredAssistantFields, project],
   );
   const assistantTargetMeta =
     assistantTargets.find((target) => target.value === assistantTarget) ?? assistantTargets[0]!;
@@ -459,6 +543,7 @@ export function ProjectEditorClient({
     }
     setAssistantLoadingAction(action);
     setAssistantResult(null);
+    setIgnoredAssistantFields([]);
     setNotice("");
     try {
       const response = await fetch(`/api/studio/projects/${project.id}/assistant`, {
@@ -513,11 +598,47 @@ export function ProjectEditorClient({
     );
   }
 
+  function selectAssistantTarget(targetSection: CreatorStoryAssistantTargetSection) {
+    setAssistantTarget(targetSection);
+    setAssistantResult(null);
+    setIgnoredAssistantFields([]);
+  }
+
+  function openAssistantForField(
+    targetSection: CreatorStoryAssistantTargetSection,
+    field: string,
+    instruction: string,
+  ) {
+    const target = assistantTargets.find((item) => item.value === targetSection);
+    setAssistantTarget(targetSection);
+    setAssistantOpen(true);
+    void runAssistant(
+      target?.action ?? "expand-concept",
+      targetSection,
+      `${instruction}。只针对 ${field} 给出可回填建议，除非必要不要改其他字段。`,
+    );
+  }
+
   function applyAssistantPatch() {
-    if (!assistantResult || !hasCreatorStoryAssistantPatch(assistantResult.patch)) return;
-    setProject((current) => mergeCreatorStoryAssistantPatch(current, assistantResult.patch));
+    if (!assistantResult) return;
+    const patch = filterAssistantPatchFields(assistantResult.patch, ignoredAssistantFields);
+    if (!hasCreatorStoryAssistantPatch(patch)) return;
+    setProject((current) => mergeCreatorStoryAssistantPatch(current, patch));
     setSaveState("idle");
     setNotice("已应用 AI 建议到当前草稿，请确认后保存工程。");
+  }
+
+  function applyAssistantPatchField(field: string) {
+    if (!assistantResult) return;
+    const fieldPatch = pickAssistantPatchField(assistantResult.patch, field);
+    if (!hasCreatorStoryAssistantPatch(fieldPatch)) return;
+    setProject((current) => mergeCreatorStoryAssistantPatch(current, fieldPatch));
+    setSaveState("idle");
+    setNotice("已应用该项 AI 建议，请确认后保存工程。");
+  }
+
+  function ignoreAssistantPatchField(field: string) {
+    setIgnoredAssistantFields((current) => current.includes(field) ? current : [...current, field]);
   }
 
   function updateWorld(patch: Partial<StoryProject["world"]>) {
@@ -1393,7 +1514,11 @@ export function ProjectEditorClient({
               assistantLoading={Boolean(assistantLoadingAction)}
             >
               <div className="grid gap-5 md:grid-cols-2">
-                <Field label="故事简介">
+                <Field
+                  label="故事简介"
+                  onAssistant={() => openAssistantForField("basics", "synopsis", "优化故事简介，保留当前题材方向，补清楚人物、冲突和玩家体验")}
+                  assistantLoading={Boolean(assistantLoadingAction)}
+                >
                   <TextArea
                     value={project.synopsis}
                     onChange={(value) => updateProject({ synopsis: value })}
@@ -1402,14 +1527,22 @@ export function ProjectEditorClient({
                   />
                 </Field>
                 <div className="space-y-5">
-                  <Field label="主角 / 玩家位置">
+                  <Field
+                    label="主角 / 玩家位置"
+                    onAssistant={() => openAssistantForField("basics", "narrative.protagonist", "明确玩家在故事里的身份、初始处境和代入视角")}
+                    assistantLoading={Boolean(assistantLoadingAction)}
+                  >
                     <TextInput
                       value={project.narrative.protagonist}
                       onChange={(value) => updateNarrative({ protagonist: value })}
                       placeholder="例如：刚搬来的夜班店员"
                     />
                   </Field>
-                  <Field label="核心冲突">
+                  <Field
+                    label="核心冲突"
+                    onAssistant={() => openAssistantForField("basics", "narrative.coreConflict", "强化核心冲突，让它更适合互动故事推进")}
+                    assistantLoading={Boolean(assistantLoadingAction)}
+                  >
                     <TextInput
                       value={project.narrative.coreConflict}
                       onChange={(value) => updateNarrative({ coreConflict: value })}
@@ -1450,7 +1583,11 @@ export function ProjectEditorClient({
               assistantLoading={Boolean(assistantLoadingAction)}
             >
               <div className="grid gap-5 md:grid-cols-2">
-                <Field label="世界设定">
+                <Field
+                  label="世界设定"
+                  onAssistant={() => openAssistantForField("world", "world.setting", "补强世界设定，写清故事发生环境、时代感和核心规则")}
+                  assistantLoading={Boolean(assistantLoadingAction)}
+                >
                   <TextArea
                     value={project.world.setting}
                     onChange={(value) => updateWorld({ setting: value })}
@@ -1458,7 +1595,11 @@ export function ProjectEditorClient({
                     rows={5}
                   />
                 </Field>
-                <Field label="世界规则">
+                <Field
+                  label="世界规则"
+                  onAssistant={() => openAssistantForField("world", "world.rules", "补充世界规则，重点约束后续模型不要跑偏")}
+                  assistantLoading={Boolean(assistantLoadingAction)}
+                >
                   <TextArea
                     value={project.world.rules}
                     onChange={(value) => updateWorld({ rules: value })}
@@ -1466,7 +1607,11 @@ export function ProjectEditorClient({
                     rows={5}
                   />
                 </Field>
-                <Field label="主要地点">
+                <Field
+                  label="主要地点"
+                  onAssistant={() => openAssistantForField("world", "world.locations", "整理主要地点，补充空间关系、功能和视觉特征")}
+                  assistantLoading={Boolean(assistantLoadingAction)}
+                >
                   <TextArea
                     value={project.world.locations}
                     onChange={(value) => updateWorld({ locations: value })}
@@ -1474,7 +1619,11 @@ export function ProjectEditorClient({
                     rows={4}
                   />
                 </Field>
-                <Field label="叙事调性">
+                <Field
+                  label="叙事调性"
+                  onAssistant={() => openAssistantForField("world", "world.tone", "统一叙事调性，明确情绪、节奏和镜头感")}
+                  assistantLoading={Boolean(assistantLoadingAction)}
+                >
                   <TextArea
                     value={project.world.tone}
                     onChange={(value) => updateWorld({ tone: value })}
@@ -1493,7 +1642,12 @@ export function ProjectEditorClient({
               assistantLoading={Boolean(assistantLoadingAction)}
             >
               <div className="grid gap-5 md:grid-cols-2">
-                <Field label="核心承诺" hint="对应首页和试玩生成的核心卖点。">
+                <Field
+                  label="核心承诺"
+                  hint="对应首页和试玩生成的核心卖点。"
+                  onAssistant={() => openAssistantForField("outline", "logline", "优化一句话核心承诺，突出题材钩子、玩家目标和情绪卖点")}
+                  assistantLoading={Boolean(assistantLoadingAction)}
+                >
                   <TextArea
                     value={project.logline}
                     onChange={(value) => updateProject({ logline: value })}
@@ -1501,7 +1655,12 @@ export function ProjectEditorClient({
                     rows={3}
                   />
                 </Field>
-                <Field label="主线目标" hint="无论玩家怎么选，故事最终都要围绕这个目标推进。">
+                <Field
+                  label="主线目标"
+                  hint="无论玩家怎么选，故事最终都要围绕这个目标推进。"
+                  onAssistant={() => openAssistantForField("outline", "storyOutline.mainGoal", "补强主线目标，让它能约束后续 AI 续写和玩家分支")}
+                  assistantLoading={Boolean(assistantLoadingAction)}
+                >
                   <TextArea
                     value={project.storyOutline.mainGoal}
                     onChange={(value) => updateStoryOutline({ mainGoal: value })}
@@ -1509,7 +1668,12 @@ export function ProjectEditorClient({
                     rows={3}
                   />
                 </Field>
-                <Field label="阶段大纲" hint="不是剧情树，只写大概推进顺序。">
+                <Field
+                  label="阶段大纲"
+                  hint="不是剧情树，只写大概推进顺序。"
+                  onAssistant={() => openAssistantForField("outline", "storyOutline.phaseOutline", "整理阶段大纲，保持短篇试玩可执行，不写复杂剧情树")}
+                  assistantLoading={Boolean(assistantLoadingAction)}
+                >
                   <TextArea
                     value={project.storyOutline.phaseOutline}
                     onChange={(value) => updateStoryOutline({ phaseOutline: value })}
@@ -1517,7 +1681,12 @@ export function ProjectEditorClient({
                     rows={4}
                   />
                 </Field>
-                <Field label="必达剧情节点" hint="用换行分隔；玩家可以改变过程，但这些节点迟早要触达。">
+                <Field
+                  label="必达剧情节点"
+                  hint="用换行分隔；玩家可以改变过程，但这些节点迟早要触达。"
+                  onAssistant={() => openAssistantForField("outline", "storyOutline.requiredBeats", "补充必达剧情节点，确保玩家可改变过程但主线骨架稳定")}
+                  assistantLoading={Boolean(assistantLoadingAction)}
+                >
                   <TextArea
                     value={joinLines(project.storyOutline.requiredBeats)}
                     onChange={(value) => updateStoryOutline({ requiredBeats: splitLines(value) })}
@@ -1525,7 +1694,12 @@ export function ProjectEditorClient({
                     rows={4}
                   />
                 </Field>
-                <Field label="禁止跑偏" hint="用换行分隔。">
+                <Field
+                  label="禁止跑偏"
+                  hint="用换行分隔。"
+                  onAssistant={() => openAssistantForField("outline", "storyOutline.guardrails", "补充禁止跑偏规则，约束题材、人物关系和结局边界")}
+                  assistantLoading={Boolean(assistantLoadingAction)}
+                >
                   <TextArea
                     value={joinLines(project.storyOutline.guardrails)}
                     onChange={(value) => updateStoryOutline({ guardrails: splitLines(value) })}
@@ -2869,7 +3043,7 @@ export function ProjectEditorClient({
               <h2 className="font-serif text-2xl font-semibold text-sp-text">创作助手</h2>
               </div>
               <p className="mt-1 text-xs leading-5 text-sp-subdued">
-                选择一个板块，像聊天一样提出细微调整；结果会先生成预览，再由你确认回填。
+                先选要处理的板块和这次目标，再生成建议卡片；应用前不会改动当前草稿。
               </p>
               <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-sp-border bg-sp-muted px-3 py-1 text-[11px] font-medium text-sp-subdued">
                 <i className="fa-solid fa-location-crosshairs text-[10px] text-sp-accent" />
@@ -2885,14 +3059,28 @@ export function ProjectEditorClient({
             </button>
           </div>
 
-          <div className="mt-4">
-            <div className="text-[11px] font-medium text-sp-subdued">作用范围</div>
-            <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-4 rounded-xl border border-sp-border bg-sp-muted p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-semibold text-sp-text">1. 选择要处理的板块</div>
+                <p className="mt-1 text-[11px] leading-5 text-sp-subdued">助手只会围绕当前板块返回可回填建议。</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => runAssistant("diagnose", assistantTarget)}
+                disabled={Boolean(assistantLoadingAction)}
+                className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-sp-border bg-sp-surface px-2.5 text-[11px] font-medium text-sp-subdued hover:border-sp-accent hover:text-sp-accent disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <i className="fa-solid fa-stethoscope text-[10px]" />
+                检查缺口
+              </button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
               {assistantTargets.map((target) => (
                 <button
                   key={target.value}
                   type="button"
-                  onClick={() => setAssistantTarget(target.value)}
+                  onClick={() => selectAssistantTarget(target.value)}
                   className={
                     "inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors " +
                     (assistantTarget === target.value
@@ -2906,9 +3094,73 @@ export function ProjectEditorClient({
             </div>
           </div>
 
+          <div className="mt-3 rounded-xl border border-sp-border bg-sp-muted p-3">
+            <div className="text-xs font-semibold text-sp-text">2. 选择这次要做什么</div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {assistantTargetMeta.quickActions.map((text) => (
+                <button
+                  key={text}
+                  type="button"
+                  onClick={() =>
+                    setAssistantInstruction((current) =>
+                      current.trim() ? `${current.trim()}，${text}` : text,
+                    )
+                  }
+                  className="inline-flex h-8 items-center rounded-full border border-sp-border bg-sp-surface px-3 text-xs font-medium text-sp-subdued hover:border-sp-accent hover:text-sp-accent"
+                >
+                  {text}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-sp-border bg-sp-muted p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div>
+                <div className="text-xs font-semibold text-sp-text">3. 补充具体要求</div>
+                <p className="mt-1 text-[11px] leading-5 text-sp-subdued">可以说明要保留什么、强化什么、不要改什么。</p>
+              </div>
+              {assistantConversation.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssistantConversation([]);
+                    setAssistantResult(null);
+                  }}
+                  className="shrink-0 text-[11px] font-medium text-sp-subdued hover:text-sp-accent"
+                >
+                  清空对话
+                </button>
+              )}
+            </div>
+            <textarea
+              value={assistantInstruction}
+              onChange={(event) => setAssistantInstruction(event.target.value)}
+              rows={4}
+              placeholder="和助手说要怎么微调，例如：更悬疑一点；保留女主设定，只补冲突；把世界规则写得更适合短篇试玩。"
+              className="w-full resize-none border-0 bg-transparent text-sm leading-6 text-sp-text outline-none placeholder:text-sp-subdued/70"
+            />
+          </div>
+
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => {
+                const target = assistantTargets.find((item) => item.value === assistantTarget);
+                runAssistant(target?.action ?? "expand-concept", assistantTarget);
+              }}
+              disabled={Boolean(assistantLoadingAction)}
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-sp-accent text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <i className="fa-solid fa-wand-magic-sparkles text-[12px]" />
+              {assistantLoadingAction ? "生成中" : "生成建议卡片"}
+            </button>
+          </div>
+
           {assistantConversation.length > 0 && (
-            <div className="mt-4 max-h-44 space-y-2 overflow-y-auto rounded-xl border border-sp-border bg-sp-muted p-3">
-              {assistantConversation.slice(-6).map((message, index) => (
+            <div className="mt-4 max-h-36 space-y-2 overflow-y-auto rounded-xl border border-sp-border bg-sp-muted p-3">
+              <div className="text-xs font-semibold text-sp-text">最近对话</div>
+              {assistantConversation.slice(-4).map((message, index) => (
                 <div
                   key={`${message.role}-${index}-${message.content.slice(0, 12)}`}
                   className={
@@ -2924,76 +3176,12 @@ export function ProjectEditorClient({
             </div>
           )}
 
-          <div className="mt-4 rounded-xl border border-sp-border bg-sp-muted p-3">
-            <textarea
-              value={assistantInstruction}
-              onChange={(event) => setAssistantInstruction(event.target.value)}
-              rows={4}
-              placeholder="和助手说要怎么微调，例如：更悬疑一点；保留女主设定，只补冲突；把世界规则写得更适合短篇试玩。"
-              className="w-full resize-none border-0 bg-transparent text-sm leading-6 text-sp-text outline-none placeholder:text-sp-subdued/70"
-            />
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap gap-2">
-                {["更悬疑", "更适合试玩", "更强互动", "缩短文案"].map((text) => (
-                  <button
-                    key={text}
-                    type="button"
-                    onClick={() =>
-                      setAssistantInstruction((current) =>
-                        current.trim() ? `${current.trim()}，${text}` : text,
-                      )
-                    }
-                    className="inline-flex h-7 items-center rounded-full border border-sp-border bg-sp-surface px-2.5 text-[11px] font-medium text-sp-subdued hover:border-sp-accent hover:text-sp-accent"
-                  >
-                    {text}
-                  </button>
-                ))}
-              </div>
-              {assistantConversation.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAssistantConversation([]);
-                    setAssistantResult(null);
-                  }}
-                  className="text-[11px] font-medium text-sp-subdued hover:text-sp-accent"
-                >
-                  清空对话
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => runAssistant("diagnose", assistantTarget)}
-              disabled={Boolean(assistantLoadingAction)}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-sp-border bg-sp-muted text-sm font-semibold text-sp-text hover:border-sp-accent hover:text-sp-accent disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <i className="fa-solid fa-stethoscope text-[12px]" />
-              诊断
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const target = assistantTargets.find((item) => item.value === assistantTarget);
-                runAssistant(target?.action ?? "expand-concept", assistantTarget);
-              }}
-              disabled={Boolean(assistantLoadingAction)}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-sp-accent text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <i className="fa-solid fa-wand-magic-sparkles text-[12px]" />
-              {assistantLoadingAction ? "生成中" : "发送并预览"}
-            </button>
-          </div>
-
           {assistantResult ? (
             <div className="mt-4 min-h-0 flex-1 overflow-y-auto rounded-xl border border-sp-border bg-sp-muted p-3">
               <div className="text-sm font-semibold text-sp-text">{assistantResult.summary}</div>
               {assistantResult.suggestions.length > 0 && (
                 <div className="mt-3 space-y-2">
-                  <div className="text-xs font-semibold text-sp-text">诊断建议</div>
+                  <div className="text-xs font-semibold text-sp-text">需要补强的地方</div>
                   {assistantResult.suggestions.slice(0, 6).map((suggestion, index) => (
                     <div key={`${suggestion.field}-${index}`} className="rounded-lg bg-sp-surface px-3 py-2 text-xs leading-5">
                       <div className="flex items-center justify-between gap-2">
@@ -3005,16 +3193,54 @@ export function ProjectEditorClient({
                   ))}
                 </div>
               )}
-              {assistantPatchPreview.length > 0 && (
+              {(assistantPatchPreview.length > 0 || ignoredAssistantFields.length > 0) && (
                 <div className="mt-3 space-y-2">
-                  <div className="text-xs font-semibold text-sp-text">回填预览</div>
-                  {assistantPatchPreview.map((item) => (
-                    <div key={item.field} className="rounded-lg bg-sp-surface px-3 py-2 text-xs leading-5">
-                      <div className="font-mono text-[11px] text-sp-subdued">{item.field}</div>
-                      <div className="mt-1 text-sp-subdued line-through">{item.before || "空"}</div>
-                      <div className="mt-1 text-sp-text">{item.after || "空"}</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-xs font-semibold text-sp-text">建议卡片</div>
+                    {ignoredAssistantFields.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setIgnoredAssistantFields([])}
+                        className="text-[11px] font-medium text-sp-subdued hover:text-sp-accent"
+                      >
+                        恢复已忽略
+                      </button>
+                    )}
+                  </div>
+                  {assistantPatchPreview.map((item) => {
+                    const reason = proposalReasonForField(assistantResult.patchNotes, item.field);
+                    return (
+                      <div key={item.field} className="rounded-lg bg-sp-surface px-3 py-2 text-xs leading-5">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="font-mono text-[11px] text-sp-subdued">{item.field}</div>
+                          <div className="flex shrink-0 gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => applyAssistantPatchField(item.field)}
+                              className="inline-flex h-7 items-center rounded-lg bg-sp-accent px-2 text-[11px] font-semibold text-white hover:opacity-90"
+                            >
+                              应用
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => ignoreAssistantPatchField(item.field)}
+                              className="inline-flex h-7 items-center rounded-lg border border-sp-border bg-sp-muted px-2 text-[11px] font-medium text-sp-subdued hover:border-sp-accent hover:text-sp-accent"
+                            >
+                              忽略
+                            </button>
+                          </div>
+                        </div>
+                        {reason && <div className="mt-1 text-sp-text">{reason}</div>}
+                        <div className="mt-2 rounded-md bg-sp-muted px-2 py-1.5 text-sp-subdued line-through">{item.before || "空"}</div>
+                        <div className="mt-1 rounded-md bg-sp-accentSoft px-2 py-1.5 text-sp-text">{item.after || "空"}</div>
+                      </div>
+                    );
+                  })}
+                  {assistantPatchPreview.length === 0 && ignoredAssistantFields.length > 0 && (
+                    <div className="rounded-lg bg-sp-surface px-3 py-3 text-xs leading-5 text-sp-subdued">
+                      当前建议已全部忽略，可恢复后重新选择。
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
               {assistantResult.patchNotes.length > 0 && (
@@ -3041,7 +3267,7 @@ export function ProjectEditorClient({
             </div>
           ) : (
             <div className="mt-4 flex min-h-0 flex-1 items-center justify-center rounded-xl border border-dashed border-sp-border bg-sp-muted p-6 text-center text-sm leading-6 text-sp-subdued">
-              选择一个板块并生成建议。结果会先显示在这里，不会自动覆盖当前工程。
+              按上面三步生成建议卡片。结果会先显示在这里，不会自动覆盖当前工程。
             </div>
           )}
           {assistantResult && assistantPatchPreview.length > 0 && (

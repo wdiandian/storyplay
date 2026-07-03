@@ -58,7 +58,20 @@ export type CreatorStoryAssistantPatchNote = {
 };
 
 export type CreatorStoryAssistantCharacterPatch =
-  Partial<Omit<StoryProjectCharacter, "source">> & {
+  Partial<
+    Pick<
+      StoryProjectCharacter,
+      | "id"
+      | "name"
+      | "role"
+      | "persona"
+      | "relationshipToPlayer"
+      | "visualNotes"
+      | "voiceNotes"
+      | "referenceImagePrompt"
+      | "locked"
+    >
+  > & {
     source?: "ai-generated";
   };
 

@@ -13,6 +13,9 @@ const {
   parseCreatorStoryAssistantOutput,
 } = await import(new URL("../lib/creatorAssistant/parser.ts", import.meta.url).href);
 const {
+  filterCreatorAssistantOutputForSkill,
+} = await import(new URL("../lib/creatorAssistant/skillPatchFilter.ts", import.meta.url).href);
+const {
   diagnoseStoryProjectLocally,
 } = await import(new URL("../lib/creatorAssistant/localDiagnose.ts", import.meta.url).href);
 
@@ -108,9 +111,105 @@ assert.equal(fallback.patchNotes.length, 0);
 assert.equal(fallback.patch && Object.keys(fallback.patch).length, 0);
 assert.equal(fallback.suggestions[0]?.field, "assistant");
 
+const worldOnly = parseCreatorStoryAssistantOutput(JSON.stringify({
+  summary: "world",
+  patch: {
+    title: "should drop",
+    world: { setting: "allowed world" },
+    assets: [{ kind: "cover", title: "should drop" }],
+  },
+}), { targetSection: "world" });
+assert.equal(worldOnly.patch.title, undefined);
+assert.equal(worldOnly.patch.assets, undefined);
+assert.equal(worldOnly.patch.world?.setting, "allowed world");
+
+const assetOnly = parseCreatorStoryAssistantOutput(JSON.stringify({
+  summary: "asset",
+  patch: {
+    assets: [
+      {
+        id: "asset_1",
+        kind: "cover",
+        title: "cover prompt",
+        prompt: "draw cover",
+        url: "https://fake.invalid/image.png",
+        status: "ready",
+        provider: "fake",
+        model: "fake",
+        notes: "safe notes",
+      },
+    ],
+  },
+}), { targetSection: "assets" });
+assert.equal(assetOnly.patch.assets?.[0]?.title, "cover prompt");
+assert.equal(assetOnly.patch.assets?.[0]?.prompt, "draw cover");
+assert.equal(assetOnly.patch.assets?.[0]?.url, undefined);
+assert.equal(assetOnly.patch.assets?.[0]?.status, undefined);
+assert.equal(assetOnly.patch.assets?.[0]?.provider, undefined);
+assert.equal(assetOnly.patch.assets?.[0]?.model, undefined);
+
+const characterOnly = parseCreatorStoryAssistantOutput(JSON.stringify({
+  summary: "character",
+  patch: {
+    characters: [
+      {
+        name: "A",
+        role: "main",
+        referenceImagePrompt: "portrait prompt",
+        referenceImageUrl: "https://fake.invalid/char.png",
+        referenceImageStatus: "ready",
+      },
+    ],
+  },
+}), { targetSection: "characters" });
+assert.equal(characterOnly.patch.characters?.[0]?.referenceImagePrompt, "portrait prompt");
+assert.equal(characterOnly.patch.characters?.[0]?.referenceImageUrl, undefined);
+assert.equal(characterOnly.patch.characters?.[0]?.referenceImageStatus, undefined);
+
+const basicsOnly = parseCreatorStoryAssistantOutput(JSON.stringify({
+  summary: "basics",
+  patch: {
+    narrative: {
+      protagonist: "allowed protagonist",
+      coreConflict: "allowed conflict",
+      creatorNotes: "should drop",
+      chapterGoals: "should drop",
+      keyMysteries: ["should drop"],
+    },
+  },
+}), { targetSection: "basics" });
+assert.equal(basicsOnly.patch.narrative?.protagonist, "allowed protagonist");
+assert.equal(basicsOnly.patch.narrative?.coreConflict, "allowed conflict");
+assert.equal(basicsOnly.patch.narrative?.creatorNotes, undefined);
+assert.equal(basicsOnly.patch.narrative?.chapterGoals, undefined);
+assert.equal(basicsOnly.patch.narrative?.keyMysteries, undefined);
+
+const visualOnly = parseCreatorStoryAssistantOutput(JSON.stringify({
+  summary: "visual",
+  patch: {
+    visual: { stylePrompt: "allowed style" },
+    runtimePolicy: { styleGuide: "allowed guide", orientation: "portrait" },
+    interaction: {
+      visualGenerationMode: "key-scenes",
+      playMode: "free-explore",
+      choiceDensity: "high",
+    },
+  },
+}), { targetSection: "visual" });
+assert.equal(visualOnly.patch.visual?.stylePrompt, "allowed style");
+assert.equal(visualOnly.patch.runtimePolicy?.styleGuide, "allowed guide");
+assert.equal(visualOnly.patch.runtimePolicy?.orientation, undefined);
+assert.equal(visualOnly.patch.interaction?.visualGenerationMode, "key-scenes");
+assert.equal(visualOnly.patch.interaction?.playMode, undefined);
+assert.equal(visualOnly.patch.interaction?.choiceDensity, undefined);
+
 const emptyProject = createStoryProject({ title: "", logline: "", synopsis: "" });
 const localDiagnose = diagnoseStoryProjectLocally(emptyProject);
 assert.equal(localDiagnose.suggestions.some((item) => item.severity === "critical"), true);
 assert.equal(localDiagnose.nextActions.length > 0, true);
+const localWorldDiagnose = filterCreatorAssistantOutputForSkill(localDiagnose, "world");
+assert.equal(localWorldDiagnose.patch.interaction, undefined);
+const localVisualDiagnose = filterCreatorAssistantOutputForSkill(localDiagnose, "visual");
+assert.equal(localVisualDiagnose.patch.interaction?.choiceStyle, undefined);
 
 console.log("creator-assistant tests passed");

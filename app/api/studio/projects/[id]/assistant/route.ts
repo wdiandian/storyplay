@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { diagnoseStoryProjectLocally } from "@/lib/creatorAssistant/localDiagnose";
 import { runCreatorStoryAssistant } from "@/lib/creatorAssistant/runCreatorStoryAssistant";
+import { filterCreatorAssistantOutputForSkill } from "@/lib/creatorAssistant/skillPatchFilter";
+import { isCreatorAssistantSkillId } from "@/lib/creatorAssistant/skills/registry";
 import {
   startOfficialModelUsage,
   type OfficialModelUsageTracker,
@@ -33,18 +35,6 @@ const actions = new Set<CreatorStoryAssistantAction>([
   "create-characters",
   "improve-playtest",
 ]);
-const targetSections = new Set<CreatorStoryAssistantTargetSection>([
-  "project",
-  "basics",
-  "world",
-  "narrative",
-  "outline",
-  "characters",
-  "assets",
-  "interaction",
-  "visual",
-]);
-
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
@@ -75,9 +65,7 @@ function readConversation(value: unknown): CreatorStoryAssistantConversationMess
 }
 
 function readTargetSection(value: unknown): CreatorStoryAssistantTargetSection | undefined {
-  return typeof value === "string" && targetSections.has(value as CreatorStoryAssistantTargetSection)
-    ? (value as CreatorStoryAssistantTargetSection)
-    : undefined;
+  return isCreatorAssistantSkillId(value) ? value : undefined;
 }
 
 function readLocale(value: unknown, fallback: StoryProjectLanguage): StoryProjectLanguage {
@@ -107,13 +95,17 @@ export async function POST(req: Request, context: ProjectAssistantRouteContext) 
           createdAt: project.createdAt,
         } as StoryProject)
       : project;
+  const targetSection = readTargetSection(body.targetSection);
 
   let routedConfig: ReturnType<typeof loadEngineConfigForScenario>;
   try {
     routedConfig = loadEngineConfigForScenario("studio-assistant");
   } catch (err) {
     const message = err instanceof Error ? err.message : "模型配置不可用";
-    const result = diagnoseStoryProjectLocally(inputProject);
+    const result = filterCreatorAssistantOutputForSkill(
+      diagnoseStoryProjectLocally(inputProject),
+      targetSection,
+    );
     return NextResponse.json({
       result: {
         ...result,
@@ -155,7 +147,7 @@ export async function POST(req: Request, context: ProjectAssistantRouteContext) 
       project: inputProject,
       userInstruction: readOptionalString(body.userInstruction),
       conversation: readConversation(body.conversation),
-      targetSection: readTargetSection(body.targetSection),
+      targetSection,
       selectedActId: readOptionalString(body.selectedActId),
       selectedSceneId: readOptionalString(body.selectedSceneId),
       playtestId: readOptionalString(body.playtestId),

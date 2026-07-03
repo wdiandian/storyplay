@@ -3,6 +3,7 @@ import type {
   CreatorStoryAssistantAction,
   CreatorStoryAssistantInput,
 } from "./types";
+import { getCreatorAssistantSkill } from "./skills/registry";
 
 const actionGuidance: Record<CreatorStoryAssistantAction, string> = {
   diagnose:
@@ -16,18 +17,6 @@ const actionGuidance: Record<CreatorStoryAssistantAction, string> = {
   "improve-playtest":
     "Use the selected playtest context if present to improve the next testable draft. Focus on clearer setup, player choice quality, pacing, and guardrails.",
 };
-
-const sectionGuidance = {
-  project: "You may suggest improvements across the whole StoryProject.",
-  basics: "Focus only on title, synopsis, audience, genres, moods, tags, narrative.protagonist, and narrative.coreConflict. In the current editor, these fields form the basic positioning section.",
-  world: "Focus only on world setting, rules, tone, and locations.",
-  narrative: "Focus only on protagonist, core conflict, key mysteries, chapter goals, and creator notes.",
-  outline: "Focus only on logline, storyOutline, and structure.acts/scenes, including supporting cast and relationship rails. In the current editor, logline is treated as the core promise of the story blueprint.",
-  characters: "Focus only on characters, character relationships, visual notes, voice notes, and reference image prompts. Respect locked characters.",
-  assets: "Focus only on asset prompts and metadata for cover, first-scene, character-reference, style-reference, and runtime-scene assets. Only provide id, kind, title, prompt, characterId, and notes. Never provide url, status, provider, model, key, or generated image identifiers.",
-  interaction: "Focus only on concrete play mode, choice density, branching mode, freeform input policy, and choice style.",
-  visual: "Focus only on visual style, asset prompts, first scene visual direction, cover notes, and runtime styleGuide.",
-} as const;
 
 function compactProjectForPrompt(input: CreatorStoryAssistantInput) {
   const { project, selectedActId, selectedSceneId, playtestId } = input;
@@ -105,12 +94,15 @@ function compactProjectForPrompt(input: CreatorStoryAssistantInput) {
 export function buildCreatorStoryAssistantMessages(
   input: CreatorStoryAssistantInput,
 ): ChatMessage[] {
+  const skill = getCreatorAssistantSkill(input.targetSection);
   const system = [
     "You are StoryPlay Creator Story Assistant, a product-layer assistant for a creator workspace.",
     "You help creators improve a StoryProject draft. You do not expose, edit, or mention internal AgentSkill, AgentContract, AgentRegistry, parser, fallback, or runtime agent implementation details.",
     "Return JSON only. Do not wrap it in markdown.",
     "The creator must approve changes before saving, so your patch is a suggestion, not an overwrite.",
     "Only propose fields inside the allowed patch shape. Never change id, schemaVersion, createdAt, updatedAt, generation, publish, playtests, openingPackage, or internal infrastructure.",
+    "For the current skill, only propose patch root keys listed in currentSkill.patchRootKeys and only edit fields listed in currentSkill.editableFields.",
+    "Never edit fields listed in currentSkill.readonlyFields, even if they appear in the output schema.",
     "Respect locked characters. If a character has locked=true, do not change that character; add suggestions instead.",
     "Use the same language as project.language unless the creator explicitly asks otherwise.",
     "Keep generated text concise and directly usable inside the editor.",
@@ -189,7 +181,6 @@ export function buildCreatorStoryAssistantMessages(
           relationshipToPlayer: "string",
           visualNotes: "string",
           voiceNotes: "string",
-          referenceImageUrl: "optional string",
           referenceImagePrompt: "optional string",
           locked: false,
         },
@@ -239,8 +230,19 @@ export function buildCreatorStoryAssistantMessages(
   const user = {
     action: input.action,
     actionGuidance: actionGuidance[input.action],
-    targetSection: input.targetSection ?? "project",
-    sectionGuidance: sectionGuidance[input.targetSection ?? "project"],
+    targetSection: skill.id,
+    currentSkill: {
+      id: skill.id,
+      label: skill.label,
+      purpose: skill.purpose,
+      editableFields: skill.editableFields,
+      readonlyFields: skill.readonlyFields,
+      patchRootKeys: skill.patchRootKeys,
+      promptGuidance: skill.promptGuidance,
+      quickActions: skill.quickActions,
+      outputMode: skill.outputMode,
+    },
+    sectionGuidance: skill.promptGuidance,
     creatorInstruction: input.userInstruction ?? "",
     recentConversation: (input.conversation ?? []).slice(-8),
     locale: input.locale,

@@ -3,6 +3,7 @@ import { chat } from "@/lib/ai-client/chat";
 import { diagnoseStoryProjectLocally } from "./localDiagnose";
 import { buildCreatorStoryAssistantMessages } from "./prompt";
 import { fallbackCreatorStoryAssistantOutput, parseCreatorStoryAssistantOutput } from "./parser";
+import { filterCreatorAssistantOutputForSkill } from "./skillPatchFilter";
 import type { CreatorStoryAssistantInput, CreatorStoryAssistantOutput } from "./types";
 
 export async function runCreatorStoryAssistant(
@@ -10,7 +11,10 @@ export async function runCreatorStoryAssistant(
   input: CreatorStoryAssistantInput,
 ): Promise<CreatorStoryAssistantOutput> {
   if (input.action === "diagnose") {
-    const localResult = diagnoseStoryProjectLocally(input.project);
+    const localResult = filterCreatorAssistantOutputForSkill(
+      diagnoseStoryProjectLocally(input.project),
+      input.targetSection,
+    );
     try {
       const raw = await chat(
         config,
@@ -20,8 +24,10 @@ export async function runCreatorStoryAssistant(
           tag: `creator-story-assistant:${input.action}`,
         },
       );
-      const modelResult = parseCreatorStoryAssistantOutput(raw);
-      return {
+      const modelResult = parseCreatorStoryAssistantOutput(raw, {
+        targetSection: input.targetSection,
+      });
+      return filterCreatorAssistantOutputForSkill({
         ...modelResult,
         suggestions: [...localResult.suggestions, ...modelResult.suggestions].slice(0, 10),
         patch: {
@@ -34,7 +40,7 @@ export async function runCreatorStoryAssistant(
         },
         patchNotes: [...localResult.patchNotes, ...modelResult.patchNotes].slice(0, 10),
         nextActions: [...modelResult.nextActions, ...localResult.nextActions].filter(Boolean).slice(0, 6),
-      };
+      }, input.targetSection);
     } catch {
       return localResult;
     }
@@ -49,11 +55,16 @@ export async function runCreatorStoryAssistant(
         tag: `creator-story-assistant:${input.action}`,
       },
     );
-    return parseCreatorStoryAssistantOutput(raw);
+    return parseCreatorStoryAssistantOutput(raw, {
+      targetSection: input.targetSection,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "创作助手调用失败";
-    const localResult = diagnoseStoryProjectLocally(input.project);
-    return {
+    const localResult = filterCreatorAssistantOutputForSkill(
+      diagnoseStoryProjectLocally(input.project),
+      input.targetSection,
+    );
+    return filterCreatorAssistantOutputForSkill({
       ...fallbackCreatorStoryAssistantOutput(message),
       suggestions: [
         {
@@ -66,6 +77,6 @@ export async function runCreatorStoryAssistant(
       patch: localResult.patch,
       patchNotes: localResult.patchNotes,
       nextActions: localResult.nextActions,
-    };
+    }, input.targetSection);
   }
 }

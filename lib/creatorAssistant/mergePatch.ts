@@ -108,16 +108,10 @@ function mergeCharacters(
       relationshipToPlayer: stringPatch(patch.relationshipToPlayer, existing?.relationshipToPlayer ?? ""),
       visualNotes: stringPatch(patch.visualNotes, existing?.visualNotes ?? ""),
       voiceNotes: stringPatch(patch.voiceNotes, existing?.voiceNotes ?? ""),
-      referenceImageUrl: stringPatch(patch.referenceImageUrl, existing?.referenceImageUrl ?? ""),
+      referenceImageUrl: existing?.referenceImageUrl ?? "",
       referenceImagePrompt: stringPatch(patch.referenceImagePrompt, existing?.referenceImagePrompt ?? ""),
       referenceImageSource: existing?.referenceImageSource ?? "ai-generated",
-      referenceImageStatus:
-        patch.referenceImageStatus === "empty" ||
-        patch.referenceImageStatus === "generating" ||
-        patch.referenceImageStatus === "ready" ||
-        patch.referenceImageStatus === "failed"
-          ? patch.referenceImageStatus
-          : existing?.referenceImageStatus,
+      referenceImageStatus: existing?.referenceImageStatus,
       source: existing?.source ?? "ai-generated",
       locked: patch.locked ?? existing?.locked ?? false,
     });
