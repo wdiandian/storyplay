@@ -1,8 +1,7 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db/client";
-import { BillingRepository } from "@/lib/db/repositories/billingRepo";
+import { getBillingCreditSpentSince } from "@/lib/billingStore";
 import {
   officialCreditPrice,
   type OfficialModelFeature,
@@ -40,8 +39,7 @@ export async function checkOfficialQuota(input: {
   }
 
   try {
-    const repo = new BillingRepository(getDb());
-    const spent = await repo.getCreditSpentSince(input.userId, startOfUtcDay());
+    const spent = await getBillingCreditSpentSince(input.userId, startOfUtcDay());
     if (spent + price <= limit) return { allowed: true };
     return {
       allowed: false,

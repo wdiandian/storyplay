@@ -1,27 +1,62 @@
 import { NextResponse } from "next/server";
+import { requireUser } from "@/lib/supabase/guard";
+import { saveStoredStory } from "@/lib/storyStore";
+import type {
+  CharacterSaveInput,
+  SceneSaveInput,
+  StorySaveInput,
+} from "@/lib/db/repositories/storyRepo";
 
 export const runtime = "nodejs";
 
-/**
- * POST /api/stories/save — TEMPORARILY DISABLED (2026-06-09)
- *
- * D1 persistence is disabled until an authentication system (better-auth) is
- * integrated. Without auth, anonymous writes to D1 have no rate limiting,
- * per-user quota, or ownership verification — an abuse/DoS risk on a public,
- * registration-less site. The client (lib/clientStoryPersistence.ts) now
- * persists stories to localStorage only; this 503 keeps the contract intact
- * for any caller that still hits the endpoint.
- *
- * The full D1 implementation lives in StoryRepository (lib/db/repositories/
- * storyRepo.ts), which is untouched. To re-enable after auth integration:
- * restore the handler to validate input + call `repo.save(...)` (see the
- * task-10 implementation log) and gate it behind an authenticated session.
- *
- * See: ARCHITECTURE_DESIGN.md Phase 2, memory tech_d1_anonymous_write_risk
- */
-export async function POST(_req: Request) {
-  return NextResponse.json(
-    { error: "Server persistence temporarily disabled - using local storage" },
-    { status: 503 },
+type SaveStoryPayload = {
+  story?: StorySaveInput;
+  scenes?: SceneSaveInput[];
+  characters?: CharacterSaveInput[];
+};
+
+function jsonError(message: string, status = 400) {
+  return NextResponse.json({ error: message }, { status });
+}
+
+function isValidStoryInput(input: SaveStoryPayload["story"]): input is StorySaveInput {
+  return (
+    !!input &&
+    typeof input.id === "string" &&
+    input.id.trim().length > 0 &&
+    typeof input.worldSetting === "string" &&
+    input.worldSetting.trim().length > 0 &&
+    typeof input.styleGuide === "string" &&
+    input.styleGuide.trim().length > 0 &&
+    (input.orientation === "portrait" || input.orientation === "landscape")
   );
+}
+
+export async function POST(req: Request) {
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
+
+  let payload: SaveStoryPayload;
+  try {
+    payload = (await req.json()) as SaveStoryPayload;
+  } catch {
+    return jsonError("Invalid JSON payload");
+  }
+
+  if (!isValidStoryInput(payload.story)) {
+    return jsonError("Invalid story payload", 422);
+  }
+
+  const result = await saveStoredStory(
+    {
+      ...payload.story,
+      userId: auth.userId,
+    },
+    Array.isArray(payload.scenes) ? payload.scenes : [],
+    Array.isArray(payload.characters) ? payload.characters : [],
+    auth.userId,
+  );
+
+  if (result === "forbidden") return jsonError("Forbidden story", 403);
+  return NextResponse.json(result);
 }

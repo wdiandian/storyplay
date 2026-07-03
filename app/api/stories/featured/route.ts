@@ -22,6 +22,8 @@ function dbStoryToFeaturedRow(story: FeaturedStory): FeaturedRow {
     firstscenePath: story.firstscenePath,
     source: "preset",
     sourceProjectId: undefined,
+    ownerUserId: undefined,
+    publishedAt: undefined,
     startRequest: undefined,
     openingPackage: undefined,
     fixedRuntimePackage: undefined,

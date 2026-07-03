@@ -1,11 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AUTH_ENABLED } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/client";
 import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 
+function localePath(path: string, locale: string) {
+  if (locale === "zh-CN") return path;
+  return `/${locale}${path}`;
+}
+
+function readLocaleFromPath(pathname: string | null) {
+  if (pathname?.startsWith("/en")) return "en";
+  if (pathname?.startsWith("/ja")) return "ja";
+  return "zh-CN";
+}
+
 export function UserChip() {
+  const pathname = usePathname();
+  const locale = useMemo(() => readLocaleFromPath(pathname), [pathname]);
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -37,6 +52,12 @@ export function UserChip() {
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
   const initial = label.charAt(0).toUpperCase();
 
+  const menuItems = [
+    { href: "/account", icon: "fa-user", label: "账号中心" },
+    { href: "/studio/projects", icon: "fa-pen-nib", label: "创作后台" },
+    { href: "/stories", icon: "fa-book-open", label: "我的故事" },
+  ];
+
   return (
     <div className="relative">
       <button
@@ -65,7 +86,7 @@ export function UserChip() {
             onClick={() => setMenuOpen(false)}
           />
           <div
-            className="absolute right-0 top-full z-50 mt-1 min-w-[120px] overflow-hidden rounded-md"
+            className="absolute right-0 top-full z-50 mt-1 min-w-[156px] overflow-hidden rounded-md"
             style={{
               background: "rgba(14, 10, 6, 0.92)",
               border: "1px solid rgba(175, 138, 72, 0.5)",
@@ -73,12 +94,27 @@ export function UserChip() {
               WebkitBackdropFilter: "blur(12px)",
             }}
           >
+            <div className="border-b border-cream-50/10 px-3.5 py-2.5">
+              <div className="truncate text-[12px] font-medium text-cream-50/90">{label}</div>
+              <div className="mt-0.5 truncate text-[10px] text-cream-50/45">{user.email}</div>
+            </div>
+            {menuItems.map((item) => (
+              <Link
+                key={item.href}
+                href={localePath(item.href, locale)}
+                onClick={() => setMenuOpen(false)}
+                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-[12px] text-cream-50/70 transition-colors hover:bg-cream-50/[0.08] hover:text-cream-50/90"
+              >
+                <i className={`fa-solid ${item.icon} w-4 text-center text-[11px]`} />
+                {item.label}
+              </Link>
+            ))}
             <button
               type="button"
               onClick={handleLogout}
-              className="flex w-full items-center gap-2 px-3.5 py-2.5 text-[12px] text-cream-50/70 transition-colors hover:bg-cream-50/[0.08] hover:text-cream-50/90"
+              className="flex w-full items-center gap-2 border-t border-cream-50/10 px-3.5 py-2.5 text-[12px] text-cream-50/70 transition-colors hover:bg-cream-50/[0.08] hover:text-cream-50/90"
             >
-              <i className="fa-solid fa-right-from-bracket text-[11px]" />
+              <i className="fa-solid fa-right-from-bracket w-4 text-center text-[11px]" />
               退出登录
             </button>
           </div>

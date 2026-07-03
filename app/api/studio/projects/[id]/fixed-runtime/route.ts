@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { createFixedRuntimePackageFromPlaytest } from "@/lib/storyProject/fixedRuntime";
 import {
-  getStoredStoryProject,
   saveStoredStoryProject,
 } from "@/lib/storyProject/store";
+import { requireOwnedStoryProject } from "@/lib/storyProject/auth";
 
 export const runtime = "nodejs";
 
@@ -23,8 +23,9 @@ function jsonError(message: string, status = 400) {
 
 export async function POST(req: Request, context: FixedRuntimeRouteContext) {
   const { id } = await context.params;
-  const project = await getStoredStoryProject(id);
-  if (!project) return jsonError("Unknown project id", 404);
+  const owned = await requireOwnedStoryProject(id);
+  if (owned instanceof NextResponse) return owned;
+  const project = owned.project;
 
   let payload: CreateFixedRuntimePayload;
   try {

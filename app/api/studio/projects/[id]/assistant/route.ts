@@ -9,13 +9,12 @@ import {
 } from "@/lib/modelUsage";
 import { loadEngineConfigForScenario, modelRouteMetadata } from "@/lib/modelRouting";
 import { checkOfficialQuota } from "@/lib/officialQuota";
-import { resolveBillingUserId } from "@/lib/serverIdentity";
 import type {
   CreatorStoryAssistantAction,
   CreatorStoryAssistantConversationMessage,
   CreatorStoryAssistantTargetSection,
 } from "@/lib/creatorAssistant/types";
-import { getStoredStoryProject } from "@/lib/storyProject/store";
+import { requireOwnedStoryProject } from "@/lib/storyProject/auth";
 import {
   normalizeStoryProject,
   type StoryProject,
@@ -74,8 +73,9 @@ function readLocale(value: unknown, fallback: StoryProjectLanguage): StoryProjec
 
 export async function POST(req: Request, context: ProjectAssistantRouteContext) {
   const { id } = await context.params;
-  const project = await getStoredStoryProject(id);
-  if (!project) return jsonError("Unknown project id", 404);
+  const owned = await requireOwnedStoryProject(id);
+  if (owned instanceof NextResponse) return owned;
+  const project = owned.project;
 
   let body: Record<string, unknown>;
   try {
@@ -121,7 +121,7 @@ export async function POST(req: Request, context: ProjectAssistantRouteContext) 
     });
   }
 
-  const billingUserId = resolveBillingUserId("anonymous", req);
+  const billingUserId = owned.userId;
   const quota = await checkOfficialQuota({
     userId: billingUserId,
     feature: "studio-assistant",

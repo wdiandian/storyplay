@@ -1,8 +1,10 @@
 import "server-only";
 
 import type { EngineConfig, ProviderConfig } from "@storyplay/types";
-import { getDb } from "@/lib/db/client";
-import { BillingRepository } from "@/lib/db/repositories/billingRepo";
+import {
+  createBillingLedgerEntry,
+  createBillingUsageRecord,
+} from "@/lib/billingStore";
 
 export type OfficialModelDomain = "text" | "image" | "vision" | "tts";
 
@@ -86,8 +88,7 @@ async function persistOfficialUsage(event: {
   creditsCharged: number;
   createdAt: Date;
 }): Promise<void> {
-  const repo = new BillingRepository(getDb());
-  await repo.createUsageRecord({
+  await createBillingUsageRecord({
     id: event.id,
     userId: event.userId,
     accessMode: event.accessMode,
@@ -103,7 +104,7 @@ async function persistOfficialUsage(event: {
   });
 
   if (event.creditsCharged > 0) {
-    await repo.createLedgerEntry({
+    await createBillingLedgerEntry({
       id: makeId("ledger"),
       userId: event.userId,
       usageRecordId: event.id,

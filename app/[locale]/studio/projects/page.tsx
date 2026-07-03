@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { listStoredStoryProjects } from "@/lib/storyProject/store";
+import { filterStoryProjectsForUser, getStudioUserOrNull } from "@/lib/storyProject/auth";
 import type { StoryProject, StoryProjectAudience } from "@/lib/storyProject/types";
+import { StudioAuthGate } from "../StudioAuthGate";
 
 type StudioProjectsPageProps = {
   params: Promise<{ locale: string }>;
@@ -147,7 +149,12 @@ function ProjectCard({ project, locale }: { project: StoryProject; locale: strin
 
 export default async function StudioProjectsPage({ params }: StudioProjectsPageProps) {
   const { locale } = await params;
-  const projects = await listStoredStoryProjects();
+  const auth = await getStudioUserOrNull();
+  if (!auth) return <StudioAuthGate locale={locale} />;
+
+  const projects = auth
+    ? filterStoryProjectsForUser(await listStoredStoryProjects(), auth.userId)
+    : [];
   const draftCount = projects.filter((project) => project.publish.status === "draft").length;
   const playtestCount = projects.filter((project) => project.publish.status === "playtest").length;
 

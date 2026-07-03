@@ -10,6 +10,14 @@ import type {
 
 export const STORY_SHARE_STORAGE_KEY = "storyplay:story-import";
 
+export type StoryShareSource = {
+  playContext?: "playtest" | "published" | "direct";
+  projectId?: string;
+  projectTitle?: string;
+  skuId?: string;
+  playtestId?: string;
+};
+
 export type StoryShareDoc = {
   v: 1 | 2;
   kind: "StoryPlay-story";
@@ -24,6 +32,7 @@ export type StoryShareDoc = {
    *  play silent on replay. Embedding keeps the share file self-contained
    *  so a friend can hear the recorded voices without their own TTS key. */
   audioByBeatId?: Record<string, string>;
+  source?: StoryShareSource;
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -38,6 +47,10 @@ function isStringArray(value: unknown): value is string[] {
 
 function isOrientation(value: unknown): value is Orientation {
   return value === "portrait" || value === "landscape";
+}
+
+function isPlayContext(value: unknown): value is NonNullable<StoryShareSource["playContext"]> {
+  return value === "playtest" || value === "published" || value === "direct";
 }
 
 function isStoryState(value: unknown): value is StoryState {
@@ -139,6 +152,7 @@ export function createStoryShareDoc(
   session: Session,
   current: { sceneIndex: number; beatId?: string },
   audioByBeatId?: Record<string, string>,
+  source?: StoryShareSource,
 ): StoryShareDoc {
   const hasAudio = !!audioByBeatId && Object.keys(audioByBeatId).length > 0;
   return {
@@ -148,6 +162,7 @@ export function createStoryShareDoc(
     current,
     session: sanitizeSessionForShare(session),
     ...(hasAudio ? { audioByBeatId } : {}),
+    ...(source ? { source } : {}),
   };
 }
 
@@ -231,10 +246,26 @@ export function parseStoryShareDoc(value: unknown): StoryShareDoc {
     if (Object.keys(cleaned).length > 0) audioByBeatId = cleaned;
   }
 
+  let source: StoryShareSource | undefined;
+  if (value.source !== undefined) {
+    if (!isRecord(value.source)) {
+      throw new Error("Invalid story share source metadata");
+    }
+    const cleaned: StoryShareSource = {};
+    if (isPlayContext(value.source.playContext)) cleaned.playContext = value.source.playContext;
+    if (typeof value.source.projectId === "string") cleaned.projectId = value.source.projectId;
+    if (typeof value.source.projectTitle === "string") cleaned.projectTitle = value.source.projectTitle;
+    if (typeof value.source.skuId === "string") cleaned.skuId = value.source.skuId;
+    if (typeof value.source.playtestId === "string") cleaned.playtestId = value.source.playtestId;
+    if (Object.keys(cleaned).length > 0) source = cleaned;
+  }
+
   const doc = value as StoryShareDoc;
+  const { audioByBeatId: _audioByBeatId, source: _source, ...rest } = doc;
   return {
-    ...doc,
+    ...rest,
     session: sanitizeSessionForShare(doc.session),
     ...(audioByBeatId ? { audioByBeatId } : {}),
+    ...(source ? { source } : {}),
   };
 }

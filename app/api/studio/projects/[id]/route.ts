@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import {
   deleteStoredStoryProject,
-  getStoredStoryProject,
   saveStoredStoryProject,
 } from "@/lib/storyProject/store";
+import { requireOwnedStoryProject } from "@/lib/storyProject/auth";
 import {
   normalizeStoryProject,
   validateStoryProject,
@@ -22,16 +22,17 @@ function jsonError(message: string, status = 400) {
 
 export async function GET(_req: Request, context: ProjectRouteContext) {
   const { id } = await context.params;
-  const project = await getStoredStoryProject(id);
-  if (!project) return jsonError("Unknown project id", 404);
+  const owned = await requireOwnedStoryProject(id);
+  if (owned instanceof NextResponse) return owned;
 
-  return NextResponse.json({ project });
+  return NextResponse.json({ project: owned.project });
 }
 
 export async function PUT(req: Request, context: ProjectRouteContext) {
   const { id } = await context.params;
-  const existingProject = await getStoredStoryProject(id);
-  if (!existingProject) return jsonError("Unknown project id", 404);
+  const owned = await requireOwnedStoryProject(id);
+  if (owned instanceof NextResponse) return owned;
+  const existingProject = owned.project;
 
   let payload: { project?: StoryProject } | StoryProject;
   try {
@@ -45,6 +46,7 @@ export async function PUT(req: Request, context: ProjectRouteContext) {
     ...existingProject,
     ...incomingProject,
     id,
+    ownerUserId: existingProject.ownerUserId || owned.userId,
     createdAt: existingProject.createdAt,
   } as StoryProject);
   const issues = validateStoryProject(normalizedProject);
@@ -58,6 +60,9 @@ export async function PUT(req: Request, context: ProjectRouteContext) {
 
 export async function DELETE(_req: Request, context: ProjectRouteContext) {
   const { id } = await context.params;
+  const owned = await requireOwnedStoryProject(id);
+  if (owned instanceof NextResponse) return owned;
+
   const deleted = await deleteStoredStoryProject(id);
   if (!deleted) return jsonError("Unknown project id", 404);
 

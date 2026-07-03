@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { deleteStoredStorySkuDraft } from "@/lib/storySku/draftStore";
 import { findManageableStorySku } from "@/lib/storySku/serverCatalog";
+import { requireStudioUser } from "@/lib/storyProject/auth";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,9 @@ type DraftRouteContext = {
 };
 
 export async function DELETE(_req: Request, context: DraftRouteContext) {
+  const auth = await requireStudioUser();
+  if (auth instanceof NextResponse) return auth;
+
   const { id } = await context.params;
   const sku = await findManageableStorySku(id);
   if (!sku) {

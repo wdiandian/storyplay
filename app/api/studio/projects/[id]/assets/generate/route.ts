@@ -1,5 +1,5 @@
 import { generateImage } from "@storyplay/ai-client";
-import type { ByoLlmKeys, EngineConfig, Orientation } from "@storyplay/types";
+import { coerceOrientation, type ByoLlmKeys, type EngineConfig, type Orientation } from "@storyplay/types";
 import { NextResponse } from "next/server";
 import { buildByoEngineConfig } from "@/lib/config";
 import {
@@ -8,13 +8,12 @@ import {
 } from "@/lib/modelUsage";
 import { loadEngineConfigForScenario, modelRouteMetadata } from "@/lib/modelRouting";
 import { checkOfficialQuota } from "@/lib/officialQuota";
-import { resolveBillingUserId } from "@/lib/serverIdentity";
 import {
   buildStudioAssetKey,
   storeStudioAssetFromDataUrl,
   storeStudioAssetFromUrl,
 } from "@/lib/storyProject/assetStorage";
-import { getStoredStoryProject } from "@/lib/storyProject/store";
+import { requireOwnedStoryProject } from "@/lib/storyProject/auth";
 import type { StoryProjectAssetKind } from "@/lib/storyProject/types";
 
 export const runtime = "nodejs";
@@ -67,9 +66,9 @@ function readReferenceImages(value: unknown) {
 }
 
 function assetKindLabel(kind: StoryProjectAssetKind) {
-  if (kind === "cover") return "cover key art";
-  if (kind === "first-scene") return "first playable scene background";
-  if (kind === "character-reference") return "single character reference sheet";
+  if (kind === "cover") return "portrait cover key art";
+  if (kind === "first-scene") return "16:9 opening scene background";
+  if (kind === "character-reference") return "16:9 double-column character design sheet";
   if (kind === "style-reference") return "style reference";
   return "runtime scene image";
 }
@@ -88,18 +87,32 @@ function buildPrompt(projectTitle: string, body: GenerateAssetBody, kind: StoryP
 
   if (kind === "character-reference") {
     base.push(
-      "The image must show exactly one character, clean reference-sheet composition, no text, no UI, no logo.",
+      "生成一张比例为 16:9 的宽屏人物设定卡，专业美术设定集质感，高级极简双栏排版，干净的深色或中性色背景。",
+      "画面只包含人物参考图，不添加多余文字、图标、标签、装饰、UI、Logo、水印或复杂场景。",
       characterName ? `Character name: ${characterName}.` : "",
       characterVisualNotes ? `Character visual notes: ${characterVisualNotes}.` : "",
-      "Neutral or lightly expressive pose, clear face, outfit, hairstyle, and silhouette. Plain or subtle background.",
+      "【左侧区域】：占画面约 40%，展示同一人物的超清面部特写，只包含头部与少量肩颈。五官、皮肤质感、发丝、眉眼、妆容、疤痕或特殊标记必须清晰可见。电影级人像摄影，伦勃朗光，柔和补光，轻微边缘光。",
+      "【右侧区域】：占画面约 60%，并排展示同一人物的三视图全身站姿：正面、侧面、背面。三张全身像必须保持同一人物、同一服装、同一比例、同一身高和同一光照条件。",
+      "人物自然直立，双脚平稳站立，姿态中性，服装结构、材质、鞋履和背面细节完整可见，适合作为角色建模和绘画参考。",
+      "画面风格：8k 分辨率，照片级写实，电影级质感，面部特写极清晰，右侧三视图为均匀棚拍光，整体排版干净克制。",
     );
   } else if (kind === "cover") {
     base.push(
-      "Cinematic vertical key art, strong hook, no text, no title lettering, no UI. Leave clean negative space for app overlay.",
+      "Portrait cover key art for a story card, strong hook, cinematic composition.",
+      "No text, no title lettering, no captions, no UI, no logo, no watermark, no split panels, no collage, no comic layout.",
+      "Leave clean negative space for app overlay, but do not draw typography or graphic-design blocks.",
+    );
+  } else if (kind === "first-scene") {
+    base.push(
+      "Create a single uninterrupted 16:9 landscape scene background / establishing shot for the first playable scene.",
+      "It must be one coherent environment, not cover art, not a poster, not a character sheet, not a split panel, not a collage, not a comic page.",
+      "No text, no title, no captions, no typography, no UI, no speech bubbles, no logo, no watermark.",
+      "Keep the lower area visually clean enough for dialogue and choice UI overlays. Frame important characters or objects in the upper 65%.",
+      "Prioritize story atmosphere, readable space, lighting, camera angle, and the first suspense object or emotional focal point.",
     );
   } else {
     base.push(
-      "Cinematic interactive visual novel background, no text, no UI, no speech bubbles. Frame important characters or objects in the upper 65%.",
+      "Cinematic interactive visual novel background, no text, no title, no UI, no speech bubbles, no panels, no collage. Frame important characters or objects in the upper 65%.",
     );
   }
 
@@ -116,6 +129,17 @@ function resolveAssetImageConfig(config: EngineConfig, kind: StoryProjectAssetKi
     return config.imageProfiles?.character ?? config.image;
   }
   return config.imageProfiles?.scene ?? config.image;
+}
+
+function resolveAssetOrientation(
+  kind: StoryProjectAssetKind,
+  body: GenerateAssetBody,
+  projectOrientation: Orientation,
+): Orientation {
+  if (kind === "first-scene") return "landscape";
+  if (kind === "character-reference") return "landscape";
+  if (kind === "cover") return "portrait";
+  return coerceOrientation(body.orientation ?? projectOrientation);
 }
 
 async function persistGeneratedAsset(input: {
@@ -141,8 +165,9 @@ async function persistGeneratedAsset(input: {
 
 export async function POST(req: Request, context: RouteContext) {
   const { id } = await context.params;
-  const project = await getStoredStoryProject(id);
-  if (!project) return jsonError("Unknown project id", 404);
+  const owned = await requireOwnedStoryProject(id);
+  if (owned instanceof NextResponse) return owned;
+  const project = owned.project;
 
   let body: GenerateAssetBody;
   try {
@@ -169,7 +194,7 @@ export async function POST(req: Request, context: RouteContext) {
   }
 
   const usingByo = Boolean(body.byo?.image);
-  const billingUserId = resolveBillingUserId("anonymous", req);
+  const billingUserId = owned.userId;
   let usage: OfficialModelUsageTracker | undefined;
 
   if (!usingByo) {
@@ -195,8 +220,9 @@ export async function POST(req: Request, context: RouteContext) {
     const config = resolveConfig(routed.config, body);
     const imageConfig = resolveAssetImageConfig(config, kind);
     const fullPrompt = buildPrompt(project.title, body, kind);
+    const orientation = resolveAssetOrientation(kind, body, project.runtimePolicy.orientation);
     const result = await generateImage(imageConfig, fullPrompt, {
-      orientation: body.orientation ?? project.runtimePolicy.orientation,
+      orientation,
       referenceImages: readReferenceImages(body.referenceImages),
       timeoutMs: config.imageTimeoutMs,
     });
@@ -219,6 +245,7 @@ export async function POST(req: Request, context: RouteContext) {
 
     usage?.finish("success", {
       kind,
+      orientation,
       imageUrl: persistentUrl,
       imageUuid: result.imageUuid,
       storageKey,
@@ -234,6 +261,7 @@ export async function POST(req: Request, context: RouteContext) {
         key: storageKey,
         storageError,
         prompt: fullPrompt,
+        orientation,
         source: "generated",
         status: "ready",
       },

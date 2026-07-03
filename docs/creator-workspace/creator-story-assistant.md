@@ -80,6 +80,9 @@ Studio Project Editor
   - 统一执行 skill patch 过滤。
   - 同时约束模型输出、本地诊断 fallback 和模型配置不可用 fallback。
   - 先按 `patchRootKeys` 限制 root，再按 `editableFields` 限制具体字段路径。
+- `lib/creatorAssistant/localAssetFallback.ts`
+  - 素材提示词本地兜底。
+  - 当 assets 板块的封面、首场图、角色参考图、风格参考图任务遇到模型结构化失败时，返回可回填的提示词草案。
 - `lib/creatorAssistant/mergePatch.ts`
   - 客户端保守合并器。
   - 只合并创作字段，保留 id、时间戳、发布状态、生成状态、试玩记录等系统字段。
@@ -191,6 +194,7 @@ agent-system
 - 重点字段旁已增加局部 AI 优化入口，会自动设置 targetSection 和字段上下文。
 - `diagnose` 已接入本地规则；模型失败时仍会返回基础诊断和保守 patch。
 - 本地诊断 patch 也会经过当前 skill 的 path 级过滤，不会跨板块回填。
+- assets 明确提示词任务已接入本地兜底，模型结构化失败时仍能生成封面/首场/角色参考/风格参考提示词草案。
 - 切换助手板块时会清空旧建议，避免把上一个板块的结果误认为当前板块结果。
 - `scripts/test-creator-assistant.mjs` 覆盖 skill root/path 过滤、资产伪 URL 清洗、角色图片 URL 清洗。
 

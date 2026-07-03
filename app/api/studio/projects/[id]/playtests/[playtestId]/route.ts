@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import {
-  getStoredStoryProject,
   saveStoredStoryProject,
 } from "@/lib/storyProject/store";
+import { requireOwnedStoryProject } from "@/lib/storyProject/auth";
 import type { SceneHistoryEntry, StoryState } from "@storyplay/types";
 import type { StoryProjectPlaytestRecord, StoryProjectPlaytestStatus } from "@/lib/storyProject/types";
 
@@ -67,8 +67,9 @@ function sanitizeStatus(value: unknown): StoryProjectPlaytestStatus {
 
 export async function PATCH(req: Request, context: ProjectPlaytestResultRouteContext) {
   const { id, playtestId } = await context.params;
-  const project = await getStoredStoryProject(id);
-  if (!project) return jsonError("Unknown project id", 404);
+  const owned = await requireOwnedStoryProject(id);
+  if (owned instanceof NextResponse) return owned;
+  const project = owned.project;
 
   let payload: PlaytestResultPayload;
   try {

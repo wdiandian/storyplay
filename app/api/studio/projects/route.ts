@@ -8,6 +8,10 @@ import {
   listStoredStoryProjects,
   saveStoredStoryProject,
 } from "@/lib/storyProject/store";
+import {
+  filterStoryProjectsForUser,
+  requireStudioUser,
+} from "@/lib/storyProject/auth";
 
 export const runtime = "nodejs";
 
@@ -16,7 +20,13 @@ function jsonError(message: string, status = 400) {
 }
 
 export async function GET() {
-  const projects = await listStoredStoryProjects();
+  const auth = await requireStudioUser();
+  if (auth instanceof NextResponse) return auth;
+
+  const projects = filterStoryProjectsForUser(
+    await listStoredStoryProjects(),
+    auth.userId,
+  );
   return NextResponse.json({
     projects,
     count: projects.length,
@@ -24,6 +34,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireStudioUser();
+  if (auth instanceof NextResponse) return auth;
+
   let input: StoryProjectCreateInput;
   try {
     input = (await req.json()) as StoryProjectCreateInput;
@@ -41,7 +54,10 @@ export async function POST(req: Request) {
     );
   }
 
-  const project = createStoryProject(input);
+  const project = createStoryProject({
+    ...input,
+    ownerUserId: auth.userId,
+  });
   const issues = validateStoryProject(project);
   if (issues.length > 0) {
     return NextResponse.json({ error: "Project validation failed", issues }, { status: 422 });

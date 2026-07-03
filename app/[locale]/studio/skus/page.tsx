@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { getStudioUserOrNull } from "@/lib/storyProject/auth";
 import { listManageableStorySkus } from "@/lib/storySku/serverCatalog";
 import { SkuManagerClient } from "./SkuManagerClient";
+import { StudioAuthGate } from "../StudioAuthGate";
 
 type StudioSkuPageProps = {
   params: Promise<{ locale: string }>;
@@ -28,6 +30,9 @@ function Stat({
 
 export default async function StudioSkusPage({ params }: StudioSkuPageProps) {
   const { locale } = await params;
+  const auth = await getStudioUserOrNull();
+  if (!auth) return <StudioAuthGate locale={locale} title="登录后管理发布作品" />;
+
   const skus = await listManageableStorySkus();
   const creatorCount = skus.filter((sku) => sku.publish.source === "creator").length;
   const maleCount = skus.filter((sku) => sku.gender === "male").length;

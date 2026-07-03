@@ -1,5 +1,7 @@
 import type { ProviderConfig } from "@storyplay/types";
 import { chat } from "@/lib/ai-client/chat";
+import { hasCreatorStoryAssistantPatch } from "./mergePatch";
+import { buildLocalAssetAssistantFallback } from "./localAssetFallback";
 import { diagnoseStoryProjectLocally } from "./localDiagnose";
 import { buildCreatorStoryAssistantMessages } from "./prompt";
 import { fallbackCreatorStoryAssistantOutput, parseCreatorStoryAssistantOutput } from "./parser";
@@ -55,11 +57,17 @@ export async function runCreatorStoryAssistant(
         tag: `creator-story-assistant:${input.action}`,
       },
     );
-    return parseCreatorStoryAssistantOutput(raw, {
+    const parsed = parseCreatorStoryAssistantOutput(raw, {
       targetSection: input.targetSection,
     });
+    if (!hasCreatorStoryAssistantPatch(parsed.patch)) {
+      return buildLocalAssetAssistantFallback(input, parsed.suggestions[0]?.message ?? parsed.summary) ?? parsed;
+    }
+    return parsed;
   } catch (err) {
     const message = err instanceof Error ? err.message : "创作助手调用失败";
+    const assetFallback = buildLocalAssetAssistantFallback(input, message);
+    if (assetFallback) return assetFallback;
     const localResult = filterCreatorAssistantOutputForSkill(
       diagnoseStoryProjectLocally(input.project),
       input.targetSection,

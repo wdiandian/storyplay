@@ -22,13 +22,14 @@ import { annotateClick } from "@/lib/annotateClient";
 import { loadClientTtsConfig } from "@/lib/clientTtsConfig";
 import { collectBeatAudioForExport } from "@/lib/exportAudio";
 import { guestHeaders } from "@/lib/guestId";
-import { loadFromLocalStorage } from "@/lib/clientStoryPersistence";
+import { loadStory, saveStory, storyLoadResultToSession } from "@/lib/clientStoryPersistence";
 import { PRESETS } from "@/lib/presets";
 import {
   STORY_SHARE_STORAGE_KEY,
   createStoryShareDoc,
   parseStoryShareDoc,
   storyShareFilename,
+  type StoryShareSource,
 } from "@/lib/storyShare";
 import { provisionVoice, synthesize } from "@storyplay/tts-client";
 import {
@@ -715,6 +716,10 @@ function PlayInner() {
   const [exportProgress, setExportProgress] = useState<
     { done: number; total: number; label: string } | null
   >(null);
+  const [saveStatus, setSaveStatus] = useState<{
+    state: "saving" | "saved" | "error";
+    message: string;
+  } | null>(null);
 
   // `retry` re-runs the action that hit the 401, replayed by AuthModal.onSuccess
   // after the user signs in. Omitted by callers whose path can't actually 401
@@ -848,6 +853,7 @@ function PlayInner() {
   const replaySourceRef = useRef<Session | null>(null);
   const replayIndexRef = useRef(-1);
   const replayActiveRef = useRef(false);
+  const shareSourceRef = useRef<StoryShareSource | undefined>(undefined);
   const exportingStoryRef = useRef(false);
   const exportingGalleryRef = useRef(false);
   const prebakedAudioRef = useRef<Record<string, string>>({});
@@ -1555,6 +1561,7 @@ function PlayInner() {
         beatId: currentBeatRef.current?.id ?? s.history[sceneIndex]?.scene.entryBeatId,
       },
       Object.keys(audioByBeatId).length > 0 ? audioByBeatId : undefined,
+      shareSourceRef.current,
     );
 
     try {
@@ -1584,6 +1591,24 @@ function PlayInner() {
       exportingStoryRef.current = false;
     }
   }, [beatAudioMap, t]);
+
+  const handleSaveStory = useCallback(async () => {
+    const s = sessionRef.current;
+    if (!s || s.history.length === 0) return;
+
+    setSaveStatus({ state: "saving", message: "保存中" });
+    const result = await saveStory(s);
+    if (result.ok) {
+      setSaveStatus({
+        state: "saved",
+        message: result.source === "server" ? "已保存到账号" : "已保存到本地",
+      });
+      window.setTimeout(() => setSaveStatus(null), 2200);
+      return;
+    }
+
+    setSaveStatus({ state: "error", message: result.error });
+  }, []);
 
   // ── Presentation mode toggle ─────────────────────────────────────────
   const togglePresentation = useCallback(async () => {
@@ -1697,6 +1722,7 @@ function PlayInner() {
     const isCustom = params.get("custom") === "1";
     const isShare = params.get("share") === "1";
     const storyId = params.get("storyId");
+    shareSourceRef.current = undefined;
 
     if (isShare) {
       (async () => {
@@ -1745,6 +1771,7 @@ function PlayInner() {
             }
             if (Object.keys(seed).length > 0) setBeatAudioMap(seed);
           }
+          shareSourceRef.current = doc.source;
           setSession(initial);
           setCurrentScene(first.scene);
           setCurrentBeatId(first.scene.entryBeatId);
@@ -1774,6 +1801,10 @@ function PlayInner() {
       fixedRuntimePackage?: PublishedFixedRuntimePackage;
       interactionPolicy?: PlayInteractionPolicy;
       playContext?: "playtest" | "published" | "direct";
+      projectId?: string;
+      projectTitle?: string;
+      skuId?: string;
+      playtestId?: string;
     } | null = null;
     let storyProjectPlaytest: StoryProjectPlaytestContext | null = null;
     if (!cardName) {
@@ -1816,6 +1847,10 @@ function PlayInner() {
               fixedRuntimePackage: parsed.fixedRuntimePackage,
               interactionPolicy: parsed.interactionPolicy,
               playContext,
+              projectId: parsed.projectId,
+              projectTitle: parsed.projectTitle,
+              skuId: parsed.skuId,
+              playtestId: parsed.playtestId,
             };
             setInteractionPolicy(parsed.interactionPolicy);
             setPlayContext(playContext);
@@ -1892,6 +1927,13 @@ function PlayInner() {
           visitedBeatsRef.current = [first.scene.entryBeatId];
           setInteractionPolicy(livePayload?.interactionPolicy);
           setPlayContext(livePayload?.playContext ?? "published");
+          shareSourceRef.current = {
+            playContext: livePayload?.playContext ?? "published",
+            projectId: livePayload?.projectId ?? fixedPackage.sourceProjectId,
+            projectTitle: livePayload?.projectTitle,
+            skuId: livePayload?.skuId,
+            playtestId: livePayload?.playtestId ?? fixedPackage.sourcePlaytestId,
+          };
           setSession(initial);
           setCurrentScene(first.scene);
           setCurrentBeatId(first.scene.entryBeatId);
@@ -1913,19 +1955,21 @@ function PlayInner() {
 
     // ── Load saved story path ──
     if (storyId) {
-      // TEMPORARY: localStorage-only mode (D1 disabled until auth integration)
-      const loadedSession = loadFromLocalStorage(storyId);
-      if (!loadedSession) {
-        setError(t("play.savedStoryNotFound"));
-        return;
-      }
-      const firstScene = loadedSession.history[0]?.scene;
-      if (!firstScene) {
-        setError(t("play.savedStoryCorrupted"));
-        return;
-      }
       (async () => {
         try {
+          const loadedStory = await loadStory(storyId);
+          if (!loadedStory) {
+            setError(t("play.savedStoryNotFound"));
+            return;
+          }
+
+          const loadedSession = storyLoadResultToSession(loadedStory);
+          const firstScene = loadedSession.history[0]?.scene;
+          if (!firstScene) {
+            setError(t("play.savedStoryCorrupted"));
+            return;
+          }
+
           const blobUrl = await getOrCreateBlobUrl(firstScene.imageUrl ?? "");
           lastImageOriginalUrlRef.current = firstScene.imageUrl ?? "";
           setSession(loadedSession);
@@ -2042,6 +2086,15 @@ function PlayInner() {
         };
         setInteractionPolicy(livePayload?.interactionPolicy);
         setPlayContext(livePayload?.playContext ?? "direct");
+        shareSourceRef.current = livePayload
+          ? {
+              playContext: livePayload.playContext ?? "direct",
+              projectId: livePayload.projectId,
+              projectTitle: livePayload.projectTitle,
+              skuId: livePayload.skuId,
+              playtestId: livePayload.playtestId,
+            }
+          : undefined;
         visitedBeatsRef.current = [data.scene.entryBeatId];
         setSession(initial);
         writeBackPlaytestSnapshot(initial, {
@@ -2833,6 +2886,22 @@ function PlayInner() {
           )}
         </div>
       )}
+      {saveStatus && (
+        <div
+          className="fixed top-16 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/75 px-4 py-2 text-[11px] smallcaps text-white/95 shadow-lg backdrop-blur-sm"
+        >
+          <i
+            className={
+              saveStatus.state === "saving"
+                ? "fa-solid fa-circle-notch animate-spin text-[11px] text-amber-300"
+                : saveStatus.state === "saved"
+                  ? "fa-solid fa-check text-[11px] text-green-300"
+                  : "fa-solid fa-triangle-exclamation text-[11px] text-red-300"
+            }
+          />
+          <span>{saveStatus.message}</span>
+        </div>
+      )}
       <header className="px-5 md:px-12 pt-6 md:pt-8 flex items-center justify-between">
         <Link
           href={lp("/")}
@@ -2888,6 +2957,17 @@ function PlayInner() {
           belowCanvas={
             session && session.history.length > 0 ? (
               <>
+                <button
+                  type="button"
+                  onClick={() => void handleSaveStory()}
+                  disabled={saveStatus?.state === "saving"}
+                  className="text-[10px] smallcaps text-clay-500 hover:text-ember-500 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  aria-label="保存故事"
+                  title="保存当前故事"
+                >
+                  <i className="fa-solid fa-bookmark text-[10px]" />
+                  保存故事
+                </button>
                 <button
                   type="button"
                   onClick={() => void handleExportGallery()}

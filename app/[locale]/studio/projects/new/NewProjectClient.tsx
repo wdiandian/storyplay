@@ -88,6 +88,14 @@ export function NewProjectClient({ locale }: { locale: string }) {
       };
 
       if (!response.ok || !data.project) {
+        if (response.status === 401) {
+          setNotice("请先登录，再创建故事工程。");
+          return;
+        }
+        if (response.status === 403) {
+          setNotice("当前账号没有权限创建或编辑这个故事工程。");
+          return;
+        }
         const issueText = data.issues?.map((issue) => issue.message).join("；");
         setNotice(issueText || data.error || "创建失败，请检查输入内容。");
         return;

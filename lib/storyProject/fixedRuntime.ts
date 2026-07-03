@@ -8,7 +8,11 @@ import type {
 export type PublishedFixedRuntimePackage = Pick<
   StoryProjectFixedRuntimePackage,
   "id" | "title" | "summary" | "sourcePlaytestId" | "sceneCount" | "beatCount" | "imageCount" | "history" | "storyState"
->;
+> & {
+  sourceProjectId?: string;
+  ownerUserId?: string;
+  publishedAt?: string;
+};
 
 function countVisitedBeats(history: SceneHistoryEntry[]) {
   return history.reduce((sum, entry) => sum + entry.visitedBeatIds.length, 0);
@@ -56,6 +60,7 @@ export function selectPublishedFixedRuntimePackage(project: StoryProject) {
 
 export function publishFixedRuntimePackage(
   pkg: StoryProjectFixedRuntimePackage | undefined,
+  project?: Pick<StoryProject, "id" | "ownerUserId">,
 ): PublishedFixedRuntimePackage | undefined {
   if (!pkg || pkg.history.length === 0) return undefined;
   return {
@@ -68,5 +73,8 @@ export function publishFixedRuntimePackage(
     imageCount: pkg.imageCount,
     history: pkg.history,
     storyState: pkg.storyState,
+    sourceProjectId: project?.id,
+    ownerUserId: project?.ownerUserId,
+    publishedAt: new Date().toISOString(),
   };
 }

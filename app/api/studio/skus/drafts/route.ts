@@ -12,6 +12,7 @@ import {
   type StorySkuDraft,
 } from "@/lib/storySku/draft";
 import { findManageableStorySku, listManageableStorySkus } from "@/lib/storySku/serverCatalog";
+import { requireStudioUser } from "@/lib/storyProject/auth";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,9 @@ function jsonError(message: string, status = 400) {
 }
 
 export async function GET() {
+  const auth = await requireStudioUser();
+  if (auth instanceof NextResponse) return auth;
+
   const skus = await listManageableStorySkus();
   const storedDrafts = await listStoredStorySkuDrafts();
   const mergedDrafts = mergeStoredStorySkuDrafts(skus, storedDrafts);
@@ -32,6 +36,9 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
+  const auth = await requireStudioUser();
+  if (auth instanceof NextResponse) return auth;
+
   let draft: StorySkuDraft;
   try {
     const body = (await req.json()) as { draft?: StorySkuDraft };
@@ -62,6 +69,9 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE() {
+  const auth = await requireStudioUser();
+  if (auth instanceof NextResponse) return auth;
+
   await clearStoredStorySkuDrafts();
   return NextResponse.json({ drafts: {}, count: 0 });
 }

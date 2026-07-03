@@ -29,8 +29,8 @@ export function createStorySkuIdFromProject(project: StoryProject) {
 export function buildStorySkuFromProject(project: StoryProject): StoryProjectPublishBuild {
   const build = compileStoryProjectToStartRequest(project);
   const openingPackage = compileOpeningPackage(project);
-  const fixedRuntimePackage = publishFixedRuntimePackage(selectPublishedFixedRuntimePackage(project));
   const now = new Date().toISOString();
+  const fixedRuntimePackage = publishFixedRuntimePackage(selectPublishedFixedRuntimePackage(project), project);
   const skuId = createStorySkuIdFromProject(project);
   const tags = uniqueStrings([...project.genres, ...project.moods, ...project.tags]);
   const stylePrompt =
@@ -97,6 +97,9 @@ export function buildStorySkuFromProject(project: StoryProject): StoryProjectPub
         status: "active",
         source: "creator",
         sourceProjectId: project.id,
+        ownerUserId: project.ownerUserId,
+        publishedByUserId: project.ownerUserId,
+        publishedAt: now,
       },
       curation: {
         sortOrder: -Date.now(),

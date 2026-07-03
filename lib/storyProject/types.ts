@@ -212,6 +212,7 @@ export type StoryProjectFixedRuntimePackage = {
 export type StoryProject = {
   schemaVersion: 1;
   id: string;
+  ownerUserId?: string;
   title: string;
   logline: string;
   synopsis: string;
@@ -281,6 +282,7 @@ export type StoryProject = {
 };
 
 export type StoryProjectCreateInput = {
+  ownerUserId?: string;
   title?: string;
   logline?: string;
   synopsis?: string;
@@ -617,6 +619,7 @@ export function createStoryProject(input: StoryProjectCreateInput = {}): StoryPr
   return {
     schemaVersion: 1,
     id: createStoryProjectId(),
+    ownerUserId: sanitizeString(input.ownerUserId) || undefined,
     title,
     logline: sanitizeString(input.logline),
     synopsis: sanitizeString(input.synopsis),
@@ -734,6 +737,7 @@ export function normalizeStoryProject(
     ...createStoryProject(project),
     ...project,
     schemaVersion: 1,
+    ownerUserId: sanitizeString(project.ownerUserId) || undefined,
     title: sanitizeString(project.title, "未命名故事工程"),
     logline: sanitizeString(project.logline),
     synopsis: sanitizeString(project.synopsis),

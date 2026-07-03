@@ -44,6 +44,12 @@ const sourceLabels: Record<StorySku["publish"]["source"], string> = {
 const SKU_DRAFT_STORAGE_KEY = "storyplay:studio:sku-drafts:v1";
 const SKU_DRAFT_API = "/api/studio/skus/drafts";
 
+function studioRequestErrorMessage(response: Response, fallback?: string) {
+  if (response.status === 401) return "请先登录，再继续使用创作后台。";
+  if (response.status === 403) return "当前账号没有权限管理这个发布作品。";
+  return fallback || "操作失败，请稍后重试。";
+}
+
 function coverForSku(sku: StorySku) {
   return sku.assets.cover ?? `/home/${sku.id}.webp`;
 }
@@ -346,6 +352,10 @@ export function SkuManagerClient({ skus, locale }: SkuManagerClientProps) {
 
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          setSaveNotice(studioRequestErrorMessage(response));
+          return;
+        }
         setSaveNotice(data.error ? `保存失败：${data.error}` : "保存失败，请稍后重试。");
         return;
       }
@@ -376,6 +386,10 @@ export function SkuManagerClient({ skus, locale }: SkuManagerClientProps) {
       const data = (await response.json().catch(() => ({}))) as { error?: string };
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          setSaveNotice(studioRequestErrorMessage(response));
+          return;
+        }
         setSaveNotice(data.error ? `删除失败：${data.error}` : "删除失败，请稍后重试。");
         return;
       }
@@ -413,6 +427,10 @@ export function SkuManagerClient({ skus, locale }: SkuManagerClientProps) {
       };
 
       if (!response.ok || !data.project) {
+        if (response.status === 401 || response.status === 403) {
+          setSaveNotice(studioRequestErrorMessage(response));
+          return;
+        }
         setSaveNotice(data.error ? `复制失败：${data.error}` : "复制失败，请稍后重试。");
         return;
       }

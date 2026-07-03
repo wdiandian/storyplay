@@ -45,6 +45,9 @@ export type StorySku = {
     status: "active" | "draft" | "archived";
     source: "preset" | "creator";
     sourceProjectId?: string;
+    ownerUserId?: string;
+    publishedByUserId?: string;
+    publishedAt?: string;
   };
   curation: {
     sortOrder: number;
@@ -91,6 +94,8 @@ export function storySkuToCard(story: StorySku) {
     visualStyle: taxonomy.visualStyle,
     source: story.publish.source,
     sourceProjectId: story.publish.sourceProjectId,
+    ownerUserId: story.publish.ownerUserId,
+    publishedAt: story.publish.publishedAt,
     startRequest: story.creatorRuntime?.startRequest,
     openingPackage: story.creatorRuntime?.openingPackage,
     fixedRuntimePackage: story.creatorRuntime?.fixedRuntimePackage,
@@ -111,6 +116,8 @@ export function storySkuToFeaturedRow(story: StorySku) {
     firstscenePath: story.assets.firstScene ?? null,
     source: story.publish.source,
     sourceProjectId: story.publish.sourceProjectId,
+    ownerUserId: story.publish.ownerUserId,
+    publishedAt: story.publish.publishedAt,
     startRequest: story.creatorRuntime?.startRequest,
     openingPackage: story.creatorRuntime?.openingPackage,
     fixedRuntimePackage: story.creatorRuntime?.fixedRuntimePackage,

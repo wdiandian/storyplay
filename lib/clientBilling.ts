@@ -3,6 +3,8 @@
 import { guestHeaders } from "@/lib/guestId";
 
 export type BillingSummary = {
+  storageProvider?: "db" | "file";
+  databaseAvailable?: boolean;
   balance: number;
   dailyQuota: {
     limit: number;
@@ -26,6 +28,8 @@ export async function fetchBillingSummary(): Promise<BillingSummary> {
     throw new Error(data.error || `HTTP ${res.status}`);
   }
   return {
+    storageProvider: data.storageProvider === "db" ? "db" : "file",
+    databaseAvailable: data.databaseAvailable === true,
     balance: Number(data.balance ?? 0),
     dailyQuota: {
       limit: Number(data.dailyQuota?.limit ?? 0),

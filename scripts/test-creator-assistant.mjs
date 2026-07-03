@@ -16,6 +16,9 @@ const {
   filterCreatorAssistantOutputForSkill,
 } = await import(new URL("../lib/creatorAssistant/skillPatchFilter.ts", import.meta.url).href);
 const {
+  buildLocalAssetAssistantFallback,
+} = await import(new URL("../lib/creatorAssistant/localAssetFallback.ts", import.meta.url).href);
+const {
   diagnoseStoryProjectLocally,
 } = await import(new URL("../lib/creatorAssistant/localDiagnose.ts", import.meta.url).href);
 
@@ -211,5 +214,24 @@ const localWorldDiagnose = filterCreatorAssistantOutputForSkill(localDiagnose, "
 assert.equal(localWorldDiagnose.patch.interaction, undefined);
 const localVisualDiagnose = filterCreatorAssistantOutputForSkill(localDiagnose, "visual");
 assert.equal(localVisualDiagnose.patch.interaction?.choiceStyle, undefined);
+
+const assetFallbackProject = createStoryProject({
+  title: "雨夜便利店",
+  logline: "玩家在无法结束的雨夜循环中寻找真相",
+  synopsis: "便利店、失踪同伴和重复的 23:17 构成核心悬疑。",
+  world: { setting: "深夜雨中的街角便利店", tone: "悬疑、压抑、电影感" },
+});
+const coverFallback = buildLocalAssetAssistantFallback({
+  action: "expand-concept",
+  project: assetFallbackProject,
+  userInstruction: "补封面提示词",
+  targetSection: "assets",
+  locale: "zh-CN",
+}, "not json");
+assert.equal(coverFallback?.patch.assets?.[0]?.kind, "cover");
+assert.equal(coverFallback?.patch.assets?.[0]?.title, "封面图提示词");
+assert.equal(coverFallback?.patch.assets?.[0]?.url, undefined);
+assert.equal(coverFallback?.patch.assets?.[0]?.status, undefined);
+assert.equal(coverFallback?.patch.assets?.[0]?.prompt?.includes("雨夜便利店"), true);
 
 console.log("creator-assistant tests passed");

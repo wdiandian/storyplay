@@ -101,6 +101,12 @@ function localePath(path: string, locale: string) {
   return `/${locale}${path}`;
 }
 
+function studioRequestErrorMessage(response: Response, fallback?: string) {
+  if (response.status === 401) return "请先登录，再继续使用创作后台。";
+  if (response.status === 403) return "当前账号没有权限编辑这个故事工程。";
+  return fallback || "操作失败，请稍后重试。";
+}
+
 function cloneProject(project: StoryProject): StoryProject {
   return JSON.parse(JSON.stringify(project)) as StoryProject;
 }
@@ -568,6 +574,10 @@ export function ProjectEditorClient({
 
       if (!response.ok || !data.result) {
         setSaveState("error");
+        if (response.status === 401 || response.status === 403) {
+          setNotice(studioRequestErrorMessage(response));
+          return;
+        }
         setNotice(data.error || "AI 创作助手暂时不可用，请检查模型配置后重试。");
         return;
       }
@@ -639,6 +649,11 @@ export function ProjectEditorClient({
 
   function ignoreAssistantPatchField(field: string) {
     setIgnoredAssistantFields((current) => current.includes(field) ? current : [...current, field]);
+  }
+
+  function sendAssistantMessage(instruction = assistantInstruction) {
+    const target = assistantTargets.find((item) => item.value === assistantTarget);
+    void runAssistant(target?.action ?? "expand-concept", assistantTarget, instruction);
   }
 
   function updateWorld(patch: Partial<StoryProject["world"]>) {
@@ -727,7 +742,8 @@ export function ProjectEditorClient({
         project.logline || project.title,
         project.synopsis,
         project.visual.stylePrompt,
-        "突出作品卖点、人物关系和情绪钩子，不要文字。",
+        "竖版封面关键视觉，突出作品卖点、人物关系和情绪钩子。",
+        "禁止文字、标题、字幕、Logo、水印、UI、分栏、拼贴和漫画格。",
       ].filter(Boolean).join("\n");
     }
     if (target.kind === "first-scene") {
@@ -735,18 +751,42 @@ export function ProjectEditorClient({
         project.openingPackage.scene.scenePrompt,
         project.world.setting,
         project.storyOutline.mainGoal,
-        "作为玩家进入故事看到的第一张画面，强调场景氛围和悬念物件。",
+        "资产规格：16:9 横版首场场景背景，不是封面海报。",
+        "只画一个连续空间的电影感开场镜头，强调场景氛围、光线、人物站位和悬念物件。",
+        "禁止文字、标题、字幕、Logo、水印、UI、分栏、拼贴、漫画格和角色设定表。",
+        "画面下方保持相对干净，方便叠加对话框和选项 UI。",
       ].filter(Boolean).join("\n");
     }
     const character = characterById(target.characterId);
     return character?.referenceImagePrompt || [
-      character?.name,
-      character?.visualNotes,
-      character?.persona,
-      character?.relationshipToPlayer,
-      project.visual.stylePrompt,
-      "单人角色参考图，清晰展示脸、发型、服装和轮廓。",
+      `生成一张比例为 16:9 的宽屏人物设定卡，专业美术设定集质感，高级极简双栏排版，干净的深色或中性色背景。`,
+      `角色：${character?.name || "未命名角色"}。`,
+      character?.visualNotes ? `外貌与服装：${character.visualNotes}` : "",
+      character?.persona ? `人物气质：${character.persona}` : "",
+      character?.relationshipToPlayer ? `与玩家关系：${character.relationshipToPlayer}` : "",
+      project.visual.stylePrompt ? `视觉风格：${project.visual.stylePrompt}` : "",
+      "【左侧区域】：占画面约 40%，展示人物超清面部特写，只包含头部与少量肩颈。五官、皮肤质感、发丝、眉眼、妆容、疤痕或特殊标记清晰可见，电影级人像摄影，伦勃朗光，柔和补光，轻微边缘光。",
+      "【右侧区域】：占画面约 60%，并排展示同一人物的三视图全身站姿：正面、侧面、背面。三张全身像保持同一人物、同一服装、同一比例、同一身高和同一光照条件。",
+      "人物自然直立，双脚平稳站立，姿态中性，服装结构、材质、鞋履和背面细节完整可见，适合作为角色建模和绘画参考。",
+      "禁止文字、标题、字幕、UI、Logo、水印、图标、标签、装饰、复杂场景、动作表演、多套服装和无关道具。",
     ].filter(Boolean).join("\n");
+  }
+
+  function assetGenerationOrientation(target: AssetGeneratorTarget): StoryProject["runtimePolicy"]["orientation"] {
+    return target.kind === "cover" ? "portrait" : "landscape";
+  }
+
+  function assetGeneratorPreviewAspect(target: AssetGeneratorTarget | null) {
+    return target?.kind === "cover" ? "aspect-[4/5]" : "aspect-video";
+  }
+
+  function assetGeneratorSpecText(target: AssetGeneratorTarget | null) {
+    if (target?.kind === "first-scene") return "16:9 横版场景背景 / 无文字 / 无拼贴";
+    if (target?.kind === "cover") return "竖版封面关键视觉 / 无文字 / 无标题";
+    if (target?.kind === "character-reference") {
+      return "16:9 双栏人物设定卡 / 左侧面部特写 / 右侧正侧背三视图";
+    }
+    return "";
   }
 
   function openAssetGenerator(target: AssetGeneratorTarget) {
@@ -818,7 +858,7 @@ export function ProjectEditorClient({
           characterName: character?.name,
           characterVisualNotes: character?.visualNotes,
           stylePrompt: project.visual.stylePrompt || project.runtimePolicy.styleGuide,
-          orientation: project.runtimePolicy.orientation,
+          orientation: assetGenerationOrientation(target),
         }),
       });
       const data = (await response.json().catch(() => ({}))) as {
@@ -831,6 +871,14 @@ export function ProjectEditorClient({
         error?: string;
       };
       if (!response.ok || !data.asset?.imageUrl) {
+        if (response.status === 401 || response.status === 403) {
+          setAssetGenerator((current) => ({
+            ...current,
+            loading: false,
+            error: studioRequestErrorMessage(response),
+          }));
+          return;
+        }
         setAssetGenerator((current) => ({
           ...current,
           loading: false,
@@ -875,6 +923,10 @@ export function ProjectEditorClient({
         error?: string;
       };
       if (!response.ok || !data.asset?.imageUrl) {
+        if (response.status === 401 || response.status === 403) {
+          setNotice(studioRequestErrorMessage(response));
+          return;
+        }
         setNotice(data.error || "图片上传失败。");
         return;
       }
@@ -1152,6 +1204,10 @@ export function ProjectEditorClient({
       if (!response.ok || !data.project) {
         const issueText = data.issues?.map((issue) => issue.message).join("；");
         setSaveState("error");
+        if (response.status === 401 || response.status === 403) {
+          setNotice(studioRequestErrorMessage(response));
+          return null;
+        }
         setNotice(issueText || data.error || "保存失败，请稍后重试。");
         return null;
       }
@@ -1226,6 +1282,10 @@ export function ProjectEditorClient({
 
       if (!response.ok || !data.build) {
         setSaveState("error");
+        if (response.status === 401 || response.status === 403) {
+          setNotice(studioRequestErrorMessage(response));
+          return;
+        }
         setNotice(data.error || "试玩构建失败，请稍后重试。");
         return;
       }
@@ -1289,6 +1349,10 @@ export function ProjectEditorClient({
       if (!response.ok || !data.sku || !data.project) {
         const issueText = data.issues?.map((issue) => issue.message).join("；");
         setPublishState("error");
+        if (response.status === 401 || response.status === 403) {
+          setNotice(studioRequestErrorMessage(response));
+          return;
+        }
         setNotice(issueText || data.error || "发布失败，请稍后重试。");
         return;
       }
@@ -1330,6 +1394,10 @@ export function ProjectEditorClient({
 
       if (!response.ok || !data.fixedRuntimePackage || !data.project) {
         setFixedRuntimeState("error");
+        if (response.status === 401 || response.status === 403) {
+          setNotice(studioRequestErrorMessage(response));
+          return;
+        }
         setNotice(data.error || "固定剧情包创建失败。请先完成一次试玩并回到后台刷新记录。");
         return;
       }
@@ -1375,6 +1443,10 @@ export function ProjectEditorClient({
 
       if (!response.ok || !data.project) {
         setPublishState("error");
+        if (response.status === 401 || response.status === 403) {
+          setNotice(studioRequestErrorMessage(response));
+          return;
+        }
         setNotice(data.error || "取消发布失败，请稍后重试。");
         return;
       }
@@ -2046,10 +2118,10 @@ export function ProjectEditorClient({
                           <img
                             src={project.visual.firstScene || firstSceneAsset?.url || ""}
                             alt=""
-                            className="aspect-[4/5] w-full object-cover"
+                            className="aspect-video w-full object-cover"
                           />
                         ) : (
-                          <div className="flex aspect-[4/5] items-center justify-center px-4 text-center text-xs leading-5 text-sp-subdued">
+                          <div className="flex aspect-video items-center justify-center px-4 text-center text-xs leading-5 text-sp-subdued">
                             尚未准备首场图，请生成或上传。
                           </div>
                         )}
@@ -2119,7 +2191,7 @@ export function ProjectEditorClient({
                       </div>
                     )}
                     {project.characters.map((character) => (
-                      <div key={character.id} className="grid gap-4 rounded-xl border border-sp-border bg-sp-surface p-4 md:grid-cols-[minmax(0,1fr)_160px]">
+                      <div key={character.id} className="grid gap-4 rounded-xl border border-sp-border bg-sp-surface p-4 md:grid-cols-[minmax(0,1fr)_220px]">
                         <div className="grid gap-4 md:grid-cols-2">
                           <Field label="角色名">
                             <TextInput
@@ -2159,10 +2231,11 @@ export function ProjectEditorClient({
                             />
                           </Field>
                           <Field label="参考图生成提示词">
-                            <TextInput
+                            <TextArea
                               value={character.referenceImagePrompt}
                               onChange={(value) => updateCharacter(character.id, { referenceImagePrompt: value })}
-                              placeholder="角色立绘或概念图提示词"
+                              placeholder="16:9 双栏人物设定卡：左侧面部特写，右侧正面、侧面、背面三视图。"
+                              rows={4}
                             />
                           </Field>
                         </div>
@@ -2172,10 +2245,10 @@ export function ProjectEditorClient({
                               <img
                                 src={character.referenceImageUrl}
                                 alt=""
-                                className="aspect-[3/4] w-full object-cover"
+                                className="aspect-video w-full object-cover"
                               />
                             ) : (
-                              <div className="flex aspect-[3/4] items-center justify-center text-xs text-sp-subdued">
+                              <div className="flex aspect-video items-center justify-center px-3 text-center text-xs leading-5 text-sp-subdued">
                                 未绑定参考图
                               </div>
                             )}
@@ -3035,54 +3108,35 @@ export function ProjectEditorClient({
     </main>
     <div className={assistantOpen ? "fixed inset-y-0 right-0 z-40 flex w-full max-w-[720px] flex-col items-stretch bg-sp-surface shadow-2xl shadow-black/25 sm:w-[min(720px,calc(100vw-3rem))]" : "fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3"}>
       {assistantOpen && (
-        <div className="flex h-full flex-col overflow-hidden border-l border-sp-border bg-sp-surface p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <i className="fa-solid fa-sparkles text-sm text-sp-accent" />
-              <h2 className="font-serif text-2xl font-semibold text-sp-text">创作助手</h2>
-              </div>
-              <p className="mt-1 text-xs leading-5 text-sp-subdued">
-                先选要处理的板块和这次目标，再生成建议卡片；应用前不会改动当前草稿。
-              </p>
-              <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-sp-border bg-sp-muted px-3 py-1 text-[11px] font-medium text-sp-subdued">
-                <i className="fa-solid fa-location-crosshairs text-[10px] text-sp-accent" />
-                当前板块：{assistantTargetMeta.label}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setAssistantOpen(false)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-sp-border bg-sp-muted text-sp-subdued hover:border-sp-accent hover:text-sp-accent"
-            >
-              <i className="fa-solid fa-xmark text-[12px]" />
-            </button>
-          </div>
-
-          <div className="mt-4 rounded-xl border border-sp-border bg-sp-muted p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-xs font-semibold text-sp-text">1. 选择要处理的板块</div>
-                <p className="mt-1 text-[11px] leading-5 text-sp-subdued">助手只会围绕当前板块返回可回填建议。</p>
+        <div className="flex h-full flex-col overflow-hidden border-l border-sp-border bg-sp-surface">
+          <div className="border-b border-sp-border px-5 py-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <i className="fa-solid fa-sparkles text-sm text-sp-accent" />
+                  <h2 className="font-serif text-2xl font-semibold text-sp-text">创作助手</h2>
+                </div>
+                <p className="mt-1 text-xs leading-5 text-sp-subdued">
+                  直接对话，助手会把可改内容作为回填建议附在回复下面。
+                </p>
               </div>
               <button
                 type="button"
-                onClick={() => runAssistant("diagnose", assistantTarget)}
-                disabled={Boolean(assistantLoadingAction)}
-                className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-sp-border bg-sp-surface px-2.5 text-[11px] font-medium text-sp-subdued hover:border-sp-accent hover:text-sp-accent disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => setAssistantOpen(false)}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sp-border bg-sp-muted text-sp-subdued hover:border-sp-accent hover:text-sp-accent"
               >
-                <i className="fa-solid fa-stethoscope text-[10px]" />
-                检查缺口
+                <i className="fa-solid fa-xmark text-[12px]" />
               </button>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
+
+            <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1">
               {assistantTargets.map((target) => (
                 <button
                   key={target.value}
                   type="button"
                   onClick={() => selectAssistantTarget(target.value)}
                   className={
-                    "inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors " +
+                    "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-xs font-medium transition-colors " +
                     (assistantTarget === target.value
                       ? "border-sp-accent bg-sp-accentSoft text-sp-accent"
                       : "border-sp-border bg-sp-muted text-sp-subdued hover:border-sp-accent hover:text-sp-accent")
@@ -3092,12 +3146,198 @@ export function ProjectEditorClient({
                 </button>
               ))}
             </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-sp-border bg-sp-muted px-3 text-[11px] font-medium text-sp-subdued">
+                <i className="fa-solid fa-location-crosshairs text-[10px] text-sp-accent" />
+                当前：{assistantTargetMeta.label}
+              </span>
+              <button
+                type="button"
+                onClick={() => runAssistant("diagnose", assistantTarget, "检查当前板块还有哪些缺口，并给出可回填建议。")}
+                disabled={Boolean(assistantLoadingAction)}
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-sp-border bg-sp-muted px-3 text-[11px] font-medium text-sp-subdued hover:border-sp-accent hover:text-sp-accent disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <i className="fa-solid fa-magnifying-glass text-[10px]" />
+                检查缺口
+              </button>
+              {assistantConversation.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssistantConversation([]);
+                    setAssistantResult(null);
+                    setIgnoredAssistantFields([]);
+                  }}
+                  className="inline-flex h-8 items-center rounded-full border border-sp-border bg-sp-muted px-3 text-[11px] font-medium text-sp-subdued hover:border-sp-accent hover:text-sp-accent"
+                >
+                  清空
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="mt-3 rounded-xl border border-sp-border bg-sp-muted p-3">
-            <div className="text-xs font-semibold text-sp-text">2. 选择这次要做什么</div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {assistantTargetMeta.quickActions.map((text) => (
+          <div className="min-h-0 flex-1 overflow-y-auto bg-sp-muted/70 px-5 py-4">
+            {assistantConversation.length === 0 && !assistantResult && !assistantLoadingAction && (
+              <div className="rounded-2xl border border-dashed border-sp-border bg-sp-surface p-4 text-sm leading-6 text-sp-subdued">
+                <div className="font-semibold text-sp-text">你可以像聊天一样提出要求。</div>
+                <div className="mt-2">
+                  例如：“帮我把女主设定更有记忆点，但不要改职业”，或者“只补资产提示词，先别改剧情”。
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {assistantConversation.map((message, index) => (
+                <div
+                  key={`${message.role}-${index}-${message.content.slice(0, 12)}`}
+                  className={
+                    "flex " +
+                    (message.role === "creator" ? "justify-end" : "justify-start")
+                  }
+                >
+                  <div
+                    className={
+                      "max-w-[86%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm " +
+                      (message.role === "creator"
+                        ? "rounded-br-md bg-sp-accent text-white"
+                        : "rounded-bl-md border border-sp-border bg-sp-surface text-sp-text")
+                    }
+                  >
+                    {message.content}
+                  </div>
+                </div>
+              ))}
+
+              {assistantLoadingAction && (
+                <div className="flex justify-start">
+                  <div className="rounded-2xl rounded-bl-md border border-sp-border bg-sp-surface px-4 py-3 text-sm leading-6 text-sp-subdued shadow-sm">
+                    正在根据“{assistantTargetMeta.label}”生成可回填建议...
+                  </div>
+                </div>
+              )}
+
+              {assistantResult && (
+                <div className="space-y-3 rounded-2xl rounded-bl-md border border-sp-border bg-sp-surface p-4 shadow-sm">
+                  {assistantResult.suggestions.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold text-sp-text">我看到的重点</div>
+                      {assistantResult.suggestions.slice(0, 4).map((suggestion, index) => (
+                        <div
+                          key={`${suggestion.field}-${index}`}
+                          className="rounded-xl border border-sp-border bg-sp-muted px-3 py-2 text-xs leading-5"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-[11px] text-sp-subdued">
+                              {suggestion.field}
+                            </span>
+                            <span className="text-[10px] font-semibold text-sp-accent">
+                              {suggestion.severity}
+                            </span>
+                          </div>
+                          <div className="mt-1 text-sp-text">{suggestion.message}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {(assistantPatchPreview.length > 0 || ignoredAssistantFields.length > 0) && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-xs font-semibold text-sp-text">可回填内容</div>
+                        <div className="flex items-center gap-2">
+                          {ignoredAssistantFields.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setIgnoredAssistantFields([])}
+                              className="text-[11px] font-medium text-sp-subdued hover:text-sp-accent"
+                            >
+                              恢复忽略项
+                            </button>
+                          )}
+                          {assistantPatchPreview.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={applyAssistantPatch}
+                              className="inline-flex h-8 items-center rounded-lg bg-sp-accent px-3 text-[11px] font-semibold text-white hover:opacity-90"
+                            >
+                              全部回填
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {assistantPatchPreview.map((item) => {
+                        const reason = proposalReasonForField(assistantResult.patchNotes, item.field);
+                        return (
+                          <div
+                            key={item.field}
+                            className="rounded-xl border border-sp-border bg-sp-muted px-3 py-2 text-xs leading-5"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="font-mono text-[11px] text-sp-subdued">{item.field}</div>
+                              <div className="flex shrink-0 gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => applyAssistantPatchField(item.field)}
+                                  className="inline-flex h-7 items-center rounded-lg bg-sp-accent px-2 text-[11px] font-semibold text-white hover:opacity-90"
+                                >
+                                  回填
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => ignoreAssistantPatchField(item.field)}
+                                  className="inline-flex h-7 items-center rounded-lg border border-sp-border bg-sp-surface px-2 text-[11px] font-medium text-sp-subdued hover:border-sp-accent hover:text-sp-accent"
+                                >
+                                  暂不改
+                                </button>
+                              </div>
+                            </div>
+                            {reason && <div className="mt-1 text-sp-text">{reason}</div>}
+                            <div className="mt-2 rounded-lg bg-sp-surface px-2 py-1.5 text-sp-subdued line-through">
+                              {item.before || "空"}
+                            </div>
+                            <div className="mt-1 rounded-lg bg-sp-accentSoft px-2 py-1.5 text-sp-text">
+                              {item.after || "空"}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {assistantPatchPreview.length === 0 && ignoredAssistantFields.length > 0 && (
+                        <div className="rounded-xl border border-sp-border bg-sp-muted px-3 py-3 text-xs leading-5 text-sp-subdued">
+                          当前建议已全部忽略，可恢复后重新选择。
+                        </div>
+                      )}
+                      {assistantPatchPreview.length > 0 && (
+                        <p className="text-center text-[11px] leading-5 text-sp-subdued">
+                          回填只更新当前草稿，仍需要点击保存工程。
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {assistantPatchPreview.length === 0 && assistantResult.nextActions.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold text-sp-text">可以继续这样问</div>
+                      {assistantResult.nextActions.slice(0, 4).map((item, index) => (
+                        <button
+                          key={`${item}-${index}`}
+                          type="button"
+                          onClick={() => setAssistantInstruction(item)}
+                          className="block w-full rounded-xl border border-sp-border bg-sp-muted px-3 py-2 text-left text-xs leading-5 text-sp-text hover:border-sp-accent hover:text-sp-accent"
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t border-sp-border bg-sp-surface p-4">
+            <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+              {assistantTargetMeta.quickActions.slice(0, 6).map((text) => (
                 <button
                   key={text}
                   type="button"
@@ -3106,185 +3346,42 @@ export function ProjectEditorClient({
                       current.trim() ? `${current.trim()}，${text}` : text,
                     )
                   }
-                  className="inline-flex h-8 items-center rounded-full border border-sp-border bg-sp-surface px-3 text-xs font-medium text-sp-subdued hover:border-sp-accent hover:text-sp-accent"
+                  className="inline-flex h-8 shrink-0 items-center rounded-full border border-sp-border bg-sp-muted px-3 text-xs font-medium text-sp-subdued hover:border-sp-accent hover:text-sp-accent"
                 >
                   {text}
                 </button>
               ))}
             </div>
-          </div>
-
-          <div className="mt-4 rounded-xl border border-sp-border bg-sp-muted p-3">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <div>
-                <div className="text-xs font-semibold text-sp-text">3. 补充具体要求</div>
-                <p className="mt-1 text-[11px] leading-5 text-sp-subdued">可以说明要保留什么、强化什么、不要改什么。</p>
-              </div>
-              {assistantConversation.length > 0 && (
+            <div className="rounded-2xl border border-sp-border bg-sp-muted p-3 focus-within:border-sp-accent">
+              <textarea
+                value={assistantInstruction}
+                onChange={(event) => setAssistantInstruction(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+                    event.preventDefault();
+                    sendAssistantMessage();
+                  }
+                }}
+                rows={3}
+                placeholder={`和助手聊“${assistantTargetMeta.label}”：说明要改哪里、保留哪里，Ctrl/⌘ + Enter 发送。`}
+                className="w-full resize-none border-0 bg-transparent text-sm leading-6 text-sp-text outline-none placeholder:text-sp-subdued/70"
+              />
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-[11px] leading-5 text-sp-subdued">
+                  当前只会回填“{assistantTargetMeta.label}”可编辑字段。
+                </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    setAssistantConversation([]);
-                    setAssistantResult(null);
-                  }}
-                  className="shrink-0 text-[11px] font-medium text-sp-subdued hover:text-sp-accent"
+                  onClick={() => sendAssistantMessage()}
+                  disabled={Boolean(assistantLoadingAction)}
+                  className="inline-flex h-9 shrink-0 items-center gap-2 rounded-xl bg-sp-accent px-4 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  清空对话
+                  <i className="fa-solid fa-paper-plane text-[11px]" />
+                  {assistantLoadingAction ? "生成中" : "发送"}
                 </button>
-              )}
+              </div>
             </div>
-            <textarea
-              value={assistantInstruction}
-              onChange={(event) => setAssistantInstruction(event.target.value)}
-              rows={4}
-              placeholder="和助手说要怎么微调，例如：更悬疑一点；保留女主设定，只补冲突；把世界规则写得更适合短篇试玩。"
-              className="w-full resize-none border-0 bg-transparent text-sm leading-6 text-sp-text outline-none placeholder:text-sp-subdued/70"
-            />
           </div>
-
-          <div className="mt-3">
-            <button
-              type="button"
-              onClick={() => {
-                const target = assistantTargets.find((item) => item.value === assistantTarget);
-                runAssistant(target?.action ?? "expand-concept", assistantTarget);
-              }}
-              disabled={Boolean(assistantLoadingAction)}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-sp-accent text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <i className="fa-solid fa-wand-magic-sparkles text-[12px]" />
-              {assistantLoadingAction ? "生成中" : "生成建议卡片"}
-            </button>
-          </div>
-
-          {assistantConversation.length > 0 && (
-            <div className="mt-4 max-h-36 space-y-2 overflow-y-auto rounded-xl border border-sp-border bg-sp-muted p-3">
-              <div className="text-xs font-semibold text-sp-text">最近对话</div>
-              {assistantConversation.slice(-4).map((message, index) => (
-                <div
-                  key={`${message.role}-${index}-${message.content.slice(0, 12)}`}
-                  className={
-                    "rounded-lg px-3 py-2 text-xs leading-5 " +
-                    (message.role === "creator"
-                      ? "ml-8 bg-sp-accent text-white"
-                      : "mr-8 bg-sp-surface text-sp-text")
-                  }
-                >
-                  {message.content}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {assistantResult ? (
-            <div className="mt-4 min-h-0 flex-1 overflow-y-auto rounded-xl border border-sp-border bg-sp-muted p-3">
-              <div className="text-sm font-semibold text-sp-text">{assistantResult.summary}</div>
-              {assistantResult.suggestions.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  <div className="text-xs font-semibold text-sp-text">需要补强的地方</div>
-                  {assistantResult.suggestions.slice(0, 6).map((suggestion, index) => (
-                    <div key={`${suggestion.field}-${index}`} className="rounded-lg bg-sp-surface px-3 py-2 text-xs leading-5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-[11px] text-sp-subdued">{suggestion.field}</span>
-                        <span className="text-[10px] font-semibold text-sp-accent">{suggestion.severity}</span>
-                      </div>
-                      <div className="mt-1 text-sp-text">{suggestion.message}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {(assistantPatchPreview.length > 0 || ignoredAssistantFields.length > 0) && (
-                <div className="mt-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-xs font-semibold text-sp-text">建议卡片</div>
-                    {ignoredAssistantFields.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setIgnoredAssistantFields([])}
-                        className="text-[11px] font-medium text-sp-subdued hover:text-sp-accent"
-                      >
-                        恢复已忽略
-                      </button>
-                    )}
-                  </div>
-                  {assistantPatchPreview.map((item) => {
-                    const reason = proposalReasonForField(assistantResult.patchNotes, item.field);
-                    return (
-                      <div key={item.field} className="rounded-lg bg-sp-surface px-3 py-2 text-xs leading-5">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="font-mono text-[11px] text-sp-subdued">{item.field}</div>
-                          <div className="flex shrink-0 gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => applyAssistantPatchField(item.field)}
-                              className="inline-flex h-7 items-center rounded-lg bg-sp-accent px-2 text-[11px] font-semibold text-white hover:opacity-90"
-                            >
-                              应用
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => ignoreAssistantPatchField(item.field)}
-                              className="inline-flex h-7 items-center rounded-lg border border-sp-border bg-sp-muted px-2 text-[11px] font-medium text-sp-subdued hover:border-sp-accent hover:text-sp-accent"
-                            >
-                              忽略
-                            </button>
-                          </div>
-                        </div>
-                        {reason && <div className="mt-1 text-sp-text">{reason}</div>}
-                        <div className="mt-2 rounded-md bg-sp-muted px-2 py-1.5 text-sp-subdued line-through">{item.before || "空"}</div>
-                        <div className="mt-1 rounded-md bg-sp-accentSoft px-2 py-1.5 text-sp-text">{item.after || "空"}</div>
-                      </div>
-                    );
-                  })}
-                  {assistantPatchPreview.length === 0 && ignoredAssistantFields.length > 0 && (
-                    <div className="rounded-lg bg-sp-surface px-3 py-3 text-xs leading-5 text-sp-subdued">
-                      当前建议已全部忽略，可恢复后重新选择。
-                    </div>
-                  )}
-                </div>
-              )}
-              {assistantResult.patchNotes.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  <div className="text-xs font-semibold text-sp-text">修改理由</div>
-                  {assistantResult.patchNotes.slice(0, 6).map((note, index) => (
-                    <div key={`${note.field}-${index}`} className="rounded-lg bg-sp-surface px-3 py-2 text-xs leading-5">
-                      <div className="font-mono text-[11px] text-sp-subdued">{note.field}</div>
-                      <div className="mt-1 text-sp-text">{note.reason}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {assistantPatchPreview.length === 0 && assistantResult.nextActions.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  <div className="text-xs font-semibold text-sp-text">下一步</div>
-                  {assistantResult.nextActions.slice(0, 6).map((item, index) => (
-                    <div key={`${item}-${index}`} className="rounded-lg bg-sp-surface px-3 py-2 text-xs leading-5 text-sp-text">
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="mt-4 flex min-h-0 flex-1 items-center justify-center rounded-xl border border-dashed border-sp-border bg-sp-muted p-6 text-center text-sm leading-6 text-sp-subdued">
-              按上面三步生成建议卡片。结果会先显示在这里，不会自动覆盖当前工程。
-            </div>
-          )}
-          {assistantResult && assistantPatchPreview.length > 0 && (
-            <div className="mt-3 border-t border-sp-border pt-3">
-              <button
-                type="button"
-                onClick={applyAssistantPatch}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-sp-accent text-sm font-semibold text-white hover:opacity-90"
-              >
-                <i className="fa-solid fa-check text-[12px]" />
-                一键回填到当前草稿
-              </button>
-              <p className="mt-2 text-center text-[11px] leading-5 text-sp-subdued">
-                回填只更新当前草稿，仍需要点击保存工程。
-              </p>
-            </div>
-          )}
         </div>
       )}
       <button
@@ -3333,7 +3430,7 @@ export function ProjectEditorClient({
             </button>
           </div>
 
-          <div className="grid max-h-[calc(90vh-82px)] gap-5 overflow-y-auto p-5 md:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="grid max-h-[calc(90vh-82px)] gap-5 overflow-y-auto p-5 md:grid-cols-[minmax(0,1fr)_320px]">
             <div className="space-y-4">
               <Field label="生成提示词">
                 <TextArea
@@ -3345,6 +3442,11 @@ export function ProjectEditorClient({
                   rows={10}
                 />
               </Field>
+              {assetGeneratorSpecText(assetGenerator.target) && (
+                <div className="rounded-xl border border-sp-border bg-sp-muted px-3 py-2 text-xs leading-5 text-sp-subdued">
+                  {assetGeneratorSpecText(assetGenerator.target)}
+                </div>
+              )}
               {assetGenerator.error && (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">
                   {assetGenerator.error}
@@ -3379,10 +3481,12 @@ export function ProjectEditorClient({
                   <img
                     src={assetGenerator.resultUrl}
                     alt=""
-                    className="aspect-[3/4] w-full object-cover"
+                    className={`${assetGeneratorPreviewAspect(assetGenerator.target)} w-full object-cover`}
                   />
                 ) : (
-                  <div className="flex aspect-[3/4] items-center justify-center p-6 text-center text-sm leading-6 text-sp-subdued">
+                  <div
+                    className={`flex ${assetGeneratorPreviewAspect(assetGenerator.target)} items-center justify-center p-6 text-center text-sm leading-6 text-sp-subdued`}
+                  >
                     {assetGenerator.loading ? "正在生成图片..." : "生成后会在这里预览"}
                   </div>
                 )}

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { buildStorySkuFromProject } from "@/lib/storyProject/publish";
 import {
-  getStoredStoryProject,
   saveStoredStoryProject,
 } from "@/lib/storyProject/store";
+import { requireOwnedStoryProject } from "@/lib/storyProject/auth";
 import { validateStoryProject } from "@/lib/storyProject/types";
 import { savePublishedStorySku } from "@/lib/storySku/publishedStore";
 
@@ -13,14 +13,11 @@ type ProjectPublishRouteContext = {
   params: Promise<{ id: string }>;
 };
 
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ error: message }, { status });
-}
-
 export async function POST(_req: Request, context: ProjectPublishRouteContext) {
   const { id } = await context.params;
-  const project = await getStoredStoryProject(id);
-  if (!project) return jsonError("Unknown project id", 404);
+  const owned = await requireOwnedStoryProject(id);
+  if (owned instanceof NextResponse) return owned;
+  const project = owned.project;
 
   const issues = validateStoryProject(project);
   if (issues.length > 0) {

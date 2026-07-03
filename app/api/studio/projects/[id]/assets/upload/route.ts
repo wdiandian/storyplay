@@ -3,7 +3,7 @@ import {
   buildStudioAssetKey,
   storeStudioAsset,
 } from "@/lib/storyProject/assetStorage";
-import { getStoredStoryProject } from "@/lib/storyProject/store";
+import { requireOwnedStoryProject } from "@/lib/storyProject/auth";
 import type { StoryProjectAssetKind } from "@/lib/storyProject/types";
 
 export const runtime = "nodejs";
@@ -36,8 +36,8 @@ function readString(value: FormDataEntryValue | null) {
 
 export async function POST(req: Request, context: RouteContext) {
   const { id } = await context.params;
-  const project = await getStoredStoryProject(id);
-  if (!project) return jsonError("Unknown project id", 404);
+  const owned = await requireOwnedStoryProject(id);
+  if (owned instanceof NextResponse) return owned;
 
   let formData: FormData;
   try {

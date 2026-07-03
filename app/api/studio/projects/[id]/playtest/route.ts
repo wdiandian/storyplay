@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { compileStoryProjectToStartRequest } from "@/lib/storyProject/compiler";
 import {
-  getStoredStoryProject,
   saveStoredStoryProject,
 } from "@/lib/storyProject/store";
+import { requireOwnedStoryProject } from "@/lib/storyProject/auth";
 import { createStoryProjectPlaytestId, type StoryProjectPlaytestRecord } from "@/lib/storyProject/types";
 
 export const runtime = "nodejs";
@@ -12,14 +12,11 @@ type ProjectPlaytestRouteContext = {
   params: Promise<{ id: string }>;
 };
 
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ error: message }, { status });
-}
-
 export async function POST(_req: Request, context: ProjectPlaytestRouteContext) {
   const { id } = await context.params;
-  const project = await getStoredStoryProject(id);
-  if (!project) return jsonError("Unknown project id", 404);
+  const owned = await requireOwnedStoryProject(id);
+  if (owned instanceof NextResponse) return owned;
+  const project = owned.project;
 
   const build = compileStoryProjectToStartRequest(project);
   const now = new Date().toISOString();
