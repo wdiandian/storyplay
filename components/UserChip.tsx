@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AuthModal } from "@/components/AuthModal";
 import { AUTH_ENABLED } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/client";
 import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
@@ -23,6 +24,7 @@ export function UserChip() {
   const locale = useMemo(() => readLocaleFromPath(pathname), [pathname]);
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
 
   useEffect(() => {
     if (!AUTH_ENABLED) return;
@@ -43,7 +45,29 @@ export function UserChip() {
     setMenuOpen(false);
   }, []);
 
-  if (!AUTH_ENABLED || !user) return null;
+  if (!AUTH_ENABLED) return null;
+
+  if (!user) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setAuthOpen(true)}
+          className="inline-flex h-9 items-center gap-2 rounded-full border border-sp-border bg-sp-surface/82 px-3 text-xs font-semibold text-sp-subdued shadow-sm shadow-black/[0.04] outline-none backdrop-blur transition-colors hover:border-sp-accent hover:text-sp-accent focus-visible:ring-2 focus-visible:ring-sp-focus/40"
+          title="登录"
+        >
+          <i className="fa-solid fa-user text-[11px]" />
+          <span className="hidden sm:inline">登录</span>
+        </button>
+        {authOpen && (
+          <AuthModal
+            onClose={() => setAuthOpen(false)}
+            onSuccess={() => setAuthOpen(false)}
+          />
+        )}
+      </>
+    );
+  }
 
   const label =
     user.user_metadata?.full_name ??
@@ -62,48 +86,42 @@ export function UserChip() {
     <div className="relative">
       <button
         type="button"
-        onClick={() => setMenuOpen((v) => !v)}
-        className="flex items-center justify-center rounded-full border border-cream-50/15 bg-cream-50/[0.06] p-0.5 text-cream-50/80 transition-colors hover:bg-cream-50/[0.12]"
-        title={label}
+        onClick={() => setMenuOpen((value) => !value)}
+        className="inline-flex h-9 items-center gap-2 rounded-full border border-sp-border bg-sp-surface/82 px-2.5 text-xs font-semibold text-sp-subdued shadow-sm shadow-black/[0.04] outline-none backdrop-blur transition-colors hover:border-sp-accent hover:text-sp-accent focus-visible:ring-2 focus-visible:ring-sp-focus/40"
+        title="账号"
       >
         {avatarUrl ? (
           <img
             src={avatarUrl}
             alt=""
-            className="h-4 w-4 rounded-full object-cover"
+            className="h-5 w-5 rounded-full object-cover"
             referrerPolicy="no-referrer"
           />
         ) : (
-          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[rgba(175,138,72,0.6)] text-[9px] font-medium text-cream-50">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-sp-accentSoft text-[10px] font-semibold text-sp-accent">
             {initial}
           </span>
         )}
+        <span className="hidden sm:inline">账号</span>
       </button>
+
       {menuOpen && (
         <>
           <div
             className="fixed inset-0 z-40"
             onClick={() => setMenuOpen(false)}
           />
-          <div
-            className="absolute right-0 top-full z-50 mt-1 min-w-[156px] overflow-hidden rounded-md"
-            style={{
-              background: "rgba(14, 10, 6, 0.92)",
-              border: "1px solid rgba(175, 138, 72, 0.5)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-            }}
-          >
-            <div className="border-b border-cream-50/10 px-3.5 py-2.5">
-              <div className="truncate text-[12px] font-medium text-cream-50/90">{label}</div>
-              <div className="mt-0.5 truncate text-[10px] text-cream-50/45">{user.email}</div>
+          <div className="absolute right-0 top-full z-50 mt-2 min-w-[176px] overflow-hidden rounded-xl border border-sp-border bg-sp-surface shadow-[0_18px_48px_rgba(0,0,0,0.12)] backdrop-blur">
+            <div className="border-b border-sp-border px-3.5 py-2.5">
+              <div className="truncate text-[12px] font-semibold text-sp-text">{label}</div>
+              <div className="mt-0.5 truncate text-[10px] text-sp-subdued">{user.email}</div>
             </div>
             {menuItems.map((item) => (
               <Link
                 key={item.href}
                 href={localePath(item.href, locale)}
                 onClick={() => setMenuOpen(false)}
-                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-[12px] text-cream-50/70 transition-colors hover:bg-cream-50/[0.08] hover:text-cream-50/90"
+                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-[12px] text-sp-subdued transition-colors hover:bg-sp-muted hover:text-sp-text"
               >
                 <i className={`fa-solid ${item.icon} w-4 text-center text-[11px]`} />
                 {item.label}
@@ -112,7 +130,7 @@ export function UserChip() {
             <button
               type="button"
               onClick={handleLogout}
-              className="flex w-full items-center gap-2 border-t border-cream-50/10 px-3.5 py-2.5 text-[12px] text-cream-50/70 transition-colors hover:bg-cream-50/[0.08] hover:text-cream-50/90"
+              className="flex w-full items-center gap-2 border-t border-sp-border px-3.5 py-2.5 text-[12px] text-sp-subdued transition-colors hover:bg-sp-muted hover:text-sp-text"
             >
               <i className="fa-solid fa-right-from-bracket w-4 text-center text-[11px]" />
               退出登录
