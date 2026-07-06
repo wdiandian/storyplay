@@ -169,8 +169,9 @@ export const zhCN = {
       helpAriaLabel: "查看创作说明",
       helpText: (params: { authEnabled?: boolean }) => {
         const authHint = params.authEnabled ? "测试期间需要登录，当前可免费体验。" : "";
-        return `输入一个故事想法后，可以在输入框底部快速设定受众、画风、剧情风格和节奏；更完整的创作者编辑工具会在后续阶段接入。${authHint}`;
+        return `输入一个故事想法后，可以在输入框底部快速设定受众、画风、剧情风格和节奏；需要更完整的故事编辑能力时，可以进入创作者后台。${authHint}`;
       },
+      creatorStudioLink: "进入创作者后台",
     },
 
     storyTaxonomy: {
@@ -431,6 +432,17 @@ export const zhCN = {
       save: "保存",
       clearAll: "全部清除",
     },
+    account: {
+      title: "账号",
+      signedOutHint: "登录后，故事工程、故事存档和后续创作资产会绑定到你的账号。",
+      authUnavailable: "当前环境还没有配置账号服务。上线环境配置 Supabase 后，这里会显示登录入口。",
+      signIn: "登录",
+      signedIn: "已登录",
+      accountCenter: "账号中心",
+      studio: "创作后台",
+      stories: "我的故事",
+      signOut: "退出登录",
+    },
   },
 
   // ========== Auth Modal (AuthModal.tsx) ==========
@@ -446,6 +458,7 @@ export const zhCN = {
     googleLogin: "Google 登录",
     githubLogin: "GitHub 登录",
     emailLogin: "邮箱验证码登录",
+    emailHint: "输入邮箱后，我们会发送 6 位验证码。你也可以使用 Google 快速登录。",
     or: "或",
 
     // Email input

@@ -162,8 +162,9 @@ export const ja = {
       helpAriaLabel: "作成ヘルプを表示",
       helpText: (params: { authEnabled?: boolean }) => {
         const authHint = params.authEnabled ? " ベータ期間中はログインが必要で、無料でプレイできます。" : "";
-        return `物語のアイデアを入力し、下部の設定で対象、画風、シナリオスタイル、テンポをすばやく調整できます。より本格的なクリエイター編集ツールは後続フェーズで接続します。${authHint}`;
+        return `物語のアイデアを入力し、下部の設定で対象、画風、シナリオスタイル、テンポをすばやく調整できます。より深い編集はクリエイタースタジオから行えます。${authHint}`;
       },
+      creatorStudioLink: "クリエイタースタジオへ",
     },
 
     storyTaxonomy: {
@@ -424,6 +425,17 @@ export const ja = {
       save: "保存",
       clearAll: "すべてクリア",
     },
+    account: {
+      title: "アカウント",
+      signedOutHint: "ログインすると、ストーリープロジェクト、保存した物語、今後の制作素材がアカウントに紐づきます。",
+      authUnavailable: "この環境ではアカウントサービスが未設定です。Supabase を設定すると、ここにログイン入口が表示されます。",
+      signIn: "ログイン",
+      signedIn: "ログイン済み",
+      accountCenter: "アカウント",
+      studio: "スタジオ",
+      stories: "物語",
+      signOut: "ログアウト",
+    },
   },
 
   // ========== Auth Modal (AuthModal.tsx) ==========
@@ -439,6 +451,7 @@ export const ja = {
     googleLogin: "Google ログイン",
     githubLogin: "GitHubでログイン",
     emailLogin: "メール認証コードでログイン",
+    emailHint: "メールアドレスを入力すると、6桁の認証コードを送信します。Google でもログインできます。",
     or: "または",
 
     // Email input

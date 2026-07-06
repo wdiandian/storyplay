@@ -106,6 +106,7 @@ export function buildCreatorStoryAssistantMessages(
     "Respect locked characters. If a character has locked=true, do not change that character; add suggestions instead.",
     "Use the same language as project.language unless the creator explicitly asks otherwise.",
     "Keep generated text concise and directly usable inside the editor.",
+    "For normal chat requests, make summary a direct creator-facing answer, not a report about what you changed. If the creator asks for a prompt or text, put the usable text in summary and also in the matching patch field. Use suggestions mainly for diagnose/audit requests.",
   ].join("\n");
 
   const schema = {

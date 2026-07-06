@@ -22,7 +22,6 @@ import { STYLE_EXTRACTION_PROMPT } from "@/lib/styleExtraction";
 import { AUTH_ENABLED } from "@/lib/supabase/config";
 import { isAuthed, writeResumeSnapshot } from "@/lib/authResume";
 import { AuthModal } from "@/components/AuthModal";
-import { UserChip } from "@/components/UserChip";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useI18n } from "@/lib/i18n/client";
 import { useLocalePath } from "@/lib/i18n/hooks";
@@ -2042,7 +2041,6 @@ export default function HomePage() {
           >
             <i className="fa-solid fa-gear text-[13px]" />
           </button>
-          <UserChip />
         </div>
       </header>
 
@@ -2061,8 +2059,15 @@ export default function HomePage() {
               >
                 <i className="fa-regular fa-circle-question text-sm" />
               </button>
-              <div className="pointer-events-none absolute left-1/2 top-full z-30 mt-3 w-[min(360px,calc(100vw-3rem))] -translate-x-1/2 rounded-2xl border border-sp-border bg-sp-surface px-4 py-3 text-left font-sans text-xs leading-relaxed text-sp-subdued opacity-0 shadow-2xl shadow-black/10 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                {t("home.hero.helpText", { authEnabled: AUTH_ENABLED })}
+              <div className="pointer-events-auto absolute left-1/2 top-full z-30 mt-3 w-[min(360px,calc(100vw-3rem))] -translate-x-1/2 rounded-2xl border border-sp-border bg-sp-surface px-4 py-3 text-left font-sans text-xs leading-relaxed text-sp-subdued opacity-0 shadow-2xl shadow-black/10 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                <p>{t("home.hero.helpText", { authEnabled: AUTH_ENABLED })}</p>
+                <a
+                  href={lp("/studio/projects")}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-sp-border bg-sp-muted px-3 py-1.5 text-[11px] font-semibold text-sp-text transition-colors hover:border-sp-accent hover:text-sp-accent"
+                >
+                  <i className="fa-solid fa-pen-nib text-[10px]" />
+                  {t("home.hero.creatorStudioLink")}
+                </a>
               </div>
             </div>
           </div>
@@ -2274,7 +2279,7 @@ export default function HomePage() {
           }}
           //
           // Only snapshot when the user is mid-start: the OAuth redirect also
-          // fires for bare logins (UserChip / StyleModal onRequireAuth), where
+          // fires for bare logins (Settings / StyleModal onRequireAuth), where
           // the user just wants to sign in — not kick off a game. Guarding on
           // pendingAction keeps bare logins from auto-starting a session on
           // return. (start() sets pendingAction="start" right before opening

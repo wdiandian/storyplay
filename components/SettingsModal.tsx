@@ -1,7 +1,11 @@
 "use client";
 
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ProviderProtocol } from "@storyplay/types";
+import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
+import { AuthModal } from "@/components/AuthModal";
 import {
   fetchBillingSummary,
   type BillingSummary,
@@ -26,6 +30,8 @@ import {
   TTS_REGION_PRESETS,
 } from "@/lib/ttsPresets";
 import { useI18n } from "@/lib/i18n/client";
+import { AUTH_ENABLED } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/client";
 
 const PLAYER_NAME_STORAGE_KEY = "storyplay:playerName";
 const VISION_CLICK_STORAGE_KEY = "storyplay:visionClick";
@@ -76,12 +82,19 @@ type ModelGroup = {
 
 type TabKey = "general" | "models";
 
+function localePath(path: string, pathname: string | null) {
+  if (pathname?.startsWith("/en")) return `/en${path}`;
+  if (pathname?.startsWith("/ja")) return `/ja${path}`;
+  return path;
+}
+
 export function SettingsModal({
   initialTab = "general",
   initialVisionClickEnabled = true,
   onClose,
   onSaved,
   footerNote,
+  onBeforeOAuth,
 }: {
   initialTab?: TabKey;
   initialVisionClickEnabled?: boolean;
@@ -92,13 +105,17 @@ export function SettingsModal({
     ttsConfigured: boolean;
   }) => void;
   footerNote?: ReactNode;
+  onBeforeOAuth?: () => void;
 }) {
   const { t } = useI18n();
+  const pathname = usePathname();
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
 
   // ── General tab state ──
   const [playerName, setPlayerName] = useState(() => readStoredPlayerName());
   const [visionClick, setVisionClick] = useState(initialVisionClickEnabled);
+  const [user, setUser] = useState<User | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
 
   // ── Models tab state ──
   const initial = readStoredModelConfig();
@@ -174,6 +191,19 @@ export function SettingsModal({
     return () => window.clearTimeout(id);
   }, [initialTab, loadBillingSummary, modelMode]);
 
+  useEffect(() => {
+    if (!AUTH_ENABLED) return;
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }: { data: { user: User | null } }) => setUser(data.user));
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+      setUser(session?.user ?? null);
+      if (session?.user) setAuthOpen(false);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   // ── Animation ──
   const [shown, setShown] = useState(false);
   useEffect(() => {
@@ -209,6 +239,12 @@ export function SettingsModal({
     setPlayerName("");
     setVisionClick(true);
   };
+
+  const signOut = useCallback(async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setUser(null);
+  }, []);
 
   const hasGeneralSetting = readStoredPlayerName().length > 0;
 
@@ -372,6 +408,94 @@ export function SettingsModal({
         <div className="thin-scrollbar flex flex-col gap-0 overflow-y-auto flex-1">
           {activeTab === "general" && (
             <>
+              {(
+                <>
+                  <div className="flex flex-col gap-3 px-6 py-5 md:px-8">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-sm border border-clay-900/10 bg-cream-100 text-clay-400">
+                        <i className="fa-solid fa-user text-[11px]" />
+                      </span>
+                      <span className="font-serif text-base text-clay-900">
+                        {t("settings.account.title")}
+                      </span>
+                    </div>
+
+                    {user ? (
+                      <div className="rounded-sm border border-clay-900/10 bg-cream-100 px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium text-clay-900">
+                              {user.user_metadata?.full_name ??
+                                user.email?.split("@")[0] ??
+                                t("settings.account.signedIn")}
+                            </div>
+                            <div className="mt-1 truncate text-[11px] text-clay-400">
+                              {user.email ?? t("settings.account.signedIn")}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={signOut}
+                            className="shrink-0 rounded-sm border border-clay-900/15 px-3 py-1.5 text-[12px] text-clay-600 transition-colors hover:border-clay-900/35 hover:text-clay-900"
+                          >
+                            {t("settings.account.signOut")}
+                          </button>
+                        </div>
+                        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                          {[
+                            {
+                              href: "/account",
+                              icon: "fa-solid fa-user",
+                              label: t("settings.account.accountCenter"),
+                            },
+                            {
+                              href: "/studio/projects",
+                              icon: "fa-solid fa-pen-nib",
+                              label: t("settings.account.studio"),
+                            },
+                            {
+                              href: "/stories",
+                              icon: "fa-solid fa-book-open",
+                              label: t("settings.account.stories"),
+                            },
+                          ].map((item) => (
+                            <Link
+                              key={item.href}
+                              href={localePath(item.href, pathname)}
+                              onClick={close}
+                              className="flex items-center justify-center gap-2 rounded-sm border border-clay-900/12 px-3 py-2 text-[12px] text-clay-600 transition-colors hover:border-ember-500 hover:bg-ember-500/5 hover:text-clay-900"
+                            >
+                              <i className={`${item.icon} text-[10px]`} />
+                              {item.label}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-sm border border-clay-900/10 bg-cream-100 px-4 py-3">
+                        <p className="text-[12px] leading-relaxed text-clay-500">
+                          {AUTH_ENABLED
+                            ? t("settings.account.signedOutHint")
+                            : t("settings.account.authUnavailable")}
+                        </p>
+                        {AUTH_ENABLED && (
+                          <button
+                            type="button"
+                            onClick={() => setAuthOpen(true)}
+                            className="mt-3 inline-flex items-center gap-2 rounded-sm bg-clay-900 px-4 py-2 text-[13px] text-cream-50 transition-colors hover:bg-ember-500"
+                          >
+                            <i className="fa-solid fa-right-to-bracket text-[11px]" />
+                            {t("settings.account.signIn")}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mx-6 border-t border-clay-900/8 md:mx-8" />
+                </>
+              )}
+
               {/* ── Player Name Section ── */}
               <div className="flex flex-col gap-3 px-6 md:px-8 py-5">
                 <div className="flex items-center gap-2.5">
@@ -836,6 +960,14 @@ export function SettingsModal({
             </>
           )}
         </div>
+
+        {authOpen && (
+          <AuthModal
+            onClose={() => setAuthOpen(false)}
+            onSuccess={() => setAuthOpen(false)}
+            onBeforeOAuth={onBeforeOAuth}
+          />
+        )}
 
         {/* Footer */}
         <div className="flex items-center gap-3 border-t border-clay-900/10 px-6 md:px-8 py-4">

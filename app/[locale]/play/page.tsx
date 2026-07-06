@@ -63,7 +63,6 @@ import { track } from "@/lib/analytics";
 import { AUTH_ENABLED } from "@/lib/supabase/config";
 import { writeResumeSnapshot, consumeResumeSnapshot } from "@/lib/authResume";
 import { AuthModal } from "@/components/AuthModal";
-import { UserChip } from "@/components/UserChip";
 import { useI18n } from "@/lib/i18n/client";
 import { useLocalePath } from "@/lib/i18n/hooks";
 
@@ -2834,6 +2833,7 @@ function PlayInner() {
             onClose={() => setSettingsOpen(false)}
             onSaved={handleSettingsSaved}
             footerNote={t("play.settingsFooter")}
+            onBeforeOAuth={persistPlayResume}
           />
         )}
         {authModalOpen && (
@@ -2918,7 +2918,6 @@ function PlayInner() {
             <span className="text-clay-300">·</span>
             <span>{t("play.counter.beat", { n: String(beatCount).padStart(3, "0") })}</span>
           </div>
-          <UserChip />
         </div>
       </header>
 
@@ -3062,6 +3061,7 @@ function PlayInner() {
           onClose={() => setSettingsOpen(false)}
           onSaved={handleSettingsSaved}
           footerNote={t("play.settingsFooter")}
+          onBeforeOAuth={persistPlayResume}
         />
       )}
       {authModalOpen && (

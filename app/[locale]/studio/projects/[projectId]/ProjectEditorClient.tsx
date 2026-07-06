@@ -11,6 +11,7 @@ import {
   hasCreatorStoryAssistantPatch,
   mergeCreatorStoryAssistantPatch,
   previewCreatorStoryAssistantPatch,
+  type CreatorStoryAssistantPatchPreview,
 } from "@/lib/creatorAssistant/mergePatch";
 import type {
   CreatorStoryAssistantAction,
@@ -186,6 +187,140 @@ function filterAssistantPatchFields(patch: StoryProjectPatch, ignoredFields: str
 
 function proposalReasonForField(notes: CreatorStoryAssistantOutput["patchNotes"], field: string) {
   return notes.find((note) => note.field === field || field.startsWith(`${note.field}.`))?.reason;
+}
+
+function assetKindLabelZh(kind?: string) {
+  if (kind === "cover") return "封面";
+  if (kind === "first-scene") return "首场图";
+  if (kind === "character-reference") return "角色参考图";
+  if (kind === "style-reference") return "风格参考";
+  if (kind === "runtime-scene") return "运行场景图";
+  return "资产";
+}
+
+function assistantFieldActionLabel(field: string, result: CreatorStoryAssistantOutput | null) {
+  if (field === "assets" || field.startsWith("assets")) {
+    const asset = result?.patch.assets?.[0];
+    if (asset?.prompt) return `回填到${assetKindLabelZh(asset.kind)}提示词`;
+    if (asset?.notes) return `回填到${assetKindLabelZh(asset.kind)}备注`;
+    return "回填到资产库";
+  }
+  if (field === "characters" || field.startsWith("characters")) {
+    const character = result?.patch.characters?.[0];
+    if (character?.referenceImagePrompt) return "回填到角色参考图提示词";
+    if (character?.visualNotes) return "回填到角色外貌设定";
+    if (character?.persona) return "回填到角色性格设定";
+    return "回填到角色设定";
+  }
+
+  const labels: Record<string, string> = {
+    title: "回填到故事标题",
+    logline: "回填到一句话钩子",
+    synopsis: "回填到故事简介",
+    genres: "回填到题材标签",
+    moods: "回填到情绪标签",
+    tags: "回填到搜索标签",
+    "world.setting": "回填到世界设定",
+    "world.rules": "回填到世界规则",
+    "world.locations": "回填到主要地点",
+    "world.tone": "回填到叙事调性",
+    "narrative.protagonist": "回填到主角/玩家身份",
+    "narrative.coreConflict": "回填到核心冲突",
+    "narrative.creatorNotes": "回填到创作备注",
+    "narrative.keyMysteries": "回填到关键谜团",
+    "narrative.chapterGoals": "回填到章节目标",
+    "storyOutline.mainGoal": "回填到主线目标",
+    "storyOutline.phaseOutline": "回填到阶段大纲",
+    "storyOutline.requiredBeats": "回填到必达剧情点",
+    "storyOutline.relationshipArc": "回填到关系弧线",
+    "storyOutline.supportingCast": "回填到配角规划",
+    "storyOutline.endingDirection": "回填到结局方向",
+    "storyOutline.guardrails": "回填到防跑偏规则",
+    "interaction.choiceStyle": "回填到选项风格",
+    "interaction.branchNotes": "回填到分支说明",
+    "visual.stylePrompt": "回填到视觉风格",
+    "runtimePolicy.styleGuide": "回填到运行风格指南",
+  };
+  return labels[field] ?? "回填到当前草稿";
+}
+
+function collectAssistantReadableEntries(patch: StoryProjectPatch) {
+  const entries: Array<{ label: string; value: string }> = [];
+  const add = (label: string, value: unknown) => {
+    if (Array.isArray(value)) {
+      const text = value.filter(Boolean).join("\n");
+      if (text.trim()) entries.push({ label, value: text });
+      return;
+    }
+    if (typeof value === "string" && value.trim()) {
+      entries.push({ label, value: value.trim() });
+    }
+  };
+
+  patch.assets?.forEach((asset) => {
+    add(`${assetKindLabelZh(asset.kind)}提示词`, asset.prompt);
+    add(`${assetKindLabelZh(asset.kind)}备注`, asset.notes);
+  });
+  patch.characters?.forEach((character) => {
+    const name = character.name ? `${character.name} · ` : "";
+    add(`${name}角色参考图提示词`, character.referenceImagePrompt);
+    add(`${name}角色外貌`, character.visualNotes);
+    add(`${name}角色性格`, character.persona);
+    add(`${name}与玩家关系`, character.relationshipToPlayer);
+  });
+  add("故事标题", patch.title);
+  add("一句话钩子", patch.logline);
+  add("故事简介", patch.synopsis);
+  add("世界设定", patch.world?.setting);
+  add("世界规则", patch.world?.rules);
+  add("主要地点", patch.world?.locations);
+  add("叙事调性", patch.world?.tone);
+  add("主角/玩家身份", patch.narrative?.protagonist);
+  add("核心冲突", patch.narrative?.coreConflict);
+  add("关键谜团", patch.narrative?.keyMysteries);
+  add("章节目标", patch.narrative?.chapterGoals);
+  add("创作备注", patch.narrative?.creatorNotes);
+  add("主线目标", patch.storyOutline?.mainGoal);
+  add("阶段大纲", patch.storyOutline?.phaseOutline);
+  add("必达剧情点", patch.storyOutline?.requiredBeats);
+  add("关系弧线", patch.storyOutline?.relationshipArc);
+  add("配角规划", patch.storyOutline?.supportingCast);
+  add("结局方向", patch.storyOutline?.endingDirection);
+  add("防跑偏规则", patch.storyOutline?.guardrails);
+  add("视觉风格", patch.visual?.stylePrompt);
+  add("运行风格指南", patch.runtimePolicy?.styleGuide);
+  add("选项风格", patch.interaction?.choiceStyle);
+  add("分支说明", patch.interaction?.branchNotes);
+  return entries;
+}
+
+function assistantConversationReply(result: CreatorStoryAssistantOutput, action: CreatorStoryAssistantAction) {
+  if (action === "diagnose") return result.summary;
+  const entries = collectAssistantReadableEntries(result.patch).slice(0, 3);
+  if (entries.length === 0) return result.summary;
+  if (entries.length === 1) return entries[0]!.value;
+  return entries.map((entry) => `${entry.label}\n${entry.value}`).join("\n\n");
+}
+
+function assistantPatchCardAfter(
+  item: CreatorStoryAssistantPatchPreview,
+  result: CreatorStoryAssistantOutput | null,
+) {
+  if (item.field === "assets" || item.field.startsWith("assets")) {
+    const asset = result?.patch.assets?.[0];
+    return asset?.prompt || asset?.notes || item.after;
+  }
+  if (item.field === "characters" || item.field.startsWith("characters")) {
+    const character = result?.patch.characters?.[0];
+    return (
+      character?.referenceImagePrompt ||
+      character?.visualNotes ||
+      character?.persona ||
+      character?.relationshipToPlayer ||
+      item.after
+    );
+  }
+  return item.after;
 }
 
 function projectAudienceLabel(audience: StoryProjectAudience) {
@@ -376,6 +511,7 @@ export function ProjectEditorClient({
   const [assistantLoadingAction, setAssistantLoadingAction] = useState<CreatorStoryAssistantAction | "">("");
   const [assistantResult, setAssistantResult] = useState<CreatorStoryAssistantOutput | null>(null);
   const [ignoredAssistantFields, setIgnoredAssistantFields] = useState<string[]>([]);
+  const [assistantResultMode, setAssistantResultMode] = useState<CreatorStoryAssistantAction | "">("");
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantTarget, setAssistantTarget] = useState<CreatorStoryAssistantTargetSection>("project");
   const [assetGenerator, setAssetGenerator] = useState<AssetGeneratorState>({
@@ -550,6 +686,7 @@ export function ProjectEditorClient({
     setAssistantLoadingAction(action);
     setAssistantResult(null);
     setIgnoredAssistantFields([]);
+    setAssistantResultMode(action);
     setNotice("");
     try {
       const response = await fetch(`/api/studio/projects/${project.id}/assistant`, {
@@ -585,7 +722,7 @@ export function ProjectEditorClient({
       setAssistantResult(data.result);
       setAssistantConversation((current) => [
         ...current,
-        { role: "assistant" as const, content: data.result!.summary },
+        { role: "assistant" as const, content: assistantConversationReply(data.result!, action) },
       ].slice(-10));
       setAssistantOpen(true);
       setNotice("AI 创作助手已生成建议；应用后仍需手动保存工程。");
@@ -612,6 +749,7 @@ export function ProjectEditorClient({
     setAssistantTarget(targetSection);
     setAssistantResult(null);
     setIgnoredAssistantFields([]);
+    setAssistantResultMode("");
   }
 
   function openAssistantForField(
@@ -652,6 +790,7 @@ export function ProjectEditorClient({
   }
 
   function sendAssistantMessage(instruction = assistantInstruction) {
+    if (!instruction.trim() || assistantLoadingAction) return;
     const target = assistantTargets.find((item) => item.value === assistantTarget);
     void runAssistant(target?.action ?? "expand-concept", assistantTarget, instruction);
   }
@@ -3198,7 +3337,7 @@ export function ProjectEditorClient({
                 >
                   <div
                     className={
-                      "max-w-[86%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm " +
+                      "max-w-[86%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm " +
                       (message.role === "creator"
                         ? "rounded-br-md bg-sp-accent text-white"
                         : "rounded-bl-md border border-sp-border bg-sp-surface text-sp-text")
@@ -3219,7 +3358,7 @@ export function ProjectEditorClient({
 
               {assistantResult && (
                 <div className="space-y-3 rounded-2xl rounded-bl-md border border-sp-border bg-sp-surface p-4 shadow-sm">
-                  {assistantResult.suggestions.length > 0 && (
+                  {assistantResultMode === "diagnose" && assistantResult.suggestions.length > 0 && (
                     <div className="space-y-2">
                       <div className="text-xs font-semibold text-sp-text">我看到的重点</div>
                       {assistantResult.suggestions.slice(0, 4).map((suggestion, index) => (
@@ -3274,7 +3413,9 @@ export function ProjectEditorClient({
                             className="rounded-xl border border-sp-border bg-sp-muted px-3 py-2 text-xs leading-5"
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <div className="font-mono text-[11px] text-sp-subdued">{item.field}</div>
+                              <div className="font-semibold text-sp-text">
+                                {assistantFieldActionLabel(item.field, assistantResult)}
+                              </div>
                               <div className="flex shrink-0 gap-1.5">
                                 <button
                                   type="button"
@@ -3293,11 +3434,18 @@ export function ProjectEditorClient({
                               </div>
                             </div>
                             {reason && <div className="mt-1 text-sp-text">{reason}</div>}
-                            <div className="mt-2 rounded-lg bg-sp-surface px-2 py-1.5 text-sp-subdued line-through">
-                              {item.before || "空"}
-                            </div>
-                            <div className="mt-1 rounded-lg bg-sp-accentSoft px-2 py-1.5 text-sp-text">
-                              {item.after || "空"}
+                            {item.before && (
+                              <details className="mt-2">
+                                <summary className="cursor-pointer text-[11px] font-medium text-sp-subdued hover:text-sp-accent">
+                                  查看当前内容
+                                </summary>
+                                <div className="mt-1 max-h-28 overflow-y-auto rounded-lg bg-sp-surface px-2 py-1.5 text-sp-subdued">
+                                  {item.before}
+                                </div>
+                              </details>
+                            )}
+                            <div className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg bg-sp-accentSoft px-3 py-2 text-sp-text">
+                              {assistantPatchCardAfter(item, assistantResult) || "空"}
                             </div>
                           </div>
                         );
@@ -3315,7 +3463,7 @@ export function ProjectEditorClient({
                     </div>
                   )}
 
-                  {assistantPatchPreview.length === 0 && assistantResult.nextActions.length > 0 && (
+                  {assistantResultMode === "diagnose" && assistantPatchPreview.length === 0 && assistantResult.nextActions.length > 0 && (
                     <div className="space-y-2">
                       <div className="text-xs font-semibold text-sp-text">可以继续这样问</div>
                       {assistantResult.nextActions.slice(0, 4).map((item, index) => (
@@ -3368,12 +3516,12 @@ export function ProjectEditorClient({
               />
               <div className="mt-2 flex items-center justify-between gap-3">
                 <span className="text-[11px] leading-5 text-sp-subdued">
-                  当前只会回填“{assistantTargetMeta.label}”可编辑字段。
+                  当前只会回填“{assistantTargetMeta.label}”可编辑字段；想只看正文可以直接说“发给我”。
                 </span>
                 <button
                   type="button"
                   onClick={() => sendAssistantMessage()}
-                  disabled={Boolean(assistantLoadingAction)}
+                  disabled={Boolean(assistantLoadingAction) || !assistantInstruction.trim()}
                   className="inline-flex h-9 shrink-0 items-center gap-2 rounded-xl bg-sp-accent px-4 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <i className="fa-solid fa-paper-plane text-[11px]" />

@@ -149,8 +149,9 @@ Dreamy watercolor style with soft tones and nostalgic atmosphere
       helpAriaLabel: "Show creation help",
       helpText: (params: { authEnabled?: boolean }) => {
         const authHint = params.authEnabled ? " Login is required during beta, and play is free." : "";
-        return `Describe a story idea, then use the bottom controls to set audience, art style, plot style, and pacing. A fuller creator editor will be connected in a later phase.${authHint}`;
+        return `Describe a story idea, then use the bottom controls to set audience, art style, plot style, and pacing. For deeper story editing, open Creator Studio.${authHint}`;
       },
+      creatorStudioLink: "Open Creator Studio",
     },
 
     storyTaxonomy: {
@@ -392,6 +393,17 @@ Dreamy watercolor style with soft tones and nostalgic atmosphere
       save: "Save",
       clearAll: "Clear All",
     },
+    account: {
+      title: "Account",
+      signedOutHint: "Sign in to bind story projects, saved stories, and future creator assets to your account.",
+      authUnavailable: "Account service is not configured in this environment. The login entry appears here after Supabase is configured.",
+      signIn: "Sign In",
+      signedIn: "Signed in",
+      accountCenter: "Account",
+      studio: "Studio",
+      stories: "Stories",
+      signOut: "Sign Out",
+    },
   },
 
   // ========== Auth Modal ==========
@@ -405,6 +417,7 @@ Dreamy watercolor style with soft tones and nostalgic atmosphere
     googleLogin: "Continue with Google",
     githubLogin: "Continue with GitHub",
     emailLogin: "Email Verification Code",
+    emailHint: "Enter your email and we will send a 6-digit code. You can also continue with Google.",
     or: "or",
 
     emailPlaceholder: "your@email.com",

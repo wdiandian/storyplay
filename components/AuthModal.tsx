@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { track } from "@/lib/analytics";
+import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n/client";
 
-type AuthStep = "pick" | "email-input" | "otp-verify";
+type AuthStep = "email-input" | "otp-verify";
 
 export function AuthModal({
   onClose,
@@ -14,14 +14,11 @@ export function AuthModal({
 }: {
   onClose: () => void;
   onSuccess: () => void;
-  // Fires synchronously before the OAuth full-page redirect (signInWithOAuth
-  // navigates the browser away, unmounting the whole React tree). Hosts that
-  // need to survive the round-trip (e.g. play page carrying in-memory game
-  // state) snapshot into sessionStorage here — sessionStorage.setItem is
-  // synchronous, so it completes before the navigation begins.
+  // Fires synchronously before the OAuth full-page redirect. Hosts that need
+  // to survive the round-trip can snapshot in-memory state here.
   onBeforeOAuth?: () => void;
 }) {
-  const [step, setStep] = useState<AuthStep>("pick");
+  const [step, setStep] = useState<AuthStep>("email-input");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,45 +26,40 @@ export function AuthModal({
   const { t } = useI18n();
 
   useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  const handleOAuth = useCallback(
-    async (provider: "google" | "github") => {
-      setLoading(true);
-      setError("");
-      // Snapshot before navigating away — the redirect below unmounts the app,
-      // so any host state must be persisted to sessionStorage *now*.
-      // Non-fatal: if the snapshot fails (e.g. sessionStorage is blocked in
-      // privacy mode), the OAuth flow still proceeds — the user just won't
-      // have their in-progress state restored on return.
-      try {
-        onBeforeOAuth?.();
-      } catch {
-        /* snapshot failure is non-fatal */
-      }
-      const supabase = createClient();
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(window.location.pathname + window.location.search)}`,
-        },
-      });
-      if (oauthError) {
-        setError(oauthError.message);
-        setLoading(false);
-      }
-    },
-    [onBeforeOAuth],
-  );
+  const handleGoogleLogin = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      onBeforeOAuth?.();
+    } catch {
+      /* snapshot failure is non-fatal */
+    }
+
+    const supabase = createClient();
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(window.location.pathname + window.location.search)}`,
+      },
+    });
+
+    if (oauthError) {
+      setError(oauthError.message);
+      setLoading(false);
+    }
+  }, [onBeforeOAuth]);
 
   const handleSendOtp = useCallback(async () => {
     const trimmed = email.trim();
     if (!trimmed) return;
+
     setLoading(true);
     setError("");
     const supabase = createClient();
@@ -75,31 +67,37 @@ export function AuthModal({
       email: trimmed,
     });
     setLoading(false);
+
     if (otpError) {
       setError(otpError.message);
-    } else {
-      setStep("otp-verify");
+      return;
     }
+
+    setStep("otp-verify");
   }, [email]);
 
   const handleVerifyOtp = useCallback(async () => {
     const trimmedOtp = otp.trim();
-    if (!trimmedOtp) return;
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !trimmedOtp) return;
+
     setLoading(true);
     setError("");
     const supabase = createClient();
     const { error: verifyError } = await supabase.auth.verifyOtp({
-      email: email.trim(),
+      email: trimmedEmail,
       token: trimmedOtp,
       type: "email",
     });
     setLoading(false);
+
     if (verifyError) {
       setError(verifyError.message);
-    } else {
-      track("login_success", { provider: "email" });
-      onSuccess();
+      return;
     }
+
+    track("login_success", { provider: "email" });
+    onSuccess();
   }, [email, otp, onSuccess]);
 
   return (
@@ -110,7 +108,7 @@ export function AuthModal({
     >
       <div
         className="w-full max-w-sm overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
         style={{
           background: "rgba(14, 10, 6, 0.92)",
           border: "1.5px solid rgba(175, 138, 72, 0.72)",
@@ -124,13 +122,10 @@ export function AuthModal({
         aria-modal="true"
         aria-label={t("auth.ariaLabel")}
       >
-        {/* header */}
         <div className="flex items-center justify-between border-b border-cream-50/10 px-5 py-3.5">
           <div className="flex items-center gap-2 text-[11px] smallcaps text-cream-50/70">
-            <i className="fa-solid fa-right-to-bracket text-[11px]" />
-            {step === "pick" && t("auth.steps.pick")}
-            {step === "email-input" && t("auth.steps.email")}
-            {step === "otp-verify" && t("auth.steps.otp")}
+            <i className="fa-solid fa-envelope text-[11px]" />
+            {step === "email-input" ? t("auth.steps.email") : t("auth.steps.otp")}
           </div>
           <button
             type="button"
@@ -142,57 +137,38 @@ export function AuthModal({
           </button>
         </div>
 
-        <div className="px-5 py-5 space-y-3">
+        <div className="space-y-3 px-5 py-5">
           {error && (
-            <p className="text-[12px] text-red-400/90 leading-snug">{error}</p>
+            <p className="text-[12px] leading-snug text-red-400/90">{error}</p>
           )}
 
-          {step === "pick" && (
+          {step === "email-input" && (
             <>
               <button
                 type="button"
                 disabled={loading}
-                onClick={() => handleOAuth("google")}
+                onClick={handleGoogleLogin}
                 className="flex w-full items-center justify-center gap-2.5 rounded-md border border-cream-50/15 bg-cream-50/[0.06] px-4 py-2.5 text-[13px] text-cream-50/90 transition-colors hover:bg-cream-50/[0.12] disabled:opacity-50"
               >
                 <i className="fa-brands fa-google text-[14px]" />
                 {t("auth.googleLogin")}
-              </button>
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => handleOAuth("github")}
-                className="flex w-full items-center justify-center gap-2.5 rounded-md border border-cream-50/15 bg-cream-50/[0.06] px-4 py-2.5 text-[13px] text-cream-50/90 transition-colors hover:bg-cream-50/[0.12] disabled:opacity-50"
-              >
-                <i className="fa-brands fa-github text-[14px]" />
-                {t("auth.githubLogin")}
               </button>
               <div className="flex items-center gap-3 py-1">
                 <div className="h-px flex-1 bg-cream-50/10" />
                 <span className="text-[10px] text-cream-50/40">{t("auth.or")}</span>
                 <div className="h-px flex-1 bg-cream-50/10" />
               </div>
-              <button
-                type="button"
-                onClick={() => setStep("email-input")}
-                className="flex w-full items-center justify-center gap-2.5 rounded-md border border-cream-50/15 bg-cream-50/[0.06] px-4 py-2.5 text-[13px] text-cream-50/90 transition-colors hover:bg-cream-50/[0.12]"
-              >
-                <i className="fa-solid fa-envelope text-[13px]" />
-                {t("auth.emailLogin")}
-              </button>
-            </>
-          )}
-
-          {step === "email-input" && (
-            <>
+              <p className="text-[12px] leading-5 text-cream-50/58">
+                {t("auth.emailHint")}
+              </p>
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
+                onChange={(event) => setEmail(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && handleSendOtp()}
                 placeholder={t("auth.emailPlaceholder")}
                 autoFocus
-                className="w-full rounded-md border border-cream-50/15 bg-cream-50/[0.06] px-3.5 py-2.5 text-[13px] text-cream-50/90 placeholder:text-cream-50/30 outline-none focus:border-[rgba(175,138,72,0.6)]"
+                className="w-full rounded-md border border-cream-50/15 bg-cream-50/[0.06] px-3.5 py-2.5 text-[13px] text-cream-50/90 outline-none placeholder:text-cream-50/30 focus:border-[rgba(175,138,72,0.6)]"
               />
               <button
                 type="button"
@@ -204,20 +180,17 @@ export function AuthModal({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setStep("pick");
-                  setError("");
-                }}
+                onClick={onClose}
                 className="w-full text-center text-[12px] text-cream-50/50 transition-colors hover:text-cream-50/80"
               >
-                {t("auth.back")}
+                {t("auth.close")}
               </button>
             </>
           )}
 
           {step === "otp-verify" && (
             <>
-              <p className="text-[12px] text-cream-50/60 leading-snug">
+              <p className="text-[12px] leading-snug text-cream-50/60">
                 {t("auth.codeSent", { email: email.trim() })}
               </p>
               <input
@@ -225,11 +198,11 @@ export function AuthModal({
                 inputMode="numeric"
                 maxLength={6}
                 value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                onKeyDown={(e) => e.key === "Enter" && handleVerifyOtp()}
+                onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))}
+                onKeyDown={(event) => event.key === "Enter" && handleVerifyOtp()}
                 placeholder={t("auth.codePlaceholder")}
                 autoFocus
-                className="w-full rounded-md border border-cream-50/15 bg-cream-50/[0.06] px-3.5 py-2.5 text-center text-[16px] tracking-[0.35em] text-cream-50/90 placeholder:text-cream-50/30 placeholder:tracking-normal outline-none focus:border-[rgba(175,138,72,0.6)]"
+                className="w-full rounded-md border border-cream-50/15 bg-cream-50/[0.06] px-3.5 py-2.5 text-center text-[16px] tracking-[0.35em] text-cream-50/90 outline-none placeholder:text-cream-50/30 placeholder:tracking-normal focus:border-[rgba(175,138,72,0.6)]"
               />
               <button
                 type="button"
