@@ -25,6 +25,7 @@ export type BillingSummary = {
     spent: number;
     remaining: number;
     resetsAt: string;
+    unlimited?: boolean;
   };
   recentUsage: ModelUsageRecord[];
   recentLedger: CreditLedgerEntry[];
@@ -215,6 +216,7 @@ export async function getBillingCreditSpentSince(userId: string, since: Date): P
 export async function getBillingSummaryForUser(input: {
   userId: string;
   dailyLimit: number;
+  dailyUnlimited?: boolean;
   since: Date;
   resetsAt: string;
   limit?: number;
@@ -246,8 +248,9 @@ export async function getBillingSummaryForUser(input: {
         dailyQuota: {
           limit: input.dailyLimit,
           spent: dailySpent,
-          remaining: Math.max(0, input.dailyLimit - dailySpent),
+          remaining: input.dailyUnlimited ? 0 : Math.max(0, input.dailyLimit - dailySpent),
           resetsAt: input.resetsAt,
+          unlimited: input.dailyUnlimited === true,
         },
         recentUsage,
         recentLedger,
@@ -276,8 +279,9 @@ export async function getBillingSummaryForUser(input: {
       dailyQuota: {
         limit: input.dailyLimit,
         spent: dailySpent,
-        remaining: Math.max(0, input.dailyLimit - dailySpent),
+        remaining: input.dailyUnlimited ? 0 : Math.max(0, input.dailyLimit - dailySpent),
         resetsAt: input.resetsAt,
+        unlimited: input.dailyUnlimited === true,
       },
       recentUsage: usage.slice(0, limit),
       recentLedger: ledger.slice(0, limit),

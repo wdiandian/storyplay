@@ -364,6 +364,7 @@ Dreamy watercolor style with soft tones and nostalgic atmosphere
       title: "Today's Official Quota",
       loading: "Loading…",
       unavailable: "Quota unavailable",
+      unlimited: "Unlimited credits",
       remaining: "{remaining} / {limit} credits left",
       spent: "{spent} credits used",
       resets: "Resets at {time}",

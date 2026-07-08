@@ -394,6 +394,7 @@ export const ja = {
       title: "本日の公式枠",
       loading: "読み込み中…",
       unavailable: "利用枠を取得できません",
+      unlimited: "無制限",
       remaining: "残り {remaining} / {limit} 点",
       spent: "{spent} 点使用済み",
       resets: "{time} にリセット",

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getBillingSummaryForUser } from "@/lib/billingStore";
 import {
-  officialDailyCreditLimit,
+  officialDailyCreditQuotaForUser,
   startOfUtcDay,
 } from "@/lib/officialQuota";
 import { resolveBillingUserId } from "@/lib/serverIdentity";
@@ -14,10 +14,11 @@ export async function GET(req: Request) {
   const billingUserId = resolveBillingUserId(auth.userId, req);
 
   try {
-    const dailyLimit = officialDailyCreditLimit();
+    const dailyQuota = officialDailyCreditQuotaForUser(billingUserId);
     return NextResponse.json(await getBillingSummaryForUser({
       userId: billingUserId,
-      dailyLimit,
+      dailyLimit: dailyQuota.limit,
+      dailyUnlimited: dailyQuota.unlimited,
       since: startOfUtcDay(),
       resetsAt: new Date(startOfUtcDay().getTime() + 24 * 60 * 60 * 1000).toISOString(),
       limit: 20,
@@ -25,16 +26,17 @@ export async function GET(req: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Billing store unavailable";
     console.warn("[billing-summary] unavailable:", message);
-    const dailyLimit = officialDailyCreditLimit();
+    const dailyQuota = officialDailyCreditQuotaForUser(billingUserId);
     return NextResponse.json({
       storageProvider: "file",
       databaseAvailable: false,
       balance: 0,
       dailyQuota: {
-        limit: dailyLimit,
+        limit: dailyQuota.limit,
         spent: 0,
-        remaining: dailyLimit,
+        remaining: dailyQuota.unlimited ? 0 : dailyQuota.limit,
         resetsAt: new Date(startOfUtcDay().getTime() + 24 * 60 * 60 * 1000).toISOString(),
+        unlimited: dailyQuota.unlimited,
       },
       recentUsage: [],
       recentLedger: [],

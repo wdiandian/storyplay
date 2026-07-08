@@ -11,6 +11,7 @@ export type BillingSummary = {
     spent: number;
     remaining: number;
     resetsAt: string;
+    unlimited?: boolean;
   };
   recentUsage: unknown[];
   recentLedger: unknown[];
@@ -36,6 +37,7 @@ export async function fetchBillingSummary(): Promise<BillingSummary> {
       spent: Number(data.dailyQuota?.spent ?? 0),
       remaining: Number(data.dailyQuota?.remaining ?? 0),
       resetsAt: String(data.dailyQuota?.resetsAt ?? ""),
+      unlimited: data.dailyQuota?.unlimited === true,
     },
     recentUsage: Array.isArray(data.recentUsage) ? data.recentUsage : [],
     recentLedger: Array.isArray(data.recentLedger) ? data.recentLedger : [],

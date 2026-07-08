@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { AUTH_ENABLED } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
+export const runtime = "nodejs";
+
 // Only allow same-origin relative paths. Rejects `//evil.com`, `/\evil.com`,
 // and absolute URLs that would otherwise turn `${origin}${next}` into an
 // open redirect (CWE-601).
@@ -29,12 +31,19 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const next = safeNext(searchParams.get("next"));
 
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+  try {
+    if (code) {
+      const supabase = await createClient();
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (!error) {
+        return NextResponse.redirect(`${origin}${next}`);
+      }
+      console.warn("[auth-callback] exchange failed:", error.message);
     }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[auth-callback] unexpected error:", message);
   }
+
   return NextResponse.redirect(`${origin}/?auth_error=1`);
 }

@@ -401,6 +401,7 @@ export const zhCN = {
       title: "今日官方额度",
       loading: "读取中…",
       unavailable: "暂时无法读取额度",
+      unlimited: "无限额度",
       remaining: "剩余 {remaining} / {limit} 点",
       spent: "已用 {spent} 点",
       resets: "{time} 重置",

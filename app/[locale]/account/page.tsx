@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getBillingSummaryForUser } from "@/lib/billingStore";
-import { officialDailyCreditLimit, startOfUtcDay } from "@/lib/officialQuota";
+import { officialDailyCreditQuotaForUser, startOfUtcDay } from "@/lib/officialQuota";
 import { AUTH_ENABLED } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { getStudioUserOrNull, filterStoryProjectsForUser } from "@/lib/storyProject/auth";
@@ -14,6 +14,7 @@ type AccountPageProps = {
 };
 
 type AccountProfile = {
+  userId: string;
   label: string;
   email: string;
   provider: string;
@@ -26,6 +27,7 @@ type BillingSnapshot = {
   dailyLimit: number;
   dailySpent: number;
   dailyRemaining: number;
+  dailyUnlimited: boolean;
   resetsAt: string;
 };
 
@@ -48,6 +50,7 @@ function formatDate(value: Date | string) {
 async function getAccountProfile(): Promise<AccountProfile> {
   if (!AUTH_ENABLED) {
     return {
+      userId: "anonymous",
       label: "本地开发模式",
       email: "Auth disabled",
       provider: "anonymous",
@@ -62,6 +65,7 @@ async function getAccountProfile(): Promise<AccountProfile> {
     : "";
 
   return {
+    userId: user?.id ?? "unknown",
     label: fullName || user?.email?.split("@")[0] || "StoryPlay 用户",
     email: user?.email ?? "未绑定邮箱",
     provider: String(user?.app_metadata?.provider ?? "email"),
@@ -69,14 +73,15 @@ async function getAccountProfile(): Promise<AccountProfile> {
 }
 
 async function getBillingSnapshot(userId: string): Promise<BillingSnapshot> {
-  const dailyLimit = officialDailyCreditLimit();
+  const dailyQuota = officialDailyCreditQuotaForUser(userId);
   const since = startOfUtcDay();
   const resetsAt = new Date(since.getTime() + 24 * 60 * 60 * 1000).toISOString();
 
   try {
     const summary = await getBillingSummaryForUser({
       userId,
-      dailyLimit,
+      dailyLimit: dailyQuota.limit,
+      dailyUnlimited: dailyQuota.unlimited,
       since,
       resetsAt,
       limit: 4,
@@ -88,6 +93,7 @@ async function getBillingSnapshot(userId: string): Promise<BillingSnapshot> {
       dailyLimit: summary.dailyQuota.limit,
       dailySpent: summary.dailyQuota.spent,
       dailyRemaining: summary.dailyQuota.remaining,
+      dailyUnlimited: summary.dailyQuota.unlimited === true,
       resetsAt,
     };
   } catch {
@@ -95,12 +101,17 @@ async function getBillingSnapshot(userId: string): Promise<BillingSnapshot> {
       databaseAvailable: false,
       storageProvider: "file",
       balance: 0,
-      dailyLimit,
+      dailyLimit: dailyQuota.limit,
       dailySpent: 0,
-      dailyRemaining: dailyLimit,
+      dailyRemaining: dailyQuota.unlimited ? 0 : dailyQuota.limit,
+      dailyUnlimited: dailyQuota.unlimited,
       resetsAt,
     };
   }
+}
+
+function formatCreditAmount(value: number, unlimited = false) {
+  return unlimited ? "∞" : String(value);
 }
 
 export default async function AccountPage({ params }: AccountPageProps) {
@@ -172,6 +183,9 @@ export default async function AccountPage({ params }: AccountPageProps) {
                 </h2>
                 <p className="mt-1 truncate text-sm text-sp-subdued">{profile.email}</p>
                 <p className="mt-2 text-xs text-sp-subdued">登录方式：{profile.provider}</p>
+                <p className="mt-1 break-all font-mono text-[11px] text-sp-subdued/80">
+                  User ID: {profile.userId}
+                </p>
               </div>
             </div>
           </div>
@@ -271,11 +285,15 @@ export default async function AccountPage({ params }: AccountPageProps) {
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-sp-border bg-sp-muted p-3">
                   <div className="text-[10px] smallcaps text-sp-subdued">今日剩余</div>
-                  <div className="mt-2 font-serif text-2xl font-semibold text-sp-text">{billing.dailyRemaining}</div>
+                  <div className="mt-2 font-serif text-2xl font-semibold text-sp-text">
+                    {formatCreditAmount(billing.dailyRemaining, billing.dailyUnlimited)}
+                  </div>
                 </div>
                 <div className="rounded-xl border border-sp-border bg-sp-muted p-3">
                   <div className="text-[10px] smallcaps text-sp-subdued">今日上限</div>
-                  <div className="mt-2 font-serif text-2xl font-semibold text-sp-text">{billing.dailyLimit}</div>
+                  <div className="mt-2 font-serif text-2xl font-semibold text-sp-text">
+                    {formatCreditAmount(billing.dailyLimit, billing.dailyUnlimited)}
+                  </div>
                 </div>
                 <div className="rounded-xl border border-sp-border bg-sp-muted p-3">
                   <div className="text-[10px] smallcaps text-sp-subdued">今日消耗</div>

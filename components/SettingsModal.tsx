@@ -646,10 +646,12 @@ export function SettingsModal({
                           {billingLoading
                             ? t("settings.billing.loading")
                             : billingSummary
-                              ? t("settings.billing.remaining", {
-                                  remaining: billingSummary.dailyQuota.remaining,
-                                  limit: billingSummary.dailyQuota.limit,
-                                })
+                              ? billingSummary.dailyQuota.unlimited
+                                ? t("settings.billing.unlimited")
+                                : t("settings.billing.remaining", {
+                                    remaining: billingSummary.dailyQuota.remaining,
+                                    limit: billingSummary.dailyQuota.limit,
+                                  })
                               : t("settings.billing.unavailable")}
                         </div>
                       </div>
@@ -674,7 +676,9 @@ export function SettingsModal({
                                 100,
                                 Math.max(
                                   0,
-                                  billingSummary.dailyQuota.limit > 0
+                                  billingSummary.dailyQuota.unlimited
+                                    ? 0
+                                    : billingSummary.dailyQuota.limit > 0
                                     ? (billingSummary.dailyQuota.spent / billingSummary.dailyQuota.limit) * 100
                                     : 100,
                                 ),
