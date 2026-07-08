@@ -2029,6 +2029,17 @@ export default function HomePage() {
         <div className="flex items-center gap-3 md:gap-4">
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
           <LanguageSwitcher variant="compact" />
+          <a
+            href="https://app.storyplay.cc/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t("home.ui.lightExperience")}
+            title={t("home.ui.lightExperience")}
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-sp-border bg-sp-surface/82 px-3 text-xs font-semibold text-sp-subdued shadow-sm shadow-black/[0.04] outline-none backdrop-blur transition-colors hover:border-sp-accent hover:text-sp-accent focus-visible:ring-2 focus-visible:ring-sp-focus/40"
+          >
+            <i className="fa-solid fa-compass text-[12px]" />
+            <span className="hidden lg:inline">{t("home.ui.lightExperience")}</span>
+          </a>
           <button
             type="button"
             onClick={() => {

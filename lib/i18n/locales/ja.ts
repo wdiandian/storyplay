@@ -123,6 +123,7 @@ export const ja = {
       start: "スタート",
       loadStory: "シナリオ読み込み",
       settings: "設定",
+      lightExperience: "ライト体験",
       searchPlaceholder: "スタイルを検索…",
       noMatchingStyle: "一致するスタイルがありません",
       close: "閉じる",

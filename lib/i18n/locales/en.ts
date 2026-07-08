@@ -112,6 +112,7 @@ export const en = {
       start: "Start",
       loadStory: "Load Story",
       settings: "Settings",
+      lightExperience: "Light Experience",
       searchPlaceholder: "Search styles…",
       noMatchingStyle: "No matching styles",
       close: "Close",

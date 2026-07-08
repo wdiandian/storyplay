@@ -130,6 +130,7 @@ export const zhCN = {
       start: "开始",
       loadStory: "载入剧情",
       settings: "设置",
+      lightExperience: "轻量体验",
       searchPlaceholder: "搜索风格…",
       noMatchingStyle: "没有匹配的风格",
       close: "关闭",
