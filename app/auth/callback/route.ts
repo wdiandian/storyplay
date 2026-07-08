@@ -19,8 +19,25 @@ function safeNext(raw: string | null): string {
   return raw;
 }
 
+function publicOrigin(request: NextRequest): string {
+  const configured = process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL;
+  if (configured) return configured.replace(/\/$/, "");
+
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
+  if (forwardedHost) return `${forwardedProto}://${forwardedHost}`;
+
+  const host = request.headers.get("host");
+  if (host && !host.startsWith("0.0.0.0") && !host.startsWith("127.0.0.1")) {
+    return `${request.nextUrl.protocol}//${host}`;
+  }
+
+  return request.nextUrl.origin;
+}
+
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  const origin = publicOrigin(request);
 
   // Auth not configured: nothing can legitimately hit this route, so just
   // bounce home instead of constructing a Supabase client from blank env vars.
